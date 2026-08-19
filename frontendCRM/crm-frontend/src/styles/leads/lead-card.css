@@ -1,0 +1,194 @@
+/* =========================================
+   LEAD CARD
+========================================= */
+
+.lead-card {
+  position: relative;
+
+  min-width: 0;
+
+  padding: 14px;
+
+  background: #ffffff;
+
+  border: 1px solid var(--border);
+
+  border-radius: 7px;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.lead-card:hover {
+  border-color: #d5d9df;
+
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.06);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================
+   TOP
+========================================= */
+
+.lead-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 9px;
+}
+
+.lead-name {
+  min-width: 0;
+
+  overflow: hidden;
+
+  color: var(--text-primary);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lead-menu {
+  width: 25px;
+  height: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 4px;
+
+  background: transparent;
+
+  color: var(--text-secondary);
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.lead-menu:hover {
+  background: #f4f5f7;
+}
+
+
+/* =========================================
+   DETAILS
+========================================= */
+
+.lead-company {
+  margin-bottom: 5px;
+
+  color: var(--text-primary);
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.lead-email,
+.lead-phone {
+  margin-bottom: 4px;
+
+  overflow: hidden;
+
+  color: var(--text-secondary);
+
+  font-size: 10px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.lead-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  margin-top: 13px;
+
+  padding-top: 10px;
+
+  border-top: 1px solid #f0f1f3;
+}
+
+.lead-owner {
+  overflow: hidden;
+
+  color: var(--text-secondary);
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   STATUS
+========================================= */
+
+.lead-status {
+  display: inline-flex;
+  align-items: center;
+
+  flex-shrink: 0;
+
+  padding: 4px 8px;
+
+  border-radius: 10px;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+.lead-status.new {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.lead-status.contacted {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.lead-status.qualified {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.lead-status.converted {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.lead-status.lost {
+  background: #fef2f2;
+  color: #dc2626;
+}

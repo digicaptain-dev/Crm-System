@@ -1,0 +1,52 @@
+.register-page {
+  background:
+    linear-gradient(
+      135deg,
+      #f5f7fb 0%,
+      #eef3ff 100%
+    );
+}
+
+.register-card {
+  max-width: 520px;
+}
+
+.register-form-row {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 12px;
+}
+
+.register-button {
+  width: 100%;
+
+  padding: 11px;
+}
+
+.register-error {
+  margin: -5px 0 15px;
+
+  padding: 9px 11px;
+
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+
+  background: #fef2f2;
+
+  color: var(--danger);
+
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .register-card {
+    padding: 25px;
+  }
+
+  .register-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

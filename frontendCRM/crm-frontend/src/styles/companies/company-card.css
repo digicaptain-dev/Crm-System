@@ -1,0 +1,114 @@
+.company-card {
+  padding: 15px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.company-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.company-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.company-logo.small {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+}
+
+.company-name {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.company-industry {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.company-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 15px;
+}
+
+.company-card-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.company-card-info span {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.company-card-info strong {
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.company-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.company-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.company-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.company-status.active {
+  color: #15803d;
+}
+
+.company-status.active .company-status-dot {
+  background: #22c55e;
+}
+
+.company-status.inactive {
+  color: #6b7280;
+}
+
+.company-delete-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}

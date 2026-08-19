@@ -1,0 +1,55 @@
+.login-page {
+  background:
+    linear-gradient(
+      135deg,
+      #f5f7fb 0%,
+      #eef3ff 100%
+    );
+}
+
+.login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin: 5px 0 20px;
+
+  font-size: 12px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: var(--text-secondary);
+
+  cursor: pointer;
+}
+
+.remember-me input {
+  margin: 0;
+}
+
+.forgot-password {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: var(--primary);
+
+  font-size: 12px;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.login-button {
+  width: 100%;
+
+  padding: 11px;
+}

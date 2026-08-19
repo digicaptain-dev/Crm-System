@@ -1,0 +1,76 @@
+.deal-table-wrapper {
+  width: 100%;
+
+  background: #fff;
+
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  overflow-x: auto;
+}
+
+.deal-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  font-size: 13px;
+}
+
+.deal-table th {
+  padding: 12px;
+
+  background: #f8f8f8;
+
+  border-bottom: 1px solid var(--border);
+
+  text-align: left;
+
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.deal-table td {
+  padding: 12px;
+
+  border-bottom: 1px solid #eee;
+
+  white-space: nowrap;
+}
+
+.deal-table tbody tr {
+  cursor: pointer;
+}
+
+.deal-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.deal-table-name {
+  font-weight: 600;
+}
+
+.table-priority {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.table-priority.high {
+  color: var(--priority-high);
+}
+
+.table-priority.medium {
+  color: var(--priority-medium);
+}
+
+.table-priority.low {
+  color: var(--priority-low);
+}
+
+.table-action {
+  border: 0;
+  background: transparent;
+
+  font-size: 18px;
+  color: #666;
+}

@@ -1,0 +1,50 @@
+.pipeline-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.pipeline-header-left h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.pipeline-header-left p {
+  margin: 7px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.pipeline-header-right {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.create-pipeline-btn {
+  height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-pipeline-btn:hover {
+  background: #1d4ed8;
+}
+
+.create-pipeline-btn span {
+  font-size: 20px;
+  line-height: 1;
+}

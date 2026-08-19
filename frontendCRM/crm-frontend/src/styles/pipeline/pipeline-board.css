@@ -1,0 +1,16 @@
+.pipeline-board {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.pipeline-board::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pipeline-board::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #d1d5db;
+}

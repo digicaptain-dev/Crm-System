@@ -1,0 +1,28 @@
+.pipeline-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pipeline-selector-wrapper label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.pipeline-selector {
+  min-width: 190px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
+.pipeline-selector:focus {
+  border-color: #2563eb;
+}

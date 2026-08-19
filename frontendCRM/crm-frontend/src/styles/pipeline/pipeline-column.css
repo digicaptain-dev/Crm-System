@@ -1,0 +1,87 @@
+.pipeline-column {
+  flex: 0 0 280px;
+  width: 280px;
+  background: #eef0f3;
+  border-radius: 10px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.pipeline-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pipeline-column-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-column-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.deal-count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #6b7280;
+  box-sizing: border-box;
+}
+
+.column-menu-btn {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.pipeline-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty-stage {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.add-deal-btn {
+  width: 100%;
+  padding: 9px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.add-deal-btn:hover {
+  background: #ffffff;
+  color: #2563eb;
+}
+
+.add-deal-btn span {
+  margin-right: 5px;
+}

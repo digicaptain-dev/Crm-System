@@ -1,0 +1,135 @@
+/* =========================================
+   LEADS TABLE
+========================================= */
+
+.leads-table-wrapper {
+  width: 100%;
+
+  background: #ffffff;
+
+  border: 1px solid var(--border);
+
+  border-radius: 7px;
+
+  overflow-x: auto;
+}
+
+.leads-table {
+  width: 100%;
+
+  min-width: 850px;
+
+  border-collapse: collapse;
+}
+
+.leads-table thead {
+  background: #fafbfc;
+}
+
+.leads-table th {
+  padding: 11px 14px;
+
+  border-bottom: 1px solid var(--border);
+
+  color: var(--text-secondary);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+.leads-table td {
+  padding: 12px 14px;
+
+  border-bottom: 1px solid #f0f1f3;
+
+  color: var(--text-primary);
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+.leads-table tbody tr {
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+.leads-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.leads-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.lead-table-name {
+  font-weight: 600;
+}
+
+
+/* =========================================
+   CHECKBOX
+========================================= */
+
+.leads-table input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+
+  margin: 0;
+
+  cursor: pointer;
+}
+
+
+/* =========================================
+   ACTION
+========================================= */
+
+.leads-table .table-action {
+  width: 28px;
+  height: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--border);
+
+  border-radius: 4px;
+
+  background: #ffffff;
+
+  color: var(--text-secondary);
+
+  font-size: 15px;
+
+  cursor: pointer;
+}
+
+.leads-table .table-action:hover {
+  background: #f5f7fa;
+
+  color: var(--text-primary);
+}
+
+
+/* =========================================
+   EMPTY
+========================================= */
+
+.empty-leads {
+  padding: 40px;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+
+  text-align: center;
+}
