@@ -26,7 +26,7 @@ function Pipeline() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(
+      const response = await axios.post(
         `${API_URL}/pipelines`
       );
 
