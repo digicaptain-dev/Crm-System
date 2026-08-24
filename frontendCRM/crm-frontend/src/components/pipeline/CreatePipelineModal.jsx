@@ -24,48 +24,10 @@ function CreatePipelineModal({ onClose, onCreate }) {
       return;
     }
 
-    const pipelineId = `pipeline-${Date.now()}`;
-
-    const newPipeline = {
-      pipeline_id: pipelineId,
-      pipeline_name: form.pipeline_name,
-      description: form.description,
-
-      stages: [
-        {
-          stage_id: `${pipelineId}-stage-1`,
-          stage_name: "Qualified",
-          stage_order: 1,
-          deals: [],
-        },
-        {
-          stage_id: `${pipelineId}-stage-2`,
-          stage_name: "Content Made",
-          stage_order: 2,
-          deals: [],
-        },
-        {
-          stage_id: `${pipelineId}-stage-3`,
-          stage_name: "Demo Scheduled",
-          stage_order: 3,
-          deals: [],
-        },
-        {
-          stage_id: `${pipelineId}-stage-4`,
-          stage_name: "Proposal Made",
-          stage_order: 4,
-          deals: [],
-        },
-        {
-          stage_id: `${pipelineId}-stage-5`,
-          stage_name: "Negotiations Started",
-          stage_order: 5,
-          deals: [],
-        },
-      ],
-    };
-
-    onCreate(newPipeline);
+    onCreate({
+      pipeline_name: form.pipeline_name.trim(),
+      description: form.description.trim(),
+    });
   };
 
   return (

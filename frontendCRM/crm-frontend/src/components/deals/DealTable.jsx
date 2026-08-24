@@ -3,9 +3,9 @@ import "../../styles/deals/deal-table.css";
 
 function DealTable({ deals }) {
   const navigate = useNavigate();
-
+  console.log("Rendering DealTable with deals:", deals);
   const openDeal = (deal) => {
-    navigate(`/deal/${deal.id}`);
+    navigate(`/deal/${deal.deal_id}`);
   };
 
   return (
@@ -18,11 +18,12 @@ function DealTable({ deals }) {
             </th>
 
             <th>Deal</th>
-            <th>Company</th>
+            <th>Organization</th>
             <th>Email</th>
             <th>Owner</th>
             <th>Value</th>
             <th>Priority</th>
+            <th>Stage</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -30,36 +31,50 @@ function DealTable({ deals }) {
         <tbody>
           {deals.map((deal) => (
             <tr
-              key={deal.id}
+              key={deal.deal_id}
               onClick={() => openDeal(deal)}
             >
               <td>
                 <input
                   type="checkbox"
-                  onClick={(e) =>
-                    e.stopPropagation()
-                  }
+                  onClick={(e) => e.stopPropagation()}
                 />
               </td>
 
               <td className="deal-table-name">
-                {deal.name}
+                {deal.deal_name || "Untitled Deal"}
               </td>
 
-              <td>{deal.company}</td>
+              <td>
+                {deal.deal_organization || "-"}
+              </td>
 
-              <td>{deal.email}</td>
+              <td>
+                {deal.customer_email || "-"}
+              </td>
 
-              <td>{deal.owner}</td>
+              <td>
+                {deal.deal_owner || "Unassigned"}
+              </td>
 
-              <td>{deal.value}</td>
+              <td>
+                {deal.deal_value
+                  ? `$${Number(deal.deal_value).toLocaleString()}`
+                  : "-"}
+              </td>
 
               <td>
                 <span
-                  className={`table-priority ${deal.priority.toLowerCase()}`}
+                  className={`table-priority ${
+                    (deal.deal_priority || "Medium").toLowerCase()
+                  }`}
                 >
-                  {deal.priority}
+                  {deal.deal_priority || "Medium"}
                 </span>
+              </td>
+
+              <td>
+                {deal.deal_stage}
               </td>
 
               <td>

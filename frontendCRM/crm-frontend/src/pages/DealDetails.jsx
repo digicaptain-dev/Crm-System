@@ -1,107 +1,112 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 
 import "../styles/deal-details/deal-details.css";
-
-const mockDeals = [
-  {
-    id: 1,
-    name: "ABC Website",
-    company: "ABC Company",
-    email: "john@example.com",
-    phone: "+1 555 123 4567",
-    owner: "John",
-    value: "$10,000",
-    priority: "High",
-    pipeline: "Sales",
-    stage: "New Leads",
-  },
-  {
-    id: 2,
-    name: "XYZ Project",
-    company: "XYZ Corporation",
-    email: "david@example.com",
-    phone: "+1 555 987 6543",
-    owner: "David",
-    value: "$20,000",
-    priority: "Medium",
-    pipeline: "Sales",
-    stage: "Contacted",
-  },
-  {
-    id: 3,
-    name: "Website Redesign",
-    company: "Demo Company",
-    email: "mike@example.com",
-    phone: "+1 555 444 2222",
-    owner: "Mike",
-    value: "$15,000",
-    priority: "Low",
-    pipeline: "Sales",
-    stage: "Proposal",
-  },
-];
 
 function DealDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const deal = mockDeals.find(
-    (item) => item.id === Number(id)
-  );
+  const [deal, setDeal] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [status, setStatus] = useState(
-    deal?.stage || "New Leads"
-  );
+  const [status, setStatus] = useState("");
 
   const [comment, setComment] = useState("");
 
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      user: "John",
-      text: "Initial discussion with the customer.",
-      time: "Today, 10:30 AM",
-    },
-    {
-      id: 2,
-      user: "David",
-      text: "Customer requested more information.",
-      time: "Today, 11:15 AM",
-    },
-  ]);
+  const [comments, setComments] = useState([]);
 
   const [message, setMessage] = useState("");
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: "John",
-      text: "Hello, I have contacted the customer.",
-      time: "10:30 AM",
-    },
-    {
-      id: 2,
-      user: "David",
-      text: "Great. Please update the proposal.",
-      time: "10:42 AM",
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
+
+  // ==========================================
+  // FETCH SINGLE DEAL
+  // ==========================================
+
+  useEffect(() => {
+    const fetchDeal = async () => {
+      try {
+        setLoading(true);
+
+        console.log("Fetching deal:", id);
+
+        const response = await axios.get(
+          `http://localhost:1000/api/deal/${id}`
+        );
+
+        console.log(
+          "Deal details response:",
+          response.data
+        );
+
+        const fetchedDeal =
+          response.data?.deal || response.data;
+
+        setDeal(fetchedDeal);
+
+        setStatus(
+          fetchedDeal?.deal_status || "Open"
+        );
+
+      } catch (error) {
+        console.error(
+          "Failed to fetch deal:",
+          error
+        );
+
+        setDeal(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchDeal();
+    }
+  }, [id]);
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return (
+      <div className="deal-details">
+        <div className="not-found">
+          <h2>Loading deal...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // DEAL NOT FOUND
+  // ==========================================
 
   if (!deal) {
     return (
       <div className="not-found">
-        <h2>Deal not found</h2>
+
+        <h2>
+          Deal not found
+        </h2>
 
         <button
           className="primary-button"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/deals")}
         >
           Back to Deals
         </button>
+
       </div>
     );
   }
+
+  // ==========================================
+  // ADD COMMENT
+  // ==========================================
 
   const addComment = (e) => {
     e.preventDefault();
@@ -112,6 +117,7 @@ function DealDetails() {
 
     setComments((current) => [
       ...current,
+
       {
         id: Date.now(),
         user: "You",
@@ -123,6 +129,10 @@ function DealDetails() {
     setComment("");
   };
 
+  // ==========================================
+  // SEND MESSAGE
+  // ==========================================
+
   const sendMessage = (e) => {
     e.preventDefault();
 
@@ -132,6 +142,7 @@ function DealDetails() {
 
     setMessages((current) => [
       ...current,
+
       {
         id: Date.now(),
         user: "You",
@@ -143,37 +154,106 @@ function DealDetails() {
     setMessage("");
   };
 
+  // ==========================================
+  // UPDATE STATUS
+  // ==========================================
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      setStatus(newStatus);
+
+      await axios.put(
+        `http://localhost:5000/api/deals/${deal.deal_id}`,
+        {
+          deal_status: newStatus,
+        }
+      );
+
+      setDeal((current) => ({
+        ...current,
+        deal_status: newStatus,
+      }));
+
+    } catch (error) {
+      console.error(
+        "Failed to update deal status:",
+        error
+      );
+
+      // Restore previous value if API fails
+      setStatus(
+        deal.deal_status || "Open"
+      );
+
+      alert(
+        error.response?.data?.message ||
+          "Failed to update deal status."
+      );
+    }
+  };
+
+  // ==========================================
+  // MARK WON
+  // ==========================================
+
+  const markAsWon = () => {
+    handleStatusChange("Won");
+  };
+
+  // ==========================================
+  // MARK LOST
+  // ==========================================
+
+  const markAsLost = () => {
+    handleStatusChange("Lost");
+  };
+
+  // ==========================================
+  // PAGE
+  // ==========================================
+
   return (
     <div className="deal-details">
 
-      {/* Header */}
+      {/* ======================================
+          HEADER
+      ====================================== */}
+
       <div className="deal-details-header">
 
         <div>
+
           <button
             className="back-button"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/deals")}
           >
             ← Back
           </button>
 
-          <h1>{deal.name}</h1>
+          <h1>
+            {deal.deal_name ||
+              "Untitled Deal"}
+          </h1>
 
-          <p>{deal.company}</p>
+          <p>
+            {deal.deal_organization ||
+              "No organization"}
+          </p>
+
         </div>
 
         <div className="deal-header-actions">
 
           <button
             className="status-button won"
-            onClick={() => setStatus("Won")}
+            onClick={markAsWon}
           >
             Won
           </button>
 
           <button
             className="status-button lost"
-            onClick={() => setStatus("Lost")}
+            onClick={markAsLost}
           >
             Lost
           </button>
@@ -182,8 +262,13 @@ function DealDetails() {
 
       </div>
 
-      {/* Main information */}
+      {/* ======================================
+          MAIN INFORMATION
+      ====================================== */}
+
       <div className="deal-info-grid">
+
+        {/* Deal Information */}
 
         <div className="deal-info-card">
 
@@ -194,48 +279,137 @@ function DealDetails() {
           <div className="info-grid">
 
             <InfoItem
-              label="Deal Name"
-              value={deal.name}
+              label="Deal ID"
+              value={deal.deal_id}
             />
 
             <InfoItem
-              label="Company"
-              value={deal.company}
+              label="Deal Name"
+              value={deal.deal_name}
+            />
+
+            <InfoItem
+              label="Organization"
+              value={
+                deal.deal_organization ||
+                "-"
+              }
             />
 
             <InfoItem
               label="Email"
-              value={deal.email}
+              value={
+                deal.customer_email ||
+                "-"
+              }
             />
 
             <InfoItem
               label="Phone"
-              value={deal.phone}
+              value={
+                deal.customer_number ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Contact Person"
+              value={
+                deal.contact_person ||
+                "-"
+              }
             />
 
             <InfoItem
               label="Owner"
-              value={deal.owner}
+              value={
+                deal.deal_owner ||
+                "Unassigned"
+              }
             />
 
             <InfoItem
               label="Value"
-              value={deal.value}
+              value={
+                deal.deal_value
+                  ? `$${Number(
+                      deal.deal_value
+                    ).toLocaleString()}`
+                  : "-"
+              }
             />
 
             <InfoItem
               label="Priority"
-              value={deal.priority}
+              value={
+                deal.deal_priority ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Stage"
+              value={
+                deal.deal_stage ??
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Status"
+              value={
+                deal.deal_status ||
+                "-"
+              }
             />
 
             <InfoItem
               label="Pipeline"
-              value={deal.pipeline}
+              value={
+                deal.pipeline_id ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Source"
+              value={
+                deal.deal_source ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Probability"
+              value={
+                deal.probability ??
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Time Zone"
+              value={
+                deal.time_zone ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Customer Address"
+              value={
+                deal.customer_address ||
+                "-"
+              }
             />
 
           </div>
 
         </div>
+
+        {/* ==================================
+            CURRENT STATUS
+        ================================== */}
 
         <div className="deal-status-card">
 
@@ -244,29 +418,74 @@ function DealDetails() {
           </div>
 
           <div className="current-status">
-            {status}
+            {status ||
+              deal.deal_status ||
+              "Open"}
           </div>
 
-          <label>Move Deal</label>
+          <label>
+            Update Status
+          </label>
 
           <select
-            value={status}
+            value={
+              status ||
+              deal.deal_status ||
+              "Open"
+            }
             onChange={(e) =>
-              setStatus(e.target.value)
+              handleStatusChange(
+                e.target.value
+              )
             }
           >
-            <option>New Leads</option>
-            <option>Contacted</option>
-            <option>Proposal</option>
-            <option>Won</option>
-            <option>Lost</option>
+            <option value="Open">
+              Open
+            </option>
+
+            <option value="Won">
+              Won
+            </option>
+
+            <option value="Lost">
+              Lost
+            </option>
           </select>
 
         </div>
 
       </div>
 
-      {/* Comments */}
+      {/* ======================================
+          NOTES
+      ====================================== */}
+
+      <section className="details-section">
+
+        <div className="section-title">
+          Deal Notes
+        </div>
+
+        <div className="deal-notes">
+
+          {deal.deal_notes ? (
+            <p>
+              {deal.deal_notes}
+            </p>
+          ) : (
+            <p className="empty-text">
+              No notes added to this deal.
+            </p>
+          )}
+
+        </div>
+
+      </section>
+
+      {/* ======================================
+          COMMENTS
+      ====================================== */}
+
       <section className="details-section">
 
         <div className="section-title">
@@ -275,24 +494,38 @@ function DealDetails() {
 
         <div className="comments-list">
 
-          {comments.map((item) => (
-            <div
-              className="comment"
-              key={item.id}
-            >
-              <div className="comment-user">
-                {item.user}
+          {comments.length === 0 ? (
+
+            <p className="empty-text">
+              No comments yet.
+            </p>
+
+          ) : (
+
+            comments.map((item) => (
+
+              <div
+                className="comment"
+                key={item.id}
+              >
+
+                <div className="comment-user">
+                  {item.user}
+                </div>
+
+                <div className="comment-text">
+                  {item.text}
+                </div>
+
+                <div className="comment-time">
+                  {item.time}
+                </div>
+
               </div>
 
-              <div className="comment-text">
-                {item.text}
-              </div>
+            ))
 
-              <div className="comment-time">
-                {item.time}
-              </div>
-            </div>
-          ))}
+          )}
 
         </div>
 
@@ -300,6 +533,7 @@ function DealDetails() {
           className="comment-form"
           onSubmit={addComment}
         >
+
           <textarea
             value={comment}
             onChange={(e) =>
@@ -315,11 +549,15 @@ function DealDetails() {
           >
             Post Comment
           </button>
+
         </form>
 
       </section>
 
-      {/* Conversation */}
+      {/* ======================================
+          CONVERSATION
+      ====================================== */}
+
       <section className="details-section">
 
         <div className="section-title">
@@ -328,24 +566,38 @@ function DealDetails() {
 
         <div className="conversation">
 
-          {messages.map((item) => (
-            <div
-              className="message"
-              key={item.id}
-            >
-              <div className="message-user">
-                {item.user}
+          {messages.length === 0 ? (
+
+            <p className="empty-text">
+              No messages yet.
+            </p>
+
+          ) : (
+
+            messages.map((item) => (
+
+              <div
+                className="message"
+                key={item.id}
+              >
+
+                <div className="message-user">
+                  {item.user}
+                </div>
+
+                <div className="message-text">
+                  {item.text}
+                </div>
+
+                <div className="message-time">
+                  {item.time}
+                </div>
+
               </div>
 
-              <div className="message-text">
-                {item.text}
-              </div>
+            ))
 
-              <div className="message-time">
-                {item.time}
-              </div>
-            </div>
-          ))}
+          )}
 
         </div>
 
@@ -353,6 +605,7 @@ function DealDetails() {
           className="message-form"
           onSubmit={sendMessage}
         >
+
           <input
             value={message}
             onChange={(e) =>
@@ -367,11 +620,15 @@ function DealDetails() {
           >
             Send
           </button>
+
         </form>
 
       </section>
 
-      {/* Schedule */}
+      {/* ======================================
+          SCHEDULE
+      ====================================== */}
+
       <section className="details-section">
 
         <div className="section-title">
@@ -389,8 +646,8 @@ function DealDetails() {
           </h3>
 
           <p>
-            Schedule a call, meeting or follow-up
-            with this customer.
+            Schedule a call, meeting or
+            follow-up with this customer.
           </p>
 
           <button className="primary-button">
@@ -405,16 +662,22 @@ function DealDetails() {
   );
 }
 
+// ==========================================
+// INFO ITEM
+// ==========================================
+
 function InfoItem({ label, value }) {
   return (
     <div className="info-item">
+
       <div className="info-label">
         {label}
       </div>
 
       <div className="info-value">
-        {value}
+        {value || "-"}
       </div>
+
     </div>
   );
 }

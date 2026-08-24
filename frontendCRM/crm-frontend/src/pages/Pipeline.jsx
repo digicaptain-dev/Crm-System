@@ -26,9 +26,9 @@ function Pipeline() {
       setLoading(true);
       setError("");
 
-      const response = await axios.post(
-        `${API_URL}/pipelines`
-      );
+      const response = await axios.get(
+      `${API_URL}/pipelines`
+    );
 
       console.log("Pipelines:", response.data);
 
@@ -78,10 +78,33 @@ function Pipeline() {
   /*
    * Called after pipeline is successfully created
    */
-  const handleCreatePipeline = async () => {
-    await fetchPipelines();
+  const handleCreatePipeline = async (pipeline) => {
+    try {
+      setError("");
 
-    setShowCreateModal(false);
+      await axios.post(
+        `${API_URL}/pipelines`,
+        pipeline
+      );
+
+      await fetchPipelines();
+      setShowCreateModal(false);
+    } catch (err) {
+      console.error(
+        "Create pipeline error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to create pipeline"
+      );
+    }
+  };
+
+  const handleOpenCreatePipeline = () => {
+    setShowCreateModal(true);
   };
 
   /*
@@ -111,9 +134,7 @@ function Pipeline() {
         selectedPipeline={selectedPipeline}
         selectedPipelineId={selectedPipelineId}
         onPipelineChange={setSelectedPipelineId}
-        onCreatePipeline={() =>
-          setShowCreateModal(true)
-        }
+        onCreatePipeline={handleOpenCreatePipeline}
       />
 
       <PipelineBoard
