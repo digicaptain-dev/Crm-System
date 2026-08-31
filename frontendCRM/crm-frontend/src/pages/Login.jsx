@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+
+import api from "../services/api";
 
 import "../styles/auth/auth.css";
 import "../styles/auth/login.css";
@@ -17,14 +18,13 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    setForm({
-      ...form,
+    setForm((current) => ({
+      ...current,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -34,38 +34,52 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:1000/api/login",
-        {
-          email: form.email,
-          password: form.password,
-        }
-      );
+      console.log("Sending login request...");
+
+      const response = await api.post("/login", {
+        email: form.email,
+        password: form.password,
+      });
 
       console.log("Login response:", response.data);
 
-      // Only save token if backend returned one
-      if (response.data.token) {
+      if (
+        response.data?.success &&
+        response.data?.token
+      ) {
+        // Save authentication token
         localStorage.setItem(
           "token",
           response.data.token
         );
 
-        // Navigate ONLY after successful backend response
-        navigate("/");
-      } else {
-        setError("Login failed. Token not received.");
-      }
+        // Save logged-in user
+        localStorage.setItem(
+          "user",
+          JSON.stringify(response.data.user)
+        );
 
+        console.log(
+          "Login successful:",
+          response.data.user
+        );
+
+        navigate("/", { replace: true });
+      } else {
+        setError(
+          response.data?.message ||
+            response.data?.msg ||
+            "Login failed"
+        );
+      }
     } catch (error) {
       console.error("Login error:", error);
 
       setError(
         error.response?.data?.msg ||
-        error.response?.data?.message ||
-        "Invalid email or password"
+          error.response?.data?.message ||
+          "Invalid email or password"
       );
-
     } finally {
       setLoading(false);
     }
@@ -73,7 +87,6 @@ function Login() {
 
   return (
     <div className="auth-page login-page">
-
       <div className="auth-card">
 
         <div className="auth-logo">
@@ -87,6 +100,12 @@ function Login() {
             Sign in to your account to continue.
           </p>
         </div>
+
+        {error && (
+          <div className="auth-error">
+            {error}
+          </div>
+        )}
 
         <form
           className="auth-form"
@@ -154,8 +173,9 @@ function Login() {
           <button
             type="submit"
             className="primary-button login-button"
+            disabled={loading}
           >
-            Sign In
+            {loading ? "Signing In..." : "Sign In"}
           </button>
 
         </form>
@@ -173,7 +193,6 @@ function Login() {
         </div>
 
       </div>
-
     </div>
   );
 }

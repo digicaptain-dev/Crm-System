@@ -7,7 +7,9 @@ function ActivityCalendar({
   selectedDate,
   onDateSelect,
 }) {
-  const selected = new Date(`${selectedDate}T00:00:00`);
+  const selected = selectedDate
+    ? new Date(`${selectedDate}T00:00:00`)
+    : new Date();
 
   const [currentMonth, setCurrentMonth] =
     useState(selected.getMonth());
@@ -40,6 +42,52 @@ function ActivityCalendar({
     "Sat",
   ];
 
+  // =====================================================
+  // FORMAT DATE
+  // =====================================================
+
+  const formatDate = (
+    year,
+    month,
+    day
+  ) => {
+    const date = new Date(
+      year,
+      month,
+      day
+    );
+
+    return `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")}`;
+  };
+
+  // =====================================================
+  // GET ACTIVITY DATE
+  // =====================================================
+
+  const getActivityDate = (activity) => {
+    if (!activity.created_at) {
+      return null;
+    }
+
+    const date = new Date(
+      activity.created_at
+    );
+
+    return formatDate(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+  };
+
+  // =====================================================
+  // CALENDAR DAYS
+  // =====================================================
+
   const calendarDays = useMemo(() => {
     const firstDay = new Date(
       currentYear,
@@ -61,21 +109,32 @@ function ActivityCalendar({
 
     const days = [];
 
-    // Previous month's days
-    for (let i = firstDay - 1; i >= 0; i--) {
+    // Previous month
+    for (
+      let i = firstDay - 1;
+      i >= 0;
+      i--
+    ) {
+      const date = new Date(
+        currentYear,
+        currentMonth - 1,
+        previousMonthDays - i
+      );
+
       days.push({
-        day: previousMonthDays - i,
-        month: currentMonth - 1,
-        year:
-          currentMonth === 0
-            ? currentYear - 1
-            : currentYear,
+        day: date.getDate(),
+        month: date.getMonth(),
+        year: date.getFullYear(),
         outside: true,
       });
     }
 
-    // Current month's days
-    for (let day = 1; day <= daysInMonth; day++) {
+    // Current month
+    for (
+      let day = 1;
+      day <= daysInMonth;
+      day++
+    ) {
       days.push({
         day,
         month: currentMonth,
@@ -84,57 +143,44 @@ function ActivityCalendar({
       });
     }
 
-    // Next month's days
+    // Next month
     let nextDay = 1;
 
     while (days.length < 42) {
+      const date = new Date(
+        currentYear,
+        currentMonth + 1,
+        nextDay++
+      );
+
       days.push({
-        day: nextDay++,
-        month: currentMonth + 1,
-        year:
-          currentMonth === 11
-            ? currentYear + 1
-            : currentYear,
+        day: date.getDate(),
+        month: date.getMonth(),
+        year: date.getFullYear(),
         outside: true,
       });
     }
 
     return days;
-  }, [currentMonth, currentYear]);
+  }, [
+    currentMonth,
+    currentYear,
+  ]);
 
-  const formatDate = (year, month, day) => {
-    const normalizedMonth = month < 0
-      ? 11
-      : month > 11
-        ? 0
-        : month;
-
-    const normalizedYear =
-      month < 0
-        ? year - 1
-        : month > 11
-          ? year + 1
-          : year;
-
-    return `${normalizedYear}-${String(
-      normalizedMonth + 1
-    ).padStart(2, "0")}-${String(day).padStart(
-      2,
-      "0"
-    )}`;
-  };
-
-  const hasActivity = (date) => {
-    return activities.some(
-      (activity) => activity.date === date
-    );
-  };
+  // =====================================================
+  // ACTIVITY COUNT
+  // =====================================================
 
   const getActivityCount = (date) => {
     return activities.filter(
-      (activity) => activity.date === date
+      (activity) =>
+        getActivityDate(activity) === date
     ).length;
   };
+
+  // =====================================================
+  // DATE CLICK
+  // =====================================================
 
   const handleDateClick = (day) => {
     const date = formatDate(
@@ -151,23 +197,43 @@ function ActivityCalendar({
     }
   };
 
+  // =====================================================
+  // PREVIOUS MONTH
+  // =====================================================
+
   const goPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
-      setCurrentYear((year) => year - 1);
+      setCurrentYear(
+        (year) => year - 1
+      );
     } else {
-      setCurrentMonth((month) => month - 1);
+      setCurrentMonth(
+        (month) => month - 1
+      );
     }
   };
+
+  // =====================================================
+  // NEXT MONTH
+  // =====================================================
 
   const goNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0);
-      setCurrentYear((year) => year + 1);
+      setCurrentYear(
+        (year) => year + 1
+      );
     } else {
-      setCurrentMonth((month) => month + 1);
+      setCurrentMonth(
+        (month) => month + 1
+      );
     }
   };
+
+  // =====================================================
+  // TODAY
+  // =====================================================
 
   const goToday = () => {
     const today = new Date();
@@ -178,17 +244,35 @@ function ActivityCalendar({
       today.getDate()
     );
 
-    setCurrentMonth(today.getMonth());
-    setCurrentYear(today.getFullYear());
+    setCurrentMonth(
+      today.getMonth()
+    );
+
+    setCurrentYear(
+      today.getFullYear()
+    );
+
     onDateSelect(todayDate);
   };
 
+  // =====================================================
+  // MONTH CHANGE
+  // =====================================================
+
   const handleMonthChange = (e) => {
-    setCurrentMonth(Number(e.target.value));
+    setCurrentMonth(
+      Number(e.target.value)
+    );
   };
 
+  // =====================================================
+  // YEAR CHANGE
+  // =====================================================
+
   const handleYearChange = (e) => {
-    setCurrentYear(Number(e.target.value));
+    setCurrentYear(
+      Number(e.target.value)
+    );
   };
 
   const years = [];
@@ -204,17 +288,23 @@ function ActivityCalendar({
   return (
     <div className="activity-calendar">
 
-      {/* Calendar Header */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="calendar-header">
 
         <div className="calendar-title">
+
           <h2>
-            {monthNames[currentMonth]} {currentYear}
+            {monthNames[currentMonth]}{" "}
+            {currentYear}
           </h2>
 
           <p>
             Select a date to view activities
           </p>
+
         </div>
 
         <div className="calendar-actions">
@@ -223,7 +313,6 @@ function ActivityCalendar({
             type="button"
             className="calendar-nav-button"
             onClick={goPreviousMonth}
-            aria-label="Previous month"
           >
             ‹
           </button>
@@ -240,7 +329,6 @@ function ActivityCalendar({
             type="button"
             className="calendar-nav-button"
             onClick={goNextMonth}
-            aria-label="Next month"
           >
             ›
           </button>
@@ -249,28 +337,31 @@ function ActivityCalendar({
 
       </div>
 
-      {/* Month / Year Selectors */}
+      {/* =================================================
+          SELECTORS
+      ================================================= */}
+
       <div className="calendar-selectors">
 
         <select
           value={currentMonth}
           onChange={handleMonthChange}
-          aria-label="Select month"
         >
-          {monthNames.map((month, index) => (
-            <option
-              key={month}
-              value={index}
-            >
-              {month}
-            </option>
-          ))}
+          {monthNames.map(
+            (month, index) => (
+              <option
+                key={month}
+                value={index}
+              >
+                {month}
+              </option>
+            )
+          )}
         </select>
 
         <select
           value={currentYear}
           onChange={handleYearChange}
-          aria-label="Select year"
         >
           {years.map((year) => (
             <option
@@ -284,8 +375,12 @@ function ActivityCalendar({
 
       </div>
 
-      {/* Weekdays */}
+      {/* =================================================
+          WEEKDAYS
+      ================================================= */}
+
       <div className="calendar-weekdays">
+
         {daysOfWeek.map((day) => (
           <div
             key={day}
@@ -294,66 +389,72 @@ function ActivityCalendar({
             {day}
           </div>
         ))}
+
       </div>
 
-      {/* Calendar Grid */}
+      {/* =================================================
+          CALENDAR GRID
+      ================================================= */}
+
       <div className="calendar-grid">
 
-        {calendarDays.map((day, index) => {
-          const date = formatDate(
-            day.year,
-            day.month,
-            day.day
-          );
+        {calendarDays.map(
+          (day, index) => {
 
-          const selectedDay =
-            date === selectedDate;
-
-          const activityCount =
-            getActivityCount(date);
-
-          const today =
-            date ===
-            formatDate(
-              new Date().getFullYear(),
-              new Date().getMonth(),
-              new Date().getDate()
+            const date = formatDate(
+              day.year,
+              day.month,
+              day.day
             );
 
-          return (
-            <button
-              type="button"
-              key={`${date}-${index}`}
-              className={[
-                "calendar-day",
-                day.outside
-                  ? "outside-month"
-                  : "",
-                selectedDay
-                  ? "selected"
-                  : "",
-                today
-                  ? "today"
-                  : "",
-              ].join(" ")}
-              onClick={() =>
-                handleDateClick(day)
-              }
-            >
-              <span className="day-number">
-                {day.day}
-              </span>
+            const activityCount =
+              getActivityCount(date);
 
-              {hasActivity(date) && (
-                <span className="activity-indicator">
-                  {activityCount > 1
-                    ? activityCount
-                    : "•"}
+            const isSelected =
+              date === selectedDate;
+
+            const today =
+              formatDate(
+                new Date().getFullYear(),
+                new Date().getMonth(),
+                new Date().getDate()
+              ) === date;
+
+            return (
+              <button
+                type="button"
+                key={`${date}-${index}`}
+                className={[
+                  "calendar-day",
+                  day.outside
+                    ? "outside-month"
+                    : "",
+                  isSelected
+                    ? "selected"
+                    : "",
+                  today
+                    ? "today"
+                    : "",
+                ].join(" ")}
+                onClick={() =>
+                  handleDateClick(day)
+                }
+              >
+
+                <span className="day-number">
+                  {day.day}
                 </span>
-              )}
-            </button>
-          );
-        })}
+
+                {activityCount > 0 && (
+                  <span className="activity-indicator">
+                    {activityCount}
+                  </span>
+                )}
+
+              </button>
+            );
+          }
+        )}
 
       </div>
 

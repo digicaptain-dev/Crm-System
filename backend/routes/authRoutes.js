@@ -115,38 +115,105 @@ router.post('/register', [
 router.post('/login', [
     body('email').isEmail(),
     body('password').isLength({ min: 6 })
-], (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
+], async (req, res) => {
 
-    const { email, password } = req.body;
+    try {
+        const errors = validationResult(req);
 
-    db.query('SELECT * FROM users WHERE email = ?', [email], (err, result) => {
-        if (err) throw err;
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const { email, password } = req.body;
+
+        console.log("1. Login request received:", email);
+
+        console.log("2. Starting database query...");
+
+        const [result] = await db.query(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+        );
+
+        console.log("3. Database query completed");
+        console.log("4. Users found:", result.length);
+
         if (result.length === 0) {
-            return res.status(400).json({ msg: 'Invalid credentials' });
+            return res.status(400).json({
+                success: false,
+                msg: "Invalid credentials"
+            });
         }
 
         const user = result[0];
-         // Log the user object for debugging
 
-        // Compare password
-        bcrypt.compare(password, user.password, (err, isMatch) => {
-            if (err) throw err;
-            if (!isMatch) {
-                return res.status(400).json({ msg: 'Invalid credentials' });
-            }
-
-            // Create JWT token with email and hashed password from the database
-            const token = jwt.sign({ email: user.email, password: password }, process.env.JWT_SECRET, {
-                expiresIn: '48h'
-            });
-
-            res.status(200).json({ token });
+        console.log("5. User found:", {
+            user_id: user.user_id,
+            name: user.name,
+            email: user.email,
+            role: user.role
         });
-    });
+
+        console.log("6. Starting bcrypt comparison...");
+
+        const isMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        console.log("7. Bcrypt completed:", isMatch);
+
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                msg: "Invalid credentials"
+            });
+        }
+
+        console.log("8. Creating JWT...");
+
+        const token = jwt.sign(
+            {
+                user_id: user.user_id,
+                email: user.email,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "48h"
+            }
+        );
+
+        console.log("9. JWT created");
+
+        const safeUser = {
+            user_id: user.user_id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        };
+
+        console.log("10. Sending login response");
+
+        return res.status(200).json({
+            success: true,
+            token,
+            user: safeUser
+        });
+
+    } catch (error) {
+
+        console.error("LOGIN ERROR:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Login failed",
+            error: error.message
+        });
+    }
 });
 
 // Route to login using a token

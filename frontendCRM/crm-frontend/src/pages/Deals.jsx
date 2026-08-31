@@ -1,34 +1,46 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import "../styles/deals/deals.css";
 
 import CreateDeal from "../components/deals/CreateDeal";
 import DealTable from "../components/deals/DealTable";
 import DealCard from "../components/deals/DealCard";
+import DealImportPreview from "../components/deals/DealImportPreview";
 
-const API_URL = "http://localhost:1000/api";
+// const API_URL = "http://localhost:1000/api";
 
 function Deals() {
   const [deals, setDeals] = useState([]);
   const [pipelines, setPipelines] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [showCreateDeal, setShowCreateDeal] = useState(false);
+
   const [view, setView] = useState("table");
+
   const [importing, setImporting] = useState(false);
+
+  const [showImportPreview, setShowImportPreview] =
+    useState(false);
+
+  const [importPreview, setImportPreview] =
+    useState(null);
 
   const fileInputRef = useRef(null);
 
-  // ================================
+  // =====================================================
   // GET DEALS
-  // ================================
+  // =====================================================
   const fetchDeals = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/deals`
-      );
+      const response = await api.get("/deals");
 
-      console.log("Deals API response:", response.data);
+      console.log(
+        "Deals API response:",
+        response.data
+      );
 
       const fetchedDeals =
         response.data?.deals ||
@@ -52,21 +64,23 @@ function Deals() {
     }
   };
 
-  // ================================
+  // =====================================================
   // GET PIPELINES
-  // ================================
+  // =====================================================
   const fetchPipelines = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/pipelines`
-      );
+      const response = await api.get("/pipelines");
 
       console.log(
         "Deals page pipelines:",
         response.data
       );
 
-      setPipelines(response.data || []);
+      setPipelines(
+        Array.isArray(response.data)
+          ? response.data
+          : []
+      );
 
     } catch (error) {
       console.error(
@@ -78,9 +92,9 @@ function Deals() {
     }
   };
 
-  // ================================
+  // =====================================================
   // INITIAL LOAD
-  // ================================
+  // =====================================================
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -96,9 +110,9 @@ function Deals() {
     loadData();
   }, []);
 
-  // ================================
+  // =====================================================
   // CREATE DEAL
-  // ================================
+  // =====================================================
   const handleCreateDeal = async (dealData) => {
     try {
       console.log(
@@ -106,8 +120,8 @@ function Deals() {
         dealData
       );
 
-      const response = await axios.post(
-        `${API_URL}/deal`,
+      const response = await api.post(
+        "/deal",
         dealData
       );
 
@@ -126,20 +140,31 @@ function Deals() {
         return;
       }
 
-      /*
-       * Backend returns newly created deal
-       */
       const newDeal =
-        response.data.deal;
+        response.data?.deal;
 
-      /*
-       * Add immediately to frontend
-       */
+      // -----------------------------------------------
+      // If backend doesn't return created deal
+      // -----------------------------------------------
+      if (!newDeal) {
+        await fetchDeals();
+
+        setShowCreateDeal(false);
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // Put newly created deal at TOP
+      // -----------------------------------------------
       setDeals((currentDeals) => [
         newDeal,
         ...currentDeals,
       ]);
 
+      // -----------------------------------------------
+      // Close modal
+      // -----------------------------------------------
       setShowCreateDeal(false);
 
     } catch (error) {
@@ -156,16 +181,16 @@ function Deals() {
     }
   };
 
-  // ================================
-  // OPEN FILE SELECTOR
-  // ================================
+  // =====================================================
+  // OPEN EXCEL FILE SELECTOR
+  // =====================================================
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
-  // ================================
-  // IMPORT EXCEL
-  // ================================
+  // =====================================================
+  // READ EXCEL + GET PREVIEW
+  // =====================================================
   const handleFileImport = async (event) => {
     const file =
       event.target.files?.[0];
@@ -174,26 +199,20 @@ function Deals() {
       return;
     }
 
-    const allowedExtensions = [
-      ".xlsx",
-      ".xls",
-    ];
-
-    const fileName =
-      file.name.toLowerCase();
-
-    const isValidFile =
-      allowedExtensions.some(
-        (extension) =>
-          fileName.endsWith(extension)
-      );
-
-    if (!isValidFile) {
+    // ---------------------------------------------------
+    // Only XLSX
+    // ---------------------------------------------------
+    if (
+      !file.name
+        .toLowerCase()
+        .endsWith(".xlsx")
+    ) {
       alert(
-        "Please select an Excel file (.xlsx or .xls)."
+        "Please select an Excel .xlsx file."
       );
 
       event.target.value = "";
+
       return;
     }
 
@@ -203,41 +222,171 @@ function Deals() {
       const formData =
         new FormData();
 
+      // IMPORTANT:
+      // This matches your existing multer:
+      // upload.single("dealsFile")
       formData.append(
-        "file",
+        "dealsFile",
         file
       );
 
       console.log(
-        "Importing Excel:",
+        "Preparing Excel preview:",
         file.name
       );
 
-      const response =
-        await axios.post(
-          `${API_URL}/deals/import`,
-          formData,
-          {
-            headers: {
-              "Content-Type":
-                "multipart/form-data",
-            },
-          }
-        );
+      // -------------------------------------------------
+      // Existing mount stays:
+      //
+      // /api/deals/upload
+      //
+      // We will add /preview inside the router.
+      // -------------------------------------------------
+      const response = await api.post(
+        "/deals/upload/preview",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       console.log(
-        "Import response:",
+        "Excel preview response:",
         response.data
       );
 
-      alert(
-        response.data?.message ||
-        `Successfully imported ${
-          response.data?.imported || 0
-        } deals.`
+      if (!response.data?.success) {
+        alert(
+          response.data?.message ||
+          "Unable to preview Excel file."
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // Store preview data
+      // -------------------------------------------------
+      setImportPreview(
+        response.data
       );
 
+      // -------------------------------------------------
+      // Open preview modal
+      // -------------------------------------------------
+      setShowImportPreview(true);
+
+    } catch (error) {
+      console.error(
+        "Failed to preview Excel:",
+        error
+      );
+
+      alert(
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to read Excel file."
+      );
+
+    } finally {
+      setImporting(false);
+
+      // Reset input so same file can
+      // be selected again
+      event.target.value = "";
+    }
+  };
+
+  // =====================================================
+  // CLOSE IMPORT PREVIEW
+  // =====================================================
+  const handleCloseImportPreview = () => {
+    setShowImportPreview(false);
+
+    setImportPreview(null);
+  };
+
+  // =====================================================
+  // CONFIRM BULK IMPORT
+  // =====================================================
+  const handleConfirmImport = async () => {
+    if (!importPreview) {
+      return;
+    }
+
+    try {
+      setImporting(true);
+
+      const validRows =
+        importPreview.rows?.filter(
+          (row) => row.valid
+        ) || [];
+
+      if (validRows.length === 0) {
+        alert(
+          "There are no valid deals to import."
+        );
+
+        return;
+      }
+
+      console.log(
+        "Importing valid deals:",
+        validRows.length
+      );
+
+      // -------------------------------------------------
+      // IMPORTANT
+      //
+      // We send the validated rows as JSON.
+      // Backend will perform the actual DB insertion.
+      // -------------------------------------------------
+      const response = await api.post(
+        "/deals/upload",
+        {
+          rows: validRows,
+        }
+      );
+
+      console.log(
+        "Bulk import response:",
+        response.data
+      );
+
+      if (!response.data?.success) {
+        alert(
+          response.data?.message ||
+          response.data?.error ||
+          "Failed to import deals."
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // Close preview
+      // -------------------------------------------------
+      setShowImportPreview(false);
+
+      setImportPreview(null);
+
+      // -------------------------------------------------
+      // Refresh from database
+      //
+      // Backend GET /deals uses:
+      // ORDER BY creation_date DESC
+      //
+      // So latest imported deals will appear at TOP.
+      // -------------------------------------------------
       await fetchDeals();
+
+      alert(
+        response.data?.message ||
+        `Successfully imported ${response.data?.imported || 0
+        } deals.`
+      );
 
     } catch (error) {
       console.error(
@@ -248,23 +397,23 @@ function Deals() {
       alert(
         error.response?.data?.message ||
         error.response?.data?.error ||
-        "Failed to import Excel file."
+        "Failed to import deals."
       );
 
     } finally {
       setImporting(false);
-
-      event.target.value = "";
     }
   };
 
-  // ================================
+  // =====================================================
   // LOADING
-  // ================================
+  // =====================================================
   if (loading) {
     return (
       <div className="deals-page">
+
         <div className="page-header">
+
           <div>
             <h1>Deals</h1>
 
@@ -273,40 +422,50 @@ function Deals() {
               opportunities.
             </p>
           </div>
+
         </div>
 
         <div className="deals-content">
           <p>Loading deals...</p>
         </div>
+
       </div>
     );
   }
 
-  // ================================
+  // =====================================================
   // PAGE
-  // ================================
+  // =====================================================
   return (
     <div className="deals-page">
 
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="page-header">
 
         <div>
+
           <h1>Deals</h1>
 
           <p>
             Manage your deals and
             opportunities.
           </p>
+
         </div>
 
         <div className="deals-header-actions">
 
-          {/* Hidden Excel input */}
+          {/* ---------------------------------------------
+              Hidden Excel input
+          --------------------------------------------- */}
+
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx"
             style={{
               display: "none",
             }}
@@ -315,7 +474,10 @@ function Deals() {
             }
           />
 
-          {/* Import */}
+          {/* ---------------------------------------------
+              Import Excel
+          --------------------------------------------- */}
+
           <button
             className="secondary-button"
             onClick={
@@ -324,11 +486,14 @@ function Deals() {
             disabled={importing}
           >
             {importing
-              ? "Importing..."
+              ? "Processing..."
               : "Import Excel"}
           </button>
 
-          {/* Add Deal */}
+          {/* ---------------------------------------------
+              Add Deal
+          --------------------------------------------- */}
+
           <button
             className="primary-button"
             onClick={() =>
@@ -339,18 +504,25 @@ function Deals() {
           </button>
 
         </div>
+
       </div>
 
-      {/* TOOLBAR */}
+      {/* =================================================
+          TOOLBAR
+      ================================================= */}
+
       <div className="deals-toolbar">
 
         <div className="deals-count">
+
           <strong>
             {deals.length}
           </strong>{" "}
+
           {deals.length === 1
             ? "Deal"
             : "Deals"}
+
         </div>
 
         <div className="view-buttons">
@@ -382,9 +554,13 @@ function Deals() {
           </button>
 
         </div>
+
       </div>
 
-      {/* DEALS */}
+      {/* =================================================
+          DEALS CONTENT
+      ================================================= */}
+
       <div className="deals-content">
 
         {deals.length === 0 ? (
@@ -434,7 +610,10 @@ function Deals() {
 
       </div>
 
-      {/* CREATE DEAL MODAL */}
+      {/* =================================================
+          CREATE DEAL MODAL
+      ================================================= */}
+
       {showCreateDeal && (
 
         <div className="modal-overlay">
@@ -473,6 +652,26 @@ function Deals() {
         </div>
 
       )}
+
+      {/* =================================================
+          IMPORT PREVIEW MODAL
+      ================================================= */}
+
+      {showImportPreview &&
+        importPreview && (
+
+          <DealImportPreview
+            preview={importPreview}
+            importing={importing}
+            onClose={
+              handleCloseImportPreview
+            }
+            onImport={
+              handleConfirmImport
+            }
+          />
+
+        )}
 
     </div>
   );

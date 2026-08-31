@@ -5,9 +5,41 @@ import "../../styles/layout/header.css";
 function Header() {
   const [showMenu, setShowMenu] = useState(false);
 
+  // Get logged-in user
+  const storedUser = localStorage.getItem("user");
+
+  let user = null;
+
+  try {
+    user = storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  } catch (error) {
+    console.error("Invalid user data in localStorage:", error);
+    user = null;
+  }
+
+  // User information
+  const userName = user?.name || "User";
+  const userRole = user?.role || "Employee";
+
+  // Create avatar from first letter of user's name
+  const avatarLetter = userName
+    .charAt(0)
+    .toUpperCase();
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    window.location.href = "/login";
+  };
+
   return (
     <header className="app-header">
 
+      {/* LEFT */}
       <div className="header-left">
 
         <button
@@ -23,8 +55,10 @@ function Header() {
 
       </div>
 
+      {/* RIGHT */}
       <div className="header-right">
 
+        {/* Notifications */}
         <button
           className="header-icon-button"
           type="button"
@@ -33,6 +67,7 @@ function Header() {
           🔔
         </button>
 
+        {/* Profile */}
         <div className="header-profile">
 
           <button
@@ -43,18 +78,20 @@ function Header() {
             }
           >
 
+            {/* Avatar */}
             <div className="profile-avatar">
-              A
+              {avatarLetter}
             </div>
 
+            {/* User Info */}
             <div className="profile-info">
 
               <span className="profile-name">
-                Admin
+                {userName}
               </span>
 
               <span className="profile-role">
-                Company Admin
+                {userRole}
               </span>
 
             </div>
@@ -65,6 +102,7 @@ function Header() {
 
           </button>
 
+          {/* Dropdown */}
           {showMenu && (
             <div className="profile-menu">
 
@@ -76,7 +114,10 @@ function Header() {
                 Settings
               </button>
 
-              <button type="button">
+              <button
+                type="button"
+                onClick={handleLogout}
+              >
                 Logout
               </button>
 

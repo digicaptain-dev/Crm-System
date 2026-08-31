@@ -3,8 +3,27 @@ const router = express.Router();
 const db = require('../db');
 const { v4 } = require('uuid');
 
+/**
+ * @swagger
+ * tags:
+ *   name: Pipelines
+ *   description: Pipeline and pipeline-stage management
+ */
+
 // Get all pipelines
-router.get('/pipelines', (req, res) => {
+/**
+ * @swagger
+ * /pipelines:
+ *   get:
+ *     summary: Get all pipelines with their stages and deals
+ *     tags: [Pipelines]
+ *     responses:
+ *       200:
+ *         description: A list of pipelines
+ *       500:
+ *         description: Server error
+ */
+router.get('/pipelines', async (req, res) => {
 
     const query = `
         SELECT 
@@ -43,23 +62,16 @@ router.get('/pipelines', (req, res) => {
             s.stage_order ASC
     `;
 
-    db.query(query, (err, results) => {
+    try {
 
-        if (err) {
-            console.error("Fetch pipelines error:", err);
-
-            return res.status(500).json({
-                error: err.message
-            });
-        }
+        const [results] = await db.query(query);
 
         const pipelines = [];
 
         results.forEach((row) => {
 
             let pipeline = pipelines.find(
-                (item) =>
-                    item.pipeline_id === row.pipeline_id
+                (item) => item.pipeline_id === row.pipeline_id
             );
 
             // Create pipeline
@@ -78,8 +90,7 @@ router.get('/pipelines', (req, res) => {
 
             // Find stage
             let stage = pipeline.stages.find(
-                (item) =>
-                    item.stage_id === row.stage_id
+                (item) => item.stage_id === row.stage_id
             );
 
             // Create stage
@@ -113,13 +124,42 @@ router.get('/pipelines', (req, res) => {
             }
         });
 
-        res.json(pipelines);
-    });
+        return res.json(pipelines);
+
+    } catch (err) {
+
+        console.error("Fetch pipelines error:", err);
+
+        return res.status(500).json({
+            error: err.message
+        });
+    }
 });
 
 
 
 // Get a specific pipeline by ID
+/**
+ * @swagger
+ * /pipelines/{id}:
+ *   get:
+ *     summary: Get one pipeline
+ *     tags: [Pipelines]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Pipeline ID
+ *     responses:
+ *       200:
+ *         description: Pipeline details
+ *       404:
+ *         description: Pipeline not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/pipelines/:id', (req, res) => {
     const { id } = req.params;
     const query = 'SELECT * FROM pipelines WHERE pipeline_id = ?';
@@ -136,6 +176,32 @@ router.get('/pipelines/:id', (req, res) => {
 });
 
 // Create a new pipeline
+/**
+ * @swagger
+ * /pipelines:
+ *   post:
+ *     summary: Create a pipeline with five default stages
+ *     tags: [Pipelines]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pipeline_name]
+ *             properties:
+ *               pipeline_name:
+ *                 type: string
+ *                 example: Sales pipeline
+ *               description:
+ *                 type: string
+ *                 example: Pipeline for new sales opportunities
+ *     responses:
+ *       201:
+ *         description: Pipeline created
+ *       500:
+ *         description: Server error
+ */
 router.post('/pipelines', (req, res) => {
     const { pipeline_name, description } = req.body;
     var pipeline_id = v4();
@@ -181,6 +247,41 @@ router.post('/pipelines', (req, res) => {
 });
 
 // Update a pipeline by ID
+/**
+ * @swagger
+ * /pipelines/{id}:
+ *   put:
+ *     summary: Update a pipeline
+ *     tags: [Pipelines]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Pipeline ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pipeline_name]
+ *             properties:
+ *               pipeline_name:
+ *                 type: string
+ *                 example: Updated sales pipeline
+ *               description:
+ *                 type: string
+ *                 example: Updated pipeline description
+ *     responses:
+ *       200:
+ *         description: Pipeline updated
+ *       404:
+ *         description: Pipeline not found
+ *       500:
+ *         description: Server error
+ */
 router.put('/pipelines/:id', (req, res) => {
     const { id } = req.params;
     const { pipeline_name, description } = req.body;
@@ -198,6 +299,27 @@ router.put('/pipelines/:id', (req, res) => {
 });
 
 // Delete a pipeline by ID
+/**
+ * @swagger
+ * /pipelines/{id}:
+ *   delete:
+ *     summary: Delete a pipeline
+ *     tags: [Pipelines]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Pipeline ID
+ *     responses:
+ *       200:
+ *         description: Pipeline deleted
+ *       404:
+ *         description: Pipeline not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/pipelines/:id', (req, res) => {
     const { id } = req.params;
     const query = 'DELETE FROM pipelines WHERE pipeline_id = ?';
@@ -214,6 +336,25 @@ router.delete('/pipelines/:id', (req, res) => {
 });
 
 // Get all stages for a specific pipeline
+/**
+ * @swagger
+ * /pipelines/{pipelineId}/stages:
+ *   get:
+ *     summary: Get all stages in a pipeline
+ *     tags: [Pipelines]
+ *     parameters:
+ *       - in: path
+ *         name: pipelineId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Pipeline ID
+ *     responses:
+ *       200:
+ *         description: Pipeline stages ordered by stage order
+ *       500:
+ *         description: Server error
+ */
 router.get('/pipelines/:pipelineId/stages', (req, res) => {
     const { pipelineId } = req.params;
     const query = `
