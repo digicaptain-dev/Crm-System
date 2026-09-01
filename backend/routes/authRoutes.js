@@ -62,53 +62,101 @@ const { v4 } = require('uuid');
 router.post('/register', [
     body('name').notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Please provide a valid email'),
-    body('password').isLength({ min: 6 })
- ], (req, res) => {
-    var user_id = v4();    
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({
-             success: false,
-             message: 'Please correct the highlighted fields.',
-             errors: errors.array().map((error)=>({
-                field:error.path,
-                message:error.msg
-             }))
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+
+    console.log("1. Registration request received:", req.body);
+
+    try {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            console.log("2. Validation failed");
+
+            return res.status(400).json({
+                success: false,
+                message: 'Please correct the highlighted fields.',
+                errors: errors.array().map((error) => ({
+                    field: error.path,
+                    message: error.msg
+                }))
             });
-    }
-
-    const { name, email, password, role } = req.body;
-
-   
-
-    // Check if the user already exists
-    db.query('SELECT email FROM users WHERE email = ?', [email], (err, result) => {
-        
-
-        if (err) throw err;
-        if (result.length > 0) {
-            return res.status(400).json({ success: false, msg: 'User already exists' });
         }
 
-        // Hash the password before saving it
-        bcrypt.hash(password, 10, (err, hash) => {
-            if (err) throw err;
+        const { name, email, password, role } = req.body;
 
-            const newUser = {
-                user_id: user_id,
-                name,
-                email,
-                password: hash,
-                role: role || 'user'
-            };
+        console.log("2. Validation passed");
+        console.log("3. Checking email:", email);
 
-            // Insert the new user into the database
-            db.query('INSERT INTO users SET ?', newUser, (err, result) => {
-                if (err) throw err;
-                res.status(201).json({ success: true, msg: 'User registered successfully' });
+        // Check existing user
+        const [existingUser] = await db.query(
+            'SELECT email FROM users WHERE email = ?',
+            [email]
+        );
+
+        console.log("4. Email query completed");
+        console.log("5. Existing users:", existingUser.length);
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                success: false,
+                msg: 'User already exists'
             });
+        }
+
+        console.log("6. Hashing password...");
+
+        const hash = await bcrypt.hash(password, 10);
+
+        console.log("7. Password hashed");
+
+        const user_id = v4();
+
+        const newUser = {
+            user_id,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password: hash,
+            role: role || 'user'
+        };
+
+        console.log("8. New user:", {
+            user_id: newUser.user_id,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role
         });
-    });
+
+        console.log("9. Inserting user into database...");
+
+        const [result] = await db.query(
+            'INSERT INTO users SET ?',
+            newUser
+        );
+
+        console.log("10. User inserted:", result);
+
+        return res.status(201).json({
+            success: true,
+            msg: 'User registered successfully',
+            user: {
+                user_id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role
+            }
+        });
+
+    } catch (error) {
+
+        console.error("REGISTRATION ERROR:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Registration failed',
+            error: error.message
+        });
+    }
 });
 
 // Login route

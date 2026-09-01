@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:1000/api",
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:1000/api",
+
   headers: {
     "Content-Type": "application/json",
   },
@@ -13,7 +16,6 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -38,10 +40,8 @@ api.interceptors.response.use(
   },
 
   (error) => {
-
     // JWT invalid / expired
     if (error.response?.status === 401) {
-
       console.warn(
         "Authentication expired or invalid."
       );
@@ -57,3 +57,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+

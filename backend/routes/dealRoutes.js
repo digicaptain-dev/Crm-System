@@ -108,14 +108,61 @@ router.get('/deals', authenticateToken, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.get('/deal/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = 'SELECT * FROM deals WHERE deal_id = ?';
-    db.query(sql, [id], (err, results) => {
-        if (err) throw err;
-        res.json(results[0]);
-    });
-});
+router.get(
+    '/deal/:id',
+    authenticateToken,
+    async (req, res) => {
+
+        const { id } = req.params;
+
+        console.log("Fetching single deal:", id);
+
+        try {
+
+            const [results] = await db.query(
+                `
+                SELECT *
+                FROM deals
+                WHERE deal_id = ?
+                LIMIT 1
+                `,
+                [id]
+            );
+
+            console.log(
+                "Single deal result:",
+                results
+            );
+
+            if (results.length === 0) {
+
+                return res.status(404).json({
+                    success: false,
+                    message: "Deal not found"
+                });
+
+            }
+
+            return res.status(200).json({
+                success: true,
+                deal: results[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Fetch single deal error:",
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to fetch deal",
+                error: error.message
+            });
+        }
+    }
+);
 
 // Add new deal
 /**

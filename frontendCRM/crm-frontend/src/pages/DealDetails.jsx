@@ -41,45 +41,83 @@ function DealDetails() {
   // =====================================================
 
   const fetchDeal = async () => {
-    try {
-      setLoading(true);
 
-      console.log("Fetching deal:", id);
+  if (!id) {
+    console.error("Deal ID is missing");
+    setLoading(false);
+    return;
+  }
 
-      const response = await api.get(`/deal/${id}`);
+  try {
 
-      console.log(
-        "Deal details response:",
+    setLoading(true);
+
+    console.log(
+      "Fetching deal:",
+      id
+    );
+
+    const response = await api.get(
+      `/deal/${id}`
+    );
+
+    console.log(
+      "Deal details response:",
+      response.data
+    );
+
+    const fetchedDeal =
+      response.data?.deal ||
+      response.data;
+
+    console.log(
+      "Fetched deal:",
+      fetchedDeal
+    );
+
+    if (!fetchedDeal?.deal_id) {
+
+      console.error(
+        "Invalid deal response:",
         response.data
       );
 
-      const fetchedDeal =
-        response.data?.deal ||
-        response.data;
-
-      if (!fetchedDeal) {
-        setDeal(null);
-        return;
-      }
-
-      setDeal(fetchedDeal);
-
-      setStatus(
-        fetchedDeal.deal_status || "Open"
-      );
-
-    } catch (error) {
-      console.error(
-        "Failed to fetch deal:",
-        error
-      );
-
       setDeal(null);
-
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    setDeal(fetchedDeal);
+
+    setStatus(
+      fetchedDeal.deal_status ||
+      "Open"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Failed to fetch deal:",
+      error
+    );
+
+    console.error(
+      "Status:",
+      error.response?.status
+    );
+
+    console.error(
+      "Response:",
+      error.response?.data
+    );
+
+    setDeal(null);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   // =====================================================
   // GET ACTIVITIES FOR DEAL

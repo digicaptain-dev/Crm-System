@@ -6,6 +6,7 @@ function DealCard({
   deal,
   onDragStart,
   onDragEnd,
+  onClick,
 }) {
   const navigate = useNavigate();
 
@@ -13,11 +14,16 @@ function DealCard({
   // OPEN DEAL DETAILS
   // =====================================================
 
-  const handleOpenDeal = () => {
+  const handleOpenDeal = (e) => {
+    e.stopPropagation();
     if (!deal?.deal_id) {
+       console.error("Deal ID missing:", deal);
       return;
     }
-
+     if (onClick) {
+      onClick(deal);
+      return;
+    }
     navigate(`/deal/${deal.deal_id}`);
   };
 

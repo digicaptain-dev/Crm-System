@@ -214,12 +214,11 @@ function Dashboard() {
 
   const handleDealClick = (deal) => {
     if (!deal?.deal_id) {
+      console.error("Invalid deal:", deal);
       return;
     }
 
-    navigate(
-      `/deals/${deal.deal_id}`
-    );
+    navigate(`/deal/${deal.deal_id}`);
   };
 
   // =====================================================
@@ -654,6 +653,7 @@ function Dashboard() {
                           <DealCard
                             key={deal.deal_id}
                             deal={deal}
+                            onClick={handleDealClick}
                           />
                         )
                       )
