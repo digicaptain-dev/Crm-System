@@ -5,9 +5,9 @@
   box-sizing: border-box;
 }
 
-/* =========================
+/* =====================================================
    PAGE HEADER
-========================= */
+===================================================== */
 
 .page-header {
   display: flex;
@@ -30,9 +30,9 @@
   color: #6b7280;
 }
 
-/* =========================
+/* =====================================================
    HEADER ACTIONS
-========================= */
+===================================================== */
 
 .deals-header-actions {
   display: flex;
@@ -40,9 +40,9 @@
   gap: 10px;
 }
 
-/* =========================
+/* =====================================================
    BUTTONS
-========================= */
+===================================================== */
 
 .primary-button,
 .secondary-button {
@@ -53,9 +53,11 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   white-space: nowrap;
 }
 
@@ -91,19 +93,23 @@
   cursor: not-allowed;
 }
 
-/* =========================
+/* =====================================================
    DEALS TOOLBAR
-========================= */
+===================================================== */
 
 .deals-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   min-height: 52px;
+
   padding: 0 16px;
   margin-bottom: 16px;
+
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+
   background: #ffffff;
 }
 
@@ -117,27 +123,35 @@
   font-size: 15px;
 }
 
-/* =========================
+/* =====================================================
    VIEW BUTTONS
-========================= */
+===================================================== */
 
 .view-buttons {
   display: flex;
   align-items: center;
+
   gap: 4px;
   padding: 3px;
+
   border-radius: 6px;
+
   background: #f3f4f6;
 }
 
 .view-buttons button {
   border: none;
   background: transparent;
+
   color: #6b7280;
+
   padding: 7px 12px;
+
   border-radius: 5px;
+
   font-size: 13px;
   font-weight: 500;
+
   cursor: pointer;
 }
 
@@ -148,66 +162,82 @@
 .view-buttons button.active {
   background: #ffffff;
   color: #2563eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* =========================
+/* =====================================================
    DEALS CONTENT
-========================= */
+===================================================== */
 
 .deals-content {
   width: 100%;
 }
 
-/* =========================
+/* =====================================================
    EMPTY STATE
-========================= */
+===================================================== */
 
 .empty-deals {
   min-height: 300px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
   padding: 40px;
+
   border: 1px dashed #d1d5db;
   border-radius: 10px;
+
   background: #ffffff;
+
   text-align: center;
 }
 
 .empty-deals h3 {
   margin: 0 0 8px;
+
   font-size: 18px;
+
   color: #1f2937;
 }
 
 .empty-deals p {
-  margin: 0;
+  margin: 0 0 18px;
+
   color: #6b7280;
+
   font-size: 14px;
 }
 
-/* =========================
+/* =====================================================
    DEAL CARD GRID
-========================= */
+===================================================== */
 
 .deal-card-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(280px, 1fr)
-  );
+
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(280px, 1fr)
+    );
+
   gap: 16px;
 }
 
-/* =========================
+/* =====================================================
    MODAL
-========================= */
+===================================================== */
 
 .modal-overlay {
   position: fixed;
+
   inset: 0;
+
   z-index: 1000;
 
   display: flex;
@@ -222,23 +252,26 @@
 .modal {
   width: 100%;
   max-width: 620px;
+
   max-height: 90vh;
 
   overflow-y: auto;
 
   background: #ffffff;
+
   border-radius: 10px;
 
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.18);
 }
 
-/* =========================
+/* =====================================================
    MODAL HEADER
-========================= */
+===================================================== */
 
 .modal-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
 
@@ -249,8 +282,10 @@
 
 .modal-header h2 {
   margin: 0;
+
   font-size: 19px;
   font-weight: 600;
+
   color: #111827;
 }
 
@@ -266,6 +301,7 @@
   border-radius: 6px;
 
   background: transparent;
+
   color: #6b7280;
 
   font-size: 24px;
@@ -279,9 +315,65 @@
   color: #111827;
 }
 
-/* =========================
+.modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =====================================================
+   BULK ACTIONS
+===================================================== */
+
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-bottom: 16px;
+  padding: 12px 16px;
+
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+
+  background: #eff6ff;
+}
+
+.bulk-selection-info {
+  color: #374151;
+  font-size: 14px;
+}
+
+.bulk-selection-info strong {
+  color: #111827;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.deals-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 250px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+/* =====================================================
    RESPONSIVE
-========================= */
+===================================================== */
 
 @media (max-width: 768px) {
   .deals-page {
@@ -304,12 +396,30 @@
   .deals-toolbar {
     flex-direction: column;
     align-items: flex-start;
+
     gap: 10px;
+
     padding: 12px;
   }
 
   .deal-card-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .bulk-actions-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bulk-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .bulk-actions button {
+    width: 100%;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../services/api";
 
 import "../styles/deals/deals.css";
@@ -7,94 +7,291 @@ import CreateDeal from "../components/deals/CreateDeal";
 import DealTable from "../components/deals/DealTable";
 import DealCard from "../components/deals/DealCard";
 import DealImportPreview from "../components/deals/DealImportPreview";
-
-// const API_URL = "http://localhost:1000/api";
+import DealFilters from "../components/deals/DealFilters";
+import AssignDealModal from "../components/deals/AssignDealModal";
 
 function Deals() {
   const [deals, setDeals] = useState([]);
   const [pipelines, setPipelines] = useState([]);
+  const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [showCreateDeal, setShowCreateDeal] = useState(false);
 
   const [view, setView] = useState("table");
 
   const [importing, setImporting] = useState(false);
+  const [showImportPreview, setShowImportPreview] = useState(false);
+  const [importPreview, setImportPreview] = useState(null);
 
-  const [showImportPreview, setShowImportPreview] =
-    useState(false);
+  // =====================================================
+  // FILTERS
+  // =====================================================
 
-  const [importPreview, setImportPreview] =
-    useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [pipelineFilter, setPipelineFilter] = useState("");
+  const [assignedUserFilter, setAssignedUserFilter] = useState("");
+
+  // =====================================================
+  // ASSIGNMENT
+  // =====================================================
+
+  const [selectedDeals, setSelectedDeals] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const fileInputRef = useRef(null);
 
   // =====================================================
   // GET DEALS
   // =====================================================
+
   const fetchDeals = async () => {
     try {
       const response = await api.get("/deals");
 
-      console.log(
-        "Deals API response:",
-        response.data
-      );
+      console.log("Deals API response:", response.data);
 
       const fetchedDeals =
         response.data?.deals ||
         response.data ||
         [];
 
-      console.log(
-        "Fetched deals:",
-        fetchedDeals
-      );
+      const normalizedDeals = Array.isArray(fetchedDeals)
+        ? fetchedDeals
+        : [];
 
-      setDeals(fetchedDeals);
+      console.log("Fetched deals:", normalizedDeals);
 
+      setDeals(normalizedDeals);
+
+      return normalizedDeals;
     } catch (error) {
-      console.error(
-        "Failed to fetch deals:",
-        error
-      );
+      console.error("Failed to fetch deals:", error);
 
       setDeals([]);
+
+      return [];
     }
   };
 
   // =====================================================
   // GET PIPELINES
   // =====================================================
+
   const fetchPipelines = async () => {
     try {
       const response = await api.get("/pipelines");
 
-      console.log(
-        "Deals page pipelines:",
-        response.data
-      );
+      console.log("Deals page pipelines:", response.data);
+
+      const fetchedPipelines = Array.isArray(response.data)
+        ? response.data
+        : response.data?.pipelines || [];
 
       setPipelines(
-        Array.isArray(response.data)
-          ? response.data
+        Array.isArray(fetchedPipelines)
+          ? fetchedPipelines
           : []
       );
-
     } catch (error) {
-      console.error(
-        "Failed to fetch pipelines:",
-        error
-      );
+      console.error("Failed to fetch pipelines:", error);
 
       setPipelines([]);
     }
   };
 
   // =====================================================
+  // GET USERS
+  // =====================================================
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get("/users");
+
+      console.log("Deals page users:", response.data);
+
+      const fetchedUsers =
+        response.data?.users || [];
+
+      setUsers(
+        Array.isArray(fetchedUsers)
+          ? fetchedUsers
+          : []
+      );
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+
+      setUsers([]);
+    }
+  };
+
+  // =====================================================
+  // FILTER DEALS
+  // =====================================================
+
+  const filteredDeals = useMemo(() => {
+    const searchValue = search.trim().toLowerCase();
+
+    return deals.filter((deal) => {
+      const dealName =
+        deal.deal_name?.toLowerCase() || "";
+
+      const organization =
+        deal.deal_organization?.toLowerCase() || "";
+
+      const email =
+        deal.customer_email?.toLowerCase() || "";
+
+      const customerName =
+        deal.contact_person?.toLowerCase() || "";
+
+      const customerNumber =
+        deal.customer_number?.toLowerCase() || "";
+
+      const matchesSearch =
+        !searchValue ||
+        dealName.includes(searchValue) ||
+        organization.includes(searchValue) ||
+        email.includes(searchValue) ||
+        customerName.includes(searchValue) ||
+        customerNumber.includes(searchValue);
+
+      const matchesStatus =
+        !statusFilter ||
+        deal.deal_status === statusFilter;
+
+      const matchesPriority =
+        !priorityFilter ||
+        deal.deal_priority === priorityFilter;
+
+      const matchesPipeline =
+        !pipelineFilter ||
+        String(deal.pipeline_id) ===
+          String(pipelineFilter);
+
+      // ---------------------------------------------------
+      // ASSIGNED USER FILTER
+      // ---------------------------------------------------
+
+      const matchesAssignedUser =
+        !assignedUserFilter ||
+        (assignedUserFilter === "unassigned"
+          ? !deal.assign_to
+          : String(deal.assign_to) ===
+            String(assignedUserFilter));
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesPipeline &&
+        matchesAssignedUser
+      );
+    });
+  }, [
+    deals,
+    search,
+    statusFilter,
+    priorityFilter,
+    pipelineFilter,
+    assignedUserFilter,
+  ]);
+
+  // =====================================================
+  // SELECT SINGLE DEAL
+  // =====================================================
+
+  const handleSelectDeal = (dealId) => {
+    setSelectedDeals((current) => {
+      if (current.includes(dealId)) {
+        return current.filter(
+          (id) => id !== dealId
+        );
+      }
+
+      return [...current, dealId];
+    });
+  };
+
+  // =====================================================
+  // SELECT ALL FILTERED DEALS
+  // =====================================================
+
+  const handleSelectAll = (checked) => {
+    const filteredIds = filteredDeals.map(
+      (deal) => deal.deal_id
+    );
+
+    if (checked) {
+      setSelectedDeals((current) => [
+        ...new Set([
+          ...current,
+          ...filteredIds,
+        ]),
+      ]);
+    } else {
+      setSelectedDeals((current) =>
+        current.filter(
+          (id) => !filteredIds.includes(id)
+        )
+      );
+    }
+  };
+
+  // =====================================================
+  // ASSIGN SINGLE DEAL
+  // =====================================================
+
+  const handleAssignDeal = (dealId) => {
+    setSelectedDeals([dealId]);
+    setShowAssignModal(true);
+  };
+
+  // =====================================================
+  // RESET FILTERS
+  // =====================================================
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setPriorityFilter("");
+    setPipelineFilter("");
+    setAssignedUserFilter("");
+  };
+
+  // =====================================================
+  // REFRESH
+  // =====================================================
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+
+      await Promise.all([
+        fetchDeals(),
+        fetchPipelines(),
+        fetchUsers(),
+      ]);
+
+      setSelectedDeals([]);
+    } catch (error) {
+      console.error(
+        "Refresh deals error:",
+        error
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // =====================================================
   // INITIAL LOAD
   // =====================================================
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -102,6 +299,7 @@ function Deals() {
       await Promise.all([
         fetchDeals(),
         fetchPipelines(),
+        fetchUsers(),
       ]);
 
       setLoading(false);
@@ -111,14 +309,26 @@ function Deals() {
   }, []);
 
   // =====================================================
+  // REMOVE STALE SELECTED DEALS
+  // =====================================================
+
+  useEffect(() => {
+    setSelectedDeals((current) =>
+      current.filter((dealId) =>
+        deals.some(
+          (deal) => deal.deal_id === dealId
+        )
+      )
+    );
+  }, [deals]);
+
+  // =====================================================
   // CREATE DEAL
   // =====================================================
+
   const handleCreateDeal = async (dealData) => {
     try {
-      console.log(
-        "Creating deal:",
-        dealData
-      );
+      console.log("Creating deal:", dealData);
 
       const response = await api.post(
         "/deal",
@@ -140,12 +350,8 @@ function Deals() {
         return;
       }
 
-      const newDeal =
-        response.data?.deal;
+      const newDeal = response.data?.deal;
 
-      // -----------------------------------------------
-      // If backend doesn't return created deal
-      // -----------------------------------------------
       if (!newDeal) {
         await fetchDeals();
 
@@ -154,19 +360,12 @@ function Deals() {
         return;
       }
 
-      // -----------------------------------------------
-      // Put newly created deal at TOP
-      // -----------------------------------------------
       setDeals((currentDeals) => [
         newDeal,
         ...currentDeals,
       ]);
 
-      // -----------------------------------------------
-      // Close modal
-      // -----------------------------------------------
       setShowCreateDeal(false);
-
     } catch (error) {
       console.error(
         "Failed to create deal:",
@@ -182,26 +381,28 @@ function Deals() {
   };
 
   // =====================================================
-  // OPEN EXCEL FILE SELECTOR
+  // OPEN EXCEL SELECTOR
   // =====================================================
+
   const handleImportClick = () => {
+    if (importing) {
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
   // =====================================================
-  // READ EXCEL + GET PREVIEW
+  // EXCEL PREVIEW
   // =====================================================
+
   const handleFileImport = async (event) => {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    // ---------------------------------------------------
-    // Only XLSX
-    // ---------------------------------------------------
     if (
       !file.name
         .toLowerCase()
@@ -219,12 +420,8 @@ function Deals() {
     try {
       setImporting(true);
 
-      const formData =
-        new FormData();
+      const formData = new FormData();
 
-      // IMPORTANT:
-      // This matches your existing multer:
-      // upload.single("dealsFile")
       formData.append(
         "dealsFile",
         file
@@ -235,19 +432,13 @@ function Deals() {
         file.name
       );
 
-      // -------------------------------------------------
-      // Existing mount stays:
-      //
-      // /api/deals/upload
-      //
-      // We will add /preview inside the router.
-      // -------------------------------------------------
       const response = await api.post(
         "/deals/upload/preview",
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type":
+              "multipart/form-data",
           },
         }
       );
@@ -266,18 +457,8 @@ function Deals() {
         return;
       }
 
-      // -------------------------------------------------
-      // Store preview data
-      // -------------------------------------------------
-      setImportPreview(
-        response.data
-      );
-
-      // -------------------------------------------------
-      // Open preview modal
-      // -------------------------------------------------
+      setImportPreview(response.data);
       setShowImportPreview(true);
-
     } catch (error) {
       console.error(
         "Failed to preview Excel:",
@@ -289,12 +470,9 @@ function Deals() {
         error.response?.data?.error ||
         "Failed to read Excel file."
       );
-
     } finally {
       setImporting(false);
 
-      // Reset input so same file can
-      // be selected again
       event.target.value = "";
     }
   };
@@ -302,15 +480,20 @@ function Deals() {
   // =====================================================
   // CLOSE IMPORT PREVIEW
   // =====================================================
-  const handleCloseImportPreview = () => {
-    setShowImportPreview(false);
 
+  const handleCloseImportPreview = () => {
+    if (importing) {
+      return;
+    }
+
+    setShowImportPreview(false);
     setImportPreview(null);
   };
 
   // =====================================================
   // CONFIRM BULK IMPORT
   // =====================================================
+
   const handleConfirmImport = async () => {
     if (!importPreview) {
       return;
@@ -337,12 +520,6 @@ function Deals() {
         validRows.length
       );
 
-      // -------------------------------------------------
-      // IMPORTANT
-      //
-      // We send the validated rows as JSON.
-      // Backend will perform the actual DB insertion.
-      // -------------------------------------------------
       const response = await api.post(
         "/deals/upload",
         {
@@ -365,29 +542,18 @@ function Deals() {
         return;
       }
 
-      // -------------------------------------------------
-      // Close preview
-      // -------------------------------------------------
       setShowImportPreview(false);
-
       setImportPreview(null);
+      setSelectedDeals([]);
 
-      // -------------------------------------------------
-      // Refresh from database
-      //
-      // Backend GET /deals uses:
-      // ORDER BY creation_date DESC
-      //
-      // So latest imported deals will appear at TOP.
-      // -------------------------------------------------
       await fetchDeals();
 
       alert(
         response.data?.message ||
-        `Successfully imported ${response.data?.imported || 0
+        `Successfully imported ${
+          response.data?.imported || 0
         } deals.`
       );
-
     } catch (error) {
       console.error(
         "Failed to import deals:",
@@ -399,7 +565,6 @@ function Deals() {
         error.response?.data?.error ||
         "Failed to import deals."
       );
-
     } finally {
       setImporting(false);
     }
@@ -408,6 +573,7 @@ function Deals() {
   // =====================================================
   // LOADING
   // =====================================================
+
   if (loading) {
     return (
       <div className="deals-page">
@@ -418,15 +584,18 @@ function Deals() {
             <h1>Deals</h1>
 
             <p>
-              Manage your deals and
-              opportunities.
+              Manage your deals and opportunities.
             </p>
           </div>
 
         </div>
 
         <div className="deals-content">
-          <p>Loading deals...</p>
+
+          <div className="deals-loading">
+            Loading deals...
+          </div>
+
         </div>
 
       </div>
@@ -436,12 +605,11 @@ function Deals() {
   // =====================================================
   // PAGE
   // =====================================================
+
   return (
     <div className="deals-page">
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <div className="page-header">
 
@@ -450,55 +618,56 @@ function Deals() {
           <h1>Deals</h1>
 
           <p>
-            Manage your deals and
-            opportunities.
+            Manage your deals and opportunities.
           </p>
 
         </div>
 
         <div className="deals-header-actions">
 
-          {/* ---------------------------------------------
-              Hidden Excel input
-          --------------------------------------------- */}
-
           <input
             ref={fileInputRef}
             type="file"
             accept=".xlsx"
-            style={{
-              display: "none",
-            }}
-            onChange={
-              handleFileImport
-            }
+            style={{ display: "none" }}
+            onChange={handleFileImport}
           />
 
-          {/* ---------------------------------------------
-              Import Excel
-          --------------------------------------------- */}
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleRefresh}
+            disabled={
+              refreshing ||
+              importing
+            }
+          >
+            {refreshing
+              ? "Refreshing..."
+              : "↻ Refresh"}
+          </button>
 
           <button
+            type="button"
             className="secondary-button"
-            onClick={
-              handleImportClick
+            onClick={handleImportClick}
+            disabled={
+              importing ||
+              refreshing
             }
-            disabled={importing}
           >
             {importing
               ? "Processing..."
               : "Import Excel"}
           </button>
 
-          {/* ---------------------------------------------
-              Add Deal
-          --------------------------------------------- */}
-
           <button
+            type="button"
             className="primary-button"
             onClick={() =>
               setShowCreateDeal(true)
             }
+            disabled={importing}
           >
             + Add Deal
           </button>
@@ -507,27 +676,97 @@ function Deals() {
 
       </div>
 
-      {/* =================================================
-          TOOLBAR
-      ================================================= */}
+      {/* FILTERS */}
+
+      <DealFilters
+        search={search}
+        setSearch={setSearch}
+        status={statusFilter}
+        setStatus={setStatusFilter}
+        priority={priorityFilter}
+        setPriority={setPriorityFilter}
+        pipeline={pipelineFilter}
+        setPipeline={setPipelineFilter}
+        pipelines={pipelines}
+        assignedUser={assignedUserFilter}
+        setAssignedUser={setAssignedUserFilter}
+        users={users}
+        onReset={handleResetFilters}
+      />
+
+      {/* BULK ACTIONS */}
+
+      {selectedDeals.length > 0 && (
+        <div className="bulk-actions-bar">
+
+          <div className="bulk-selection-info">
+
+            <strong>
+              {selectedDeals.length}
+            </strong>{" "}
+
+            {selectedDeals.length === 1
+              ? "deal"
+              : "deals"}{" "}
+            selected
+
+          </div>
+
+          <div className="bulk-actions">
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() =>
+                setShowAssignModal(true)
+              }
+            >
+              Assign Deals
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() =>
+                setSelectedDeals([])
+              }
+            >
+              Clear Selection
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* TOOLBAR */}
 
       <div className="deals-toolbar">
 
         <div className="deals-count">
 
           <strong>
-            {deals.length}
+            {filteredDeals.length}
           </strong>{" "}
 
-          {deals.length === 1
+          {filteredDeals.length === 1
             ? "Deal"
             : "Deals"}
+
+          {filteredDeals.length !==
+            deals.length && (
+            <span>
+              {" "}
+              of {deals.length}
+            </span>
+          )}
 
         </div>
 
         <div className="view-buttons">
 
           <button
+            type="button"
             className={
               view === "table"
                 ? "active"
@@ -541,6 +780,7 @@ function Deals() {
           </button>
 
           <button
+            type="button"
             className={
               view === "cards"
                 ? "active"
@@ -557,9 +797,7 @@ function Deals() {
 
       </div>
 
-      {/* =================================================
-          DEALS CONTENT
-      ================================================= */}
+      {/* DEALS */}
 
       <div className="deals-content">
 
@@ -572,11 +810,12 @@ function Deals() {
             </h3>
 
             <p>
-              Add a deal manually or
-              import deals from Excel.
+              Add a deal manually or import
+              deals from Excel.
             </p>
 
             <button
+              type="button"
               className="primary-button"
               onClick={() =>
                 setShowCreateDeal(true)
@@ -587,17 +826,44 @@ function Deals() {
 
           </div>
 
+        ) : filteredDeals.length === 0 ? (
+
+          <div className="empty-deals">
+
+            <h3>
+              No matching deals
+            </h3>
+
+            <p>
+              Try changing your search or
+              filter settings.
+            </p>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleResetFilters}
+            >
+              Clear Filters
+            </button>
+
+          </div>
+
         ) : view === "table" ? (
 
           <DealTable
-            deals={deals}
+            deals={filteredDeals}
+            selectedDeals={selectedDeals}
+            onSelectDeal={handleSelectDeal}
+            onSelectAll={handleSelectAll}
+            onAssignDeal={handleAssignDeal}
           />
 
         ) : (
 
           <div className="deal-card-grid">
 
-            {deals.map((deal) => (
+            {filteredDeals.map((deal) => (
               <DealCard
                 key={deal.deal_id}
                 deal={deal}
@@ -610,12 +876,9 @@ function Deals() {
 
       </div>
 
-      {/* =================================================
-          CREATE DEAL MODAL
-      ================================================= */}
+      {/* CREATE DEAL MODAL */}
 
       {showCreateDeal && (
-
         <div className="modal-overlay">
 
           <div className="modal">
@@ -627,6 +890,7 @@ function Deals() {
               </h2>
 
               <button
+                type="button"
                 className="modal-close"
                 onClick={() =>
                   setShowCreateDeal(false)
@@ -642,24 +906,18 @@ function Deals() {
               onClose={() =>
                 setShowCreateDeal(false)
               }
-              onCreate={
-                handleCreateDeal
-              }
+              onCreate={handleCreateDeal}
             />
 
           </div>
 
         </div>
-
       )}
 
-      {/* =================================================
-          IMPORT PREVIEW MODAL
-      ================================================= */}
+      {/* IMPORT PREVIEW */}
 
       {showImportPreview &&
         importPreview && (
-
           <DealImportPreview
             preview={importPreview}
             importing={importing}
@@ -670,8 +928,23 @@ function Deals() {
               handleConfirmImport
             }
           />
-
         )}
+
+      {/* ASSIGN MODAL */}
+
+      {showAssignModal && (
+        <AssignDealModal
+          selectedDealIds={selectedDeals}
+          onClose={() =>
+            setShowAssignModal(false)
+          }
+          onAssigned={async () => {
+            await fetchDeals();
+
+            setSelectedDeals([]);
+          }}
+        />
+      )}
 
     </div>
   );

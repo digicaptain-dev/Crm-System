@@ -1,7 +1,7 @@
 .deal-table-wrapper {
   width: 100%;
 
-  background: #fff;
+  background: #ffffff;
 
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -11,6 +11,7 @@
 
 .deal-table {
   width: 100%;
+
   border-collapse: collapse;
 
   font-size: 13px;
@@ -26,6 +27,7 @@
   text-align: left;
 
   font-weight: 600;
+
   white-space: nowrap;
 }
 
@@ -39,19 +41,63 @@
 
 .deal-table tbody tr {
   cursor: pointer;
+
+  transition:
+    background 0.15s ease;
 }
 
 .deal-table tbody tr:hover {
   background: #fafafa;
 }
 
+/* =====================================================
+   DEAL NAME
+===================================================== */
+
 .deal-table-name {
   font-weight: 600;
 }
 
+/* =====================================================
+   CHECKBOX
+===================================================== */
+
+.deal-checkbox-column {
+  width: 42px;
+
+  text-align: center;
+}
+
+.deal-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+
+  cursor: pointer;
+
+  accent-color: #4f46e5;
+}
+
+/* =====================================================
+   SELECTED ROW
+===================================================== */
+
+.deal-table tbody tr.deal-row-selected {
+  background: #f5f7ff;
+}
+
+.deal-table tbody tr.deal-row-selected:hover {
+  background: #eef2ff;
+}
+
+/* =====================================================
+   PRIORITY
+===================================================== */
+
 .table-priority {
   font-size: 10px;
+
   font-weight: 700;
+
   text-transform: uppercase;
 }
 
@@ -67,10 +113,99 @@
   color: var(--priority-low);
 }
 
-.table-action {
-  border: 0;
-  background: transparent;
+/* =====================================================
+   ASSIGNED USER
+===================================================== */
 
-  font-size: 18px;
-  color: #666;
+.assigned-user {
+  display: inline-block;
+
+  max-width: 150px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  color: #374151;
+
+  font-size: 13px;
+}
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+.table-status {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.table-status.open {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.table-status.closed-won {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.table-status.closed-lost {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.table-status.removed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* =====================================================
+   ACTION
+===================================================== */
+
+.table-action {
+  padding: 6px 11px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  color: #374151;
+
+  font-size: 12px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.table-action:hover {
+  background: #f9fafb;
+
+  border-color: #9ca3af;
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 768px) {
+  .deal-table {
+    min-width: 1100px;
+  }
 }

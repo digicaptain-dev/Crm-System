@@ -1,3 +1,4 @@
+
 /* =========================================
    USERS PAGE
 ========================================= */
@@ -41,13 +42,36 @@
 
 
 /* =========================================
+   ERROR
+========================================= */
+
+.user-error {
+  margin-bottom: 12px;
+
+  padding: 10px 12px;
+
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+
+  background: #fef2f2;
+
+  color: #dc2626;
+
+  font-size: 12px;
+}
+
+
+/* =========================================
    STATISTICS
 ========================================= */
 
 .user-statistics {
   display: grid;
 
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    4,
+    minmax(0, 1fr)
+  );
 
   gap: 12px;
 
@@ -76,6 +100,7 @@
   color: var(--text-primary);
 
   font-size: 22px;
+
   font-weight: 600;
 }
 
@@ -86,7 +111,9 @@
 
 .users-controls {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   gap: 15px;
@@ -94,8 +121,14 @@
   margin-bottom: 12px;
 }
 
+
+/* =========================================
+   TABS
+========================================= */
+
 .user-tabs {
   display: flex;
+
   align-items: center;
 
   gap: 4px;
@@ -111,6 +144,7 @@
   padding: 7px 12px;
 
   border: 0;
+
   border-radius: 4px;
 
   background: transparent;
@@ -133,7 +167,9 @@
 
   color: var(--primary);
 
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 3px
+    rgba(0, 0, 0, 0.08);
 
   font-weight: 600;
 }
@@ -155,6 +191,7 @@
   padding: 9px 11px;
 
   border: 1px solid var(--border);
+
   border-radius: 5px;
 
   background: #ffffff;
@@ -196,7 +233,7 @@
 .users-table {
   width: 100%;
 
-  min-width: 850px;
+  min-width: 700px;
 
   border-collapse: collapse;
 
@@ -215,6 +252,7 @@
   color: var(--text-secondary);
 
   font-size: 10px;
+
   font-weight: 600;
 
   text-align: left;
@@ -249,6 +287,7 @@
 
 .user-cell {
   display: flex;
+
   align-items: center;
 
   gap: 10px;
@@ -256,10 +295,13 @@
 
 .user-avatar {
   width: 32px;
+
   height: 32px;
 
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   flex-shrink: 0;
@@ -271,6 +313,7 @@
   color: var(--primary);
 
   font-size: 12px;
+
   font-weight: 600;
 }
 
@@ -278,6 +321,7 @@
   color: var(--text-primary);
 
   font-size: 12px;
+
   font-weight: 500;
 }
 
@@ -288,6 +332,7 @@
 
 .role-badge {
   display: inline-flex;
+
   align-items: center;
 
   padding: 4px 8px;
@@ -295,59 +340,35 @@
   border-radius: 10px;
 
   font-size: 9px;
+
   font-weight: 500;
 }
 
-.role-badge.manager {
+
+/* Manager */
+
+.role-badge.coworker {
   background: #f3e8ff;
 
   color: #7e22ce;
 }
 
-.role-badge.employee {
+
+/* Employee */
+
+.role-badge.user {
   background: #eff6ff;
 
   color: #2563eb;
 }
 
 
-/* =========================================
-   STATUS BADGE
-========================================= */
+/* Admin */
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-
-  gap: 5px;
-
-  padding: 4px 8px;
-
-  border-radius: 10px;
-
-  font-size: 9px;
-  font-weight: 500;
-}
-
-.status-badge.active {
+.role-badge.admin {
   background: #ecfdf3;
 
   color: #15803d;
-}
-
-.status-badge.inactive {
-  background: #f3f4f6;
-
-  color: #6b7280;
-}
-
-.status-dot {
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-
-  background: currentColor;
 }
 
 
@@ -357,6 +378,7 @@
 
 .user-actions {
   display: flex;
+
   align-items: center;
 
   gap: 5px;
@@ -366,6 +388,7 @@
   padding: 5px 8px;
 
   border: 1px solid var(--border);
+
   border-radius: 4px;
 
   background: #ffffff;
@@ -417,6 +440,7 @@
 
 .user-form {
   display: flex;
+
   flex-direction: column;
 
   gap: 14px;
@@ -424,6 +448,7 @@
 
 .form-group {
   display: flex;
+
   flex-direction: column;
 
   gap: 6px;
@@ -433,6 +458,7 @@
   color: var(--text-primary);
 
   font-size: 11px;
+
   font-weight: 500;
 }
 
@@ -445,6 +471,7 @@
   padding: 9px 10px;
 
   border: 1px solid var(--border);
+
   border-radius: 5px;
 
   background: #ffffff;
@@ -467,14 +494,6 @@
   border-color: var(--primary);
 }
 
-.form-row {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 12px;
-}
-
 
 /* =========================================
    FORM ACTIONS
@@ -482,6 +501,7 @@
 
 .user-form .form-actions {
   display: flex;
+
   justify-content: flex-end;
 
   gap: 8px;
@@ -491,13 +511,27 @@
 
 
 /* =========================================
+   DISABLED BUTTON
+========================================= */
+
+.user-form button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================
    RESPONSIVE - TABLET
 ========================================= */
 
 @media (max-width: 900px) {
+
   .user-statistics {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:
+      repeat(2, 1fr);
   }
+
 }
 
 
@@ -506,13 +540,15 @@
 ========================================= */
 
 @media (max-width: 600px) {
+
   .users-header {
     align-items: flex-start;
 
     flex-direction: column;
   }
 
-  .users-header .primary-button {
+  .users-header
+  .primary-button {
     width: 100%;
   }
 
@@ -534,9 +570,6 @@
     width: 100%;
   }
 
-  .form-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 
@@ -545,6 +578,7 @@
 ========================================= */
 
 @media (max-width: 400px) {
+
   .user-statistics {
     grid-template-columns: 1fr;
   }
@@ -556,4 +590,6 @@
   .user-tab {
     flex: 1;
   }
+
 }
+
