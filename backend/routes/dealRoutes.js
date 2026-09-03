@@ -37,9 +37,16 @@ router.get("/deals", authenticateToken, async (req, res) => {
         if (role === "admin") {
 
             sql = `
-                SELECT *
+                SELECT 
+                    deals.*,
+                    assigned_user.name AS assigned_user_name,
+                    owner_user.name AS owner_name
                 FROM deals
-                ORDER BY creation_date DESC
+                LEFT JOIN users AS assigned_user
+                    ON deals.assign_to = assigned_user.user_id
+                LEFT JOIN users AS owner_user
+                    ON deals.deal_owner = owner_user.user_id
+                ORDER BY deals.creation_date DESC
             `;
 
         } else {
@@ -50,15 +57,16 @@ router.get("/deals", authenticateToken, async (req, res) => {
              */
             sql = `
                 SELECT 
-    deals.*,
-    assigned_user.name AS assigned_user_name,
-    owner_user.name AS owner_name
-FROM deals
-LEFT JOIN users AS assigned_user
-    ON deals.assign_to = assigned_user.user_id
-LEFT JOIN users AS owner_user
-    ON deals.deal_owner = owner_user.user_id
-ORDER BY deals.creation_date DESC
+                    deals.*,
+                    assigned_user.name AS assigned_user_name,
+                    owner_user.name AS owner_name
+                FROM deals
+                LEFT JOIN users AS assigned_user
+                    ON deals.assign_to = assigned_user.user_id
+                LEFT JOIN users AS owner_user
+                    ON deals.deal_owner = owner_user.user_id
+                WHERE deals.assign_to = ?
+                ORDER BY deals.creation_date DESC
             `;
 
             params = [user_id];
@@ -83,7 +91,6 @@ ORDER BY deals.creation_date DESC
         });
     }
 });
-
 
 
 

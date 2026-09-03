@@ -152,13 +152,21 @@ function Deals() {
       const customerNumber =
         deal.customer_number?.toLowerCase() || "";
 
+      const assignedUserName =
+        deal.assigned_user_name?.toLowerCase() || "";
+
+      const assignedUserEmail =
+        deal.assigned_user_email?.toLowerCase() || "";
+
       const matchesSearch =
         !searchValue ||
         dealName.includes(searchValue) ||
         organization.includes(searchValue) ||
         email.includes(searchValue) ||
         customerName.includes(searchValue) ||
-        customerNumber.includes(searchValue);
+        customerNumber.includes(searchValue) ||
+        assignedUserName.includes(searchValue) ||
+        assignedUserEmail.includes(searchValue);
 
       const matchesStatus =
         !statusFilter ||
@@ -171,7 +179,7 @@ function Deals() {
       const matchesPipeline =
         !pipelineFilter ||
         String(deal.pipeline_id) ===
-          String(pipelineFilter);
+        String(pipelineFilter);
 
       // ---------------------------------------------------
       // ASSIGNED USER FILTER
@@ -182,7 +190,7 @@ function Deals() {
         (assignedUserFilter === "unassigned"
           ? !deal.assign_to
           : String(deal.assign_to) ===
-            String(assignedUserFilter));
+          String(assignedUserFilter));
 
       return (
         matchesSearch &&
@@ -550,8 +558,7 @@ function Deals() {
 
       alert(
         response.data?.message ||
-        `Successfully imported ${
-          response.data?.imported || 0
+        `Successfully imported ${response.data?.imported || 0
         } deals.`
       );
     } catch (error) {
@@ -755,11 +762,11 @@ function Deals() {
 
           {filteredDeals.length !==
             deals.length && (
-            <span>
-              {" "}
-              of {deals.length}
-            </span>
-          )}
+              <span>
+                {" "}
+                of {deals.length}
+              </span>
+            )}
 
         </div>
 
