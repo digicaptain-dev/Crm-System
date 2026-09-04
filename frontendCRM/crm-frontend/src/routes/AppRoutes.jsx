@@ -18,6 +18,8 @@ import Pipeline from "../pages/Pipeline";
 import Deals from "../pages/Deals";
 
 import ProtectedRoute from "./ProtectedRoute";
+import AdminRoute from "./AdminRoute";
+
 import MainLayout from "../components/layout/MainLayout";
 
 function AppRoutes() {
@@ -65,29 +67,38 @@ function AppRoutes() {
                         />
 
                         <Route
-                            path="/leads"
-                            element={<Leads />}
-                        />
-
-                        <Route
-                            path="/lead/:id"
-                            element={<LeadDetails />}
-                        />
-
-                        <Route
                             path="/activities"
                             element={<Activities />}
-                        />
-
-                        <Route
-                            path="/users"
-                            element={<Users />}
                         />
 
                         <Route
                             path="/pipelines"
                             element={<Pipeline />}
                         />
+
+
+                        {/* =========================
+                            ADMIN / MANAGEMENT ROUTES
+                        ========================= */}
+
+                        <Route element={<AdminRoute />}>
+
+                            <Route
+                                path="/users"
+                                element={<Users />}
+                            />
+
+                            <Route
+                                path="/leads"
+                                element={<Leads />}
+                            />
+
+                            <Route
+                                path="/lead/:id"
+                                element={<LeadDetails />}
+                            />
+
+                        </Route>
 
                     </Route>
 

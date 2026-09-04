@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+
 import api from "../services/api";
 
 import "../styles/deals/deals.css";
@@ -27,6 +33,15 @@ function Deals() {
   const [importPreview, setImportPreview] = useState(null);
 
   // =====================================================
+  // PAGINATION STATES
+  // =====================================================
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDeals, setTotalDeals] = useState(0);
+  const [limit] = useState(10);
+
+  // =====================================================
   // FILTERS
   // =====================================================
 
@@ -46,37 +61,120 @@ function Deals() {
   const fileInputRef = useRef(null);
 
   // =====================================================
+  // LOGGED-IN USER / ROLE
+  // =====================================================
+
+  let currentUser = null;
+
+  try {
+    currentUser = JSON.parse(
+      localStorage.getItem("user")
+    );
+  } catch (error) {
+    console.error(
+      "Failed to read logged-in user:",
+      error
+    );
+  }
+
+  const isAdmin = currentUser?.role === "admin";
+
+  // =====================================================
   // GET DEALS
   // =====================================================
 
-  const fetchDeals = async () => {
-    try {
-      const response = await api.get("/deals");
+  const fetchDeals = useCallback(
+    async (page = currentPage) => {
+      try {
+        const params = {
+          page,
+          limit,
 
-      console.log("Deals API response:", response.data);
+          search:
+            search.trim() || undefined,
 
-      const fetchedDeals =
-        response.data?.deals ||
-        response.data ||
-        [];
+          status:
+            statusFilter || undefined,
 
-      const normalizedDeals = Array.isArray(fetchedDeals)
-        ? fetchedDeals
-        : [];
+          priority:
+            priorityFilter || undefined,
 
-      console.log("Fetched deals:", normalizedDeals);
+          pipeline_id:
+            pipelineFilter || undefined,
 
-      setDeals(normalizedDeals);
+          /*
+           * Only send assigned-user filter for admin.
+           *
+           * Normal users should not be able to
+           * request another user's deals.
+           */
+          assign_to:
+            isAdmin && assignedUserFilter
+              ? assignedUserFilter
+              : undefined,
+        };
 
-      return normalizedDeals;
-    } catch (error) {
-      console.error("Failed to fetch deals:", error);
+        const response =
+          await api.get("/deals", {
+            params,
+          });
 
-      setDeals([]);
+        console.log(
+          "Deals API response:",
+          response.data
+        );
 
-      return [];
-    }
-  };
+        const fetchedDeals =
+          response.data?.deals || [];
+
+        const paginationInfo =
+          response.data?.pagination || {};
+
+        setDeals(
+          Array.isArray(fetchedDeals)
+            ? fetchedDeals
+            : []
+        );
+
+        setTotalPages(
+          paginationInfo.totalPages || 1
+        );
+
+        setTotalDeals(
+          paginationInfo.totalDeals ||
+            fetchedDeals.length ||
+            0
+        );
+
+        setCurrentPage(
+          paginationInfo.currentPage || page
+        );
+
+        return fetchedDeals;
+      } catch (error) {
+        console.error(
+          "Failed to fetch deals:",
+          error
+        );
+
+        setDeals([]);
+        setTotalPages(1);
+        setTotalDeals(0);
+
+        return [];
+      }
+    },
+    [
+      currentPage,
+      limit,
+      search,
+      statusFilter,
+      priorityFilter,
+      pipelineFilter,
+      assignedUserFilter,
+      isAdmin,
+    ]
+  );
 
   // =====================================================
   // GET PIPELINES
@@ -84,13 +182,13 @@ function Deals() {
 
   const fetchPipelines = async () => {
     try {
-      const response = await api.get("/pipelines");
+      const response =
+        await api.get("/pipelines");
 
-      console.log("Deals page pipelines:", response.data);
-
-      const fetchedPipelines = Array.isArray(response.data)
-        ? response.data
-        : response.data?.pipelines || [];
+      const fetchedPipelines =
+        Array.isArray(response.data)
+          ? response.data
+          : response.data?.pipelines || [];
 
       setPipelines(
         Array.isArray(fetchedPipelines)
@@ -98,7 +196,10 @@ function Deals() {
           : []
       );
     } catch (error) {
-      console.error("Failed to fetch pipelines:", error);
+      console.error(
+        "Failed to fetch pipelines:",
+        error
+      );
 
       setPipelines([]);
     }
@@ -109,10 +210,18 @@ function Deals() {
   // =====================================================
 
   const fetchUsers = async () => {
-    try {
-      const response = await api.get("/users");
+    /*
+     * Normal users don't need the users list.
+     * They cannot assign deals or manage users.
+     */
+    if (!isAdmin) {
+      setUsers([]);
+      return;
+    }
 
-      console.log("Deals page users:", response.data);
+    try {
+      const response =
+        await api.get("/users");
 
       const fetchedUsers =
         response.data?.users || [];
@@ -123,85 +232,35 @@ function Deals() {
           : []
       );
     } catch (error) {
-      console.error("Failed to fetch users:", error);
+      console.error(
+        "Failed to fetch users:",
+        error
+      );
 
       setUsers([]);
     }
   };
 
   // =====================================================
-  // FILTER DEALS
+  // PAGE CHANGE HANDLER
   // =====================================================
 
-  const filteredDeals = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+  const handlePageChange = (newPage) => {
+    if (
+      newPage >= 1 &&
+      newPage <= totalPages
+    ) {
+      setCurrentPage(newPage);
+    }
+  };
 
-    return deals.filter((deal) => {
-      const dealName =
-        deal.deal_name?.toLowerCase() || "";
+  // =====================================================
+  // RESET PAGE WHEN FILTER CHANGES
+  // =====================================================
 
-      const organization =
-        deal.deal_organization?.toLowerCase() || "";
-
-      const email =
-        deal.customer_email?.toLowerCase() || "";
-
-      const customerName =
-        deal.contact_person?.toLowerCase() || "";
-
-      const customerNumber =
-        deal.customer_number?.toLowerCase() || "";
-
-      const assignedUserName =
-        deal.assigned_user_name?.toLowerCase() || "";
-
-      const assignedUserEmail =
-        deal.assigned_user_email?.toLowerCase() || "";
-
-      const matchesSearch =
-        !searchValue ||
-        dealName.includes(searchValue) ||
-        organization.includes(searchValue) ||
-        email.includes(searchValue) ||
-        customerName.includes(searchValue) ||
-        customerNumber.includes(searchValue) ||
-        assignedUserName.includes(searchValue) ||
-        assignedUserEmail.includes(searchValue);
-
-      const matchesStatus =
-        !statusFilter ||
-        deal.deal_status === statusFilter;
-
-      const matchesPriority =
-        !priorityFilter ||
-        deal.deal_priority === priorityFilter;
-
-      const matchesPipeline =
-        !pipelineFilter ||
-        String(deal.pipeline_id) ===
-        String(pipelineFilter);
-
-      // ---------------------------------------------------
-      // ASSIGNED USER FILTER
-      // ---------------------------------------------------
-
-      const matchesAssignedUser =
-        !assignedUserFilter ||
-        (assignedUserFilter === "unassigned"
-          ? !deal.assign_to
-          : String(deal.assign_to) ===
-          String(assignedUserFilter));
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPriority &&
-        matchesPipeline &&
-        matchesAssignedUser
-      );
-    });
+  useEffect(() => {
+    setCurrentPage(1);
   }, [
-    deals,
     search,
     statusFilter,
     priorityFilter,
@@ -210,41 +269,86 @@ function Deals() {
   ]);
 
   // =====================================================
+  // FETCH DEALS WHEN PAGE / FILTERS CHANGE
+  // =====================================================
+
+  useEffect(() => {
+    fetchDeals(currentPage);
+  }, [
+    currentPage,
+    search,
+    statusFilter,
+    priorityFilter,
+    pipelineFilter,
+    assignedUserFilter,
+  ]);
+
+  // =====================================================
+  // INITIAL LOOKUP DATA
+  // =====================================================
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+
+      await Promise.all([
+        fetchPipelines(),
+        fetchUsers(),
+      ]);
+
+      setLoading(false);
+    };
+
+    loadInitialData();
+  }, []);
+
+  // =====================================================
   // SELECT SINGLE DEAL
   // =====================================================
 
   const handleSelectDeal = (dealId) => {
-    setSelectedDeals((current) => {
-      if (current.includes(dealId)) {
-        return current.filter(
-          (id) => id !== dealId
-        );
-      }
+    /*
+     * Selection is only useful for admin assignment.
+     */
+    if (!isAdmin) {
+      return;
+    }
 
-      return [...current, dealId];
-    });
+    setSelectedDeals((current) =>
+      current.includes(dealId)
+        ? current.filter(
+            (id) => id !== dealId
+          )
+        : [...current, dealId]
+    );
   };
 
   // =====================================================
-  // SELECT ALL FILTERED DEALS
+  // SELECT ALL DEALS ON CURRENT PAGE
   // =====================================================
 
   const handleSelectAll = (checked) => {
-    const filteredIds = filteredDeals.map(
-      (deal) => deal.deal_id
-    );
+    if (!isAdmin) {
+      return;
+    }
+
+    const currentPageIds =
+      deals.map(
+        (deal) => deal.deal_id
+      );
 
     if (checked) {
       setSelectedDeals((current) => [
         ...new Set([
           ...current,
-          ...filteredIds,
+          ...currentPageIds,
         ]),
       ]);
     } else {
       setSelectedDeals((current) =>
         current.filter(
-          (id) => !filteredIds.includes(id)
+          (id) =>
+            !currentPageIds.includes(id)
         )
       );
     }
@@ -255,6 +359,13 @@ function Deals() {
   // =====================================================
 
   const handleAssignDeal = (dealId) => {
+    if (!isAdmin) {
+      alert(
+        "You do not have permission to assign deals."
+      );
+      return;
+    }
+
     setSelectedDeals([dealId]);
     setShowAssignModal(true);
   };
@@ -269,6 +380,7 @@ function Deals() {
     setPriorityFilter("");
     setPipelineFilter("");
     setAssignedUserFilter("");
+    setCurrentPage(1);
   };
 
   // =====================================================
@@ -280,7 +392,7 @@ function Deals() {
       setRefreshing(true);
 
       await Promise.all([
-        fetchDeals(),
+        fetchDeals(currentPage),
         fetchPipelines(),
         fetchUsers(),
       ]);
@@ -297,34 +409,15 @@ function Deals() {
   };
 
   // =====================================================
-  // INITIAL LOAD
-  // =====================================================
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-
-      await Promise.all([
-        fetchDeals(),
-        fetchPipelines(),
-        fetchUsers(),
-      ]);
-
-      setLoading(false);
-    };
-
-    loadData();
-  }, []);
-
-  // =====================================================
-  // REMOVE STALE SELECTED DEALS
+  // REMOVE STALE SELECTED DEAL IDS
   // =====================================================
 
   useEffect(() => {
     setSelectedDeals((current) =>
       current.filter((dealId) =>
         deals.some(
-          (deal) => deal.deal_id === dealId
+          (deal) =>
+            deal.deal_id === dealId
         )
       )
     );
@@ -334,44 +427,37 @@ function Deals() {
   // CREATE DEAL
   // =====================================================
 
-  const handleCreateDeal = async (dealData) => {
+  const handleCreateDeal = async (
+    dealData
+  ) => {
+    /*
+     * Frontend permission guard.
+     */
+    if (!isAdmin) {
+      alert(
+        "You do not have permission to create deals."
+      );
+      return;
+    }
+
     try {
-      console.log("Creating deal:", dealData);
-
-      const response = await api.post(
-        "/deal",
-        dealData
-      );
-
-      console.log(
-        "Create deal response:",
-        response.data
-      );
+      const response =
+        await api.post(
+          "/deal",
+          dealData
+        );
 
       if (!response.data?.success) {
         alert(
           response.data?.message ||
-          response.data?.error ||
-          "Failed to create deal."
+            response.data?.error ||
+            "Failed to create deal."
         );
 
         return;
       }
 
-      const newDeal = response.data?.deal;
-
-      if (!newDeal) {
-        await fetchDeals();
-
-        setShowCreateDeal(false);
-
-        return;
-      }
-
-      setDeals((currentDeals) => [
-        newDeal,
-        ...currentDeals,
-      ]);
+      await fetchDeals(1);
 
       setShowCreateDeal(false);
     } catch (error) {
@@ -382,30 +468,46 @@ function Deals() {
 
       alert(
         error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to create deal."
+          error.response?.data?.error ||
+          "Failed to create deal."
       );
     }
   };
 
   // =====================================================
-  // OPEN EXCEL SELECTOR
+  // OPEN IMPORT FILE SELECTOR
   // =====================================================
 
   const handleImportClick = () => {
-    if (importing) {
+    if (!isAdmin) {
+      alert(
+        "You do not have permission to import deals."
+      );
       return;
     }
 
-    fileInputRef.current?.click();
+    if (!importing) {
+      fileInputRef.current?.click();
+    }
   };
 
   // =====================================================
-  // EXCEL PREVIEW
+  // EXCEL IMPORT PREVIEW
   // =====================================================
 
-  const handleFileImport = async (event) => {
-    const file = event.target.files?.[0];
+  const handleFileImport = async (
+    event
+  ) => {
+    /*
+     * Permission guard.
+     */
+    if (!isAdmin) {
+      event.target.value = "";
+      return;
+    }
+
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
@@ -421,51 +523,45 @@ function Deals() {
       );
 
       event.target.value = "";
-
       return;
     }
 
     try {
       setImporting(true);
 
-      const formData = new FormData();
+      const formData =
+        new FormData();
 
       formData.append(
         "dealsFile",
         file
       );
 
-      console.log(
-        "Preparing Excel preview:",
-        file.name
-      );
-
-      const response = await api.post(
-        "/deals/upload/preview",
-        formData,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
-      );
-
-      console.log(
-        "Excel preview response:",
-        response.data
-      );
+      const response =
+        await api.post(
+          "/deals/upload/preview",
+          formData,
+          {
+            headers: {
+              "Content-Type":
+                "multipart/form-data",
+            },
+          }
+        );
 
       if (!response.data?.success) {
         alert(
           response.data?.message ||
-          "Unable to preview Excel file."
+            "Unable to preview Excel file."
         );
 
         return;
       }
 
-      setImportPreview(response.data);
+      setImportPreview(
+        response.data
+      );
+
       setShowImportPreview(true);
     } catch (error) {
       console.error(
@@ -475,12 +571,10 @@ function Deals() {
 
       alert(
         error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to read Excel file."
+          "Failed to read Excel file."
       );
     } finally {
       setImporting(false);
-
       event.target.value = "";
     }
   };
@@ -489,156 +583,161 @@ function Deals() {
   // CLOSE IMPORT PREVIEW
   // =====================================================
 
-  const handleCloseImportPreview = () => {
-    if (importing) {
-      return;
-    }
-
-    setShowImportPreview(false);
-    setImportPreview(null);
-  };
+  const handleCloseImportPreview =
+    () => {
+      if (!importing) {
+        setShowImportPreview(false);
+        setImportPreview(null);
+      }
+    };
 
   // =====================================================
-  // CONFIRM BULK IMPORT
+  // CONFIRM IMPORT
   // =====================================================
 
-  const handleConfirmImport = async () => {
-    if (!importPreview) {
-      return;
-    }
-
-    try {
-      setImporting(true);
-
-      const validRows =
-        importPreview.rows?.filter(
-          (row) => row.valid
-        ) || [];
-
-      if (validRows.length === 0) {
+  const handleConfirmImport =
+    async () => {
+      /*
+       * Permission guard.
+       */
+      if (!isAdmin) {
         alert(
-          "There are no valid deals to import."
+          "You do not have permission to import deals."
         );
-
         return;
       }
 
-      console.log(
-        "Importing valid deals:",
-        validRows.length
-      );
+      if (!importPreview) {
+        return;
+      }
 
-      const response = await api.post(
-        "/deals/upload",
-        {
-          rows: validRows,
+      try {
+        setImporting(true);
+
+        const validRows =
+          importPreview.rows?.filter(
+            (row) => row.valid
+          ) || [];
+
+        if (validRows.length === 0) {
+          alert(
+            "There are no valid deals to import."
+          );
+
+          return;
         }
-      );
 
-      console.log(
-        "Bulk import response:",
-        response.data
-      );
+        const response =
+          await api.post(
+            "/deals/upload",
+            {
+              rows: validRows,
+            }
+          );
 
-      if (!response.data?.success) {
+        if (!response.data?.success) {
+          alert(
+            response.data?.message ||
+              "Failed to import deals."
+          );
+
+          return;
+        }
+
+        setShowImportPreview(false);
+        setImportPreview(null);
+        setSelectedDeals([]);
+
+        await fetchDeals(1);
+
         alert(
           response.data?.message ||
-          response.data?.error ||
-          "Failed to import deals."
+            `Successfully imported ${
+              response.data?.imported || 0
+            } deals.`
+        );
+      } catch (error) {
+        console.error(
+          "Failed to import deals:",
+          error
         );
 
-        return;
+        alert(
+          error.response?.data?.message ||
+            "Failed to import deals."
+        );
+      } finally {
+        setImporting(false);
       }
-
-      setShowImportPreview(false);
-      setImportPreview(null);
-      setSelectedDeals([]);
-
-      await fetchDeals();
-
-      alert(
-        response.data?.message ||
-        `Successfully imported ${response.data?.imported || 0
-        } deals.`
-      );
-    } catch (error) {
-      console.error(
-        "Failed to import deals:",
-        error
-      );
-
-      alert(
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to import deals."
-      );
-    } finally {
-      setImporting(false);
-    }
-  };
+    };
 
   // =====================================================
-  // LOADING
+  // LOADING STATE
   // =====================================================
 
   if (loading) {
     return (
       <div className="deals-page">
-
         <div className="page-header">
-
           <div>
             <h1>Deals</h1>
 
             <p>
-              Manage your deals and opportunities.
+              Manage your deals and
+              opportunities.
             </p>
           </div>
-
         </div>
 
         <div className="deals-content">
-
           <div className="deals-loading">
             Loading deals...
           </div>
-
         </div>
-
       </div>
     );
   }
 
   // =====================================================
-  // PAGE
+  // MAIN RENDER
   // =====================================================
 
   return (
     <div className="deals-page">
 
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <div className="page-header">
-
         <div>
-
           <h1>Deals</h1>
 
           <p>
-            Manage your deals and opportunities.
+            Manage your deals and
+            opportunities.
           </p>
-
         </div>
 
         <div className="deals-header-actions">
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx"
-            style={{ display: "none" }}
-            onChange={handleFileImport}
-          />
+          {/* Hidden Excel input */}
+
+          {isAdmin && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx"
+              style={{
+                display: "none",
+              }}
+              onChange={
+                handleFileImport
+              }
+            />
+          )}
+
+          {/* REFRESH */}
 
           <button
             type="button"
@@ -654,36 +753,47 @@ function Deals() {
               : "↻ Refresh"}
           </button>
 
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={handleImportClick}
-            disabled={
-              importing ||
-              refreshing
-            }
-          >
-            {importing
-              ? "Processing..."
-              : "Import Excel"}
-          </button>
+          {/* IMPORT EXCEL - ADMIN ONLY */}
 
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() =>
-              setShowCreateDeal(true)
-            }
-            disabled={importing}
-          >
-            + Add Deal
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={
+                handleImportClick
+              }
+              disabled={
+                importing ||
+                refreshing
+              }
+            >
+              {importing
+                ? "Processing..."
+                : "Import Excel"}
+            </button>
+          )}
+
+          {/* ADD DEAL - ADMIN ONLY */}
+
+          {isAdmin && (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() =>
+                setShowCreateDeal(true)
+              }
+              disabled={importing}
+            >
+              + Add Deal
+            </button>
+          )}
 
         </div>
-
       </div>
 
-      {/* FILTERS */}
+      {/* =================================================
+          FILTERS
+      ================================================= */}
 
       <DealFilters
         search={search}
@@ -695,79 +805,80 @@ function Deals() {
         pipeline={pipelineFilter}
         setPipeline={setPipelineFilter}
         pipelines={pipelines}
-        assignedUser={assignedUserFilter}
-        setAssignedUser={setAssignedUserFilter}
+        assignedUser={
+          assignedUserFilter
+        }
+        setAssignedUser={
+          setAssignedUserFilter
+        }
         users={users}
-        onReset={handleResetFilters}
+        onReset={
+          handleResetFilters
+        }
+        isAdmin={isAdmin}
       />
 
-      {/* BULK ACTIONS */}
+      {/* =================================================
+          BULK ACTIONS - ADMIN ONLY
+      ================================================= */}
 
-      {selectedDeals.length > 0 && (
-        <div className="bulk-actions-bar">
+      {isAdmin &&
+        selectedDeals.length > 0 && (
+          <div className="bulk-actions-bar">
 
-          <div className="bulk-selection-info">
+            <div className="bulk-selection-info">
+              <strong>
+                {selectedDeals.length}
+              </strong>{" "}
+              {selectedDeals.length ===
+              1
+                ? "deal"
+                : "deals"}{" "}
+              selected
+            </div>
 
-            <strong>
-              {selectedDeals.length}
-            </strong>{" "}
+            <div className="bulk-actions">
 
-            {selectedDeals.length === 1
-              ? "deal"
-              : "deals"}{" "}
-            selected
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() =>
+                  setShowAssignModal(
+                    true
+                  )
+                }
+              >
+                Assign Deals
+              </button>
 
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() =>
+                  setSelectedDeals([])
+                }
+              >
+                Clear Selection
+              </button>
+
+            </div>
           </div>
+        )}
 
-          <div className="bulk-actions">
-
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() =>
-                setShowAssignModal(true)
-              }
-            >
-              Assign Deals
-            </button>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() =>
-                setSelectedDeals([])
-              }
-            >
-              Clear Selection
-            </button>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* TOOLBAR */}
+      {/* =================================================
+          TOOLBAR
+      ================================================= */}
 
       <div className="deals-toolbar">
 
         <div className="deals-count">
-
           <strong>
-            {filteredDeals.length}
+            {totalDeals}
           </strong>{" "}
-
-          {filteredDeals.length === 1
+          {totalDeals === 1
             ? "Deal"
-            : "Deals"}
-
-          {filteredDeals.length !==
-            deals.length && (
-              <span>
-                {" "}
-                of {deals.length}
-              </span>
-            )}
-
+            : "Deals"}{" "}
+          Total
         </div>
 
         <div className="view-buttons">
@@ -801,15 +912,15 @@ function Deals() {
           </button>
 
         </div>
-
       </div>
 
-      {/* DEALS */}
+      {/* =================================================
+          DEALS DISPLAY
+      ================================================= */}
 
       <div className="deals-content">
 
         {deals.length === 0 ? (
-
           <div className="empty-deals">
 
             <h3>
@@ -817,60 +928,55 @@ function Deals() {
             </h3>
 
             <p>
-              Add a deal manually or import
-              deals from Excel.
-            </p>
-
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() =>
-                setShowCreateDeal(true)
-              }
-            >
-              + Add Deal
-            </button>
-
-          </div>
-
-        ) : filteredDeals.length === 0 ? (
-
-          <div className="empty-deals">
-
-            <h3>
-              No matching deals
-            </h3>
-
-            <p>
-              Try changing your search or
-              filter settings.
+              Try changing your
+              filter settings, or add
+              a new deal.
             </p>
 
             <button
               type="button"
               className="secondary-button"
-              onClick={handleResetFilters}
+              onClick={
+                handleResetFilters
+              }
             >
               Clear Filters
             </button>
 
           </div>
-
         ) : view === "table" ? (
 
           <DealTable
-            deals={filteredDeals}
-            selectedDeals={selectedDeals}
-            onSelectDeal={handleSelectDeal}
-            onSelectAll={handleSelectAll}
-            onAssignDeal={handleAssignDeal}
+            deals={deals}
+            selectedDeals={
+              selectedDeals
+            }
+            onSelectDeal={
+              handleSelectDeal
+            }
+            onSelectAll={
+              handleSelectAll
+            }
+            onAssignDeal={
+              handleAssignDeal
+            }
+            canAssign={isAdmin}
+            currentPage={
+              currentPage
+            }
+            totalPages={
+              totalPages
+            }
+            onPageChange={
+              handlePageChange
+            }
           />
 
         ) : (
 
           <div className="deal-card-grid">
 
-            {filteredDeals.map((deal) => (
+            {deals.map((deal) => (
               <DealCard
                 key={deal.deal_id}
                 deal={deal}
@@ -878,56 +984,144 @@ function Deals() {
             ))}
 
           </div>
+        )}
 
+        {/* =================================================
+            PAGINATION
+        ================================================= */}
+
+        {totalPages > 1 && (
+          <div
+            className="pagination-controls"
+            style={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              marginTop: "20px",
+              padding: "12px 16px",
+              background:
+                "#ffffff",
+              border:
+                "1px solid #e5e7eb",
+              borderRadius: "8px",
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={
+                currentPage === 1
+              }
+              onClick={() =>
+                handlePageChange(
+                  currentPage - 1
+                )
+              }
+            >
+              ← Previous
+            </button>
+
+            <span
+              style={{
+                fontSize: "14px",
+                color: "#374151",
+              }}
+            >
+              Page{" "}
+              <strong>
+                {currentPage}
+              </strong>{" "}
+              of{" "}
+              <strong>
+                {totalPages}
+              </strong>
+            </span>
+
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={
+                currentPage ===
+                totalPages
+              }
+              onClick={() =>
+                handlePageChange(
+                  currentPage + 1
+                )
+              }
+            >
+              Next →
+            </button>
+
+          </div>
         )}
 
       </div>
 
-      {/* CREATE DEAL MODAL */}
+      {/* =================================================
+          CREATE DEAL MODAL - ADMIN ONLY
+      ================================================= */}
 
-      {showCreateDeal && (
-        <div className="modal-overlay">
+      {isAdmin &&
+        showCreateDeal && (
+          <div className="modal-overlay">
 
-          <div className="modal">
+            <div className="modal">
 
-            <div className="modal-header">
+              <div className="modal-header">
 
-              <h2>
-                Create Deal
-              </h2>
+                <h2>
+                  Create Deal
+                </h2>
 
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() =>
-                  setShowCreateDeal(false)
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() =>
+                    setShowCreateDeal(
+                      false
+                    )
+                  }
+                >
+                  ×
+                </button>
+
+              </div>
+
+              <CreateDeal
+                pipelines={
+                  pipelines
                 }
-              >
-                ×
-              </button>
+                onClose={() =>
+                  setShowCreateDeal(
+                    false
+                  )
+                }
+                onCreate={
+                  handleCreateDeal
+                }
+              />
 
             </div>
-
-            <CreateDeal
-              pipelines={pipelines}
-              onClose={() =>
-                setShowCreateDeal(false)
-              }
-              onCreate={handleCreateDeal}
-            />
-
           </div>
+        )}
 
-        </div>
-      )}
+      {/* =================================================
+          IMPORT PREVIEW - ADMIN ONLY
+      ================================================= */}
 
-      {/* IMPORT PREVIEW */}
-
-      {showImportPreview &&
+      {isAdmin &&
+        showImportPreview &&
         importPreview && (
           <DealImportPreview
-            preview={importPreview}
-            importing={importing}
+            preview={
+              importPreview
+            }
+            importing={
+              importing
+            }
             onClose={
               handleCloseImportPreview
             }
@@ -937,21 +1131,32 @@ function Deals() {
           />
         )}
 
-      {/* ASSIGN MODAL */}
+      {/* =================================================
+          ASSIGN MODAL - ADMIN ONLY
+      ================================================= */}
 
-      {showAssignModal && (
-        <AssignDealModal
-          selectedDealIds={selectedDeals}
-          onClose={() =>
-            setShowAssignModal(false)
-          }
-          onAssigned={async () => {
-            await fetchDeals();
+      {isAdmin &&
+        showAssignModal && (
+          <AssignDealModal
+            selectedDealIds={
+              selectedDeals
+            }
+            onClose={() =>
+              setShowAssignModal(
+                false
+              )
+            }
+            onAssigned={async () => {
+              await fetchDeals(
+                currentPage
+              );
 
-            setSelectedDeals([]);
-          }}
-        />
-      )}
+              setSelectedDeals(
+                []
+              );
+            }}
+          />
+        )}
 
     </div>
   );

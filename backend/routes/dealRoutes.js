@@ -22,77 +22,71 @@ router.get("/deals", authenticateToken, async (req, res) => {
     try {
         const { user_id, role } = req.user;
 
-        console.log("Fetching deals for:", {
-            user_id,
-            role
-        });
+        // Query params se page aur limit read karein (default: page=1, limit=10)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
 
-        let sql;
+        let baseQuery = "";
+        let countQuery = "";
         let params = [];
 
-        /*
-         * ADMIN
-         * Admin can see all deals
-         */
         if (role === "admin") {
-
-            sql = `
-                SELECT 
-                    deals.*,
-                    assigned_user.name AS assigned_user_name,
-                    owner_user.name AS owner_name
+            baseQuery = `
                 FROM deals
-                LEFT JOIN users AS assigned_user
-                    ON deals.assign_to = assigned_user.user_id
-                LEFT JOIN users AS owner_user
-                    ON deals.deal_owner = owner_user.user_id
-                ORDER BY deals.creation_date DESC
+                LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
+                LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
             `;
-
+            countQuery = `SELECT COUNT(*) AS total FROM deals`;
         } else {
-
-            /*
-             * COWORKER / USER
-             * Can see only deals assigned to them
-             */
-            sql = `
-                SELECT 
-                    deals.*,
-                    assigned_user.name AS assigned_user_name,
-                    owner_user.name AS owner_name
+            baseQuery = `
                 FROM deals
-                LEFT JOIN users AS assigned_user
-                    ON deals.assign_to = assigned_user.user_id
-                LEFT JOIN users AS owner_user
-                    ON deals.deal_owner = owner_user.user_id
+                LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
+                LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
                 WHERE deals.assign_to = ?
-                ORDER BY deals.creation_date DESC
             `;
-
+            countQuery = `SELECT COUNT(*) AS total FROM deals WHERE assign_to = ?`;
             params = [user_id];
         }
 
-        const [results] = await db.query(sql, params);
+        // 1. Total records count
+        const [countResult] = await db.query(countQuery, params);
+        const totalDeals = countResult[0].total;
+        const totalPages = Math.ceil(totalDeals / limit);
 
-        console.log("Deals returned:", results.length);
+        // 2. Paginated Data fetch (LIMIT aur OFFSET add karke)
+        const selectSql = `
+            SELECT 
+                deals.*,
+                assigned_user.name AS assigned_user_name,
+                owner_user.name AS owner_name
+            ${baseQuery}
+            ORDER BY deals.creation_date DESC
+            LIMIT ? OFFSET ?
+        `;
+
+        const queryParams = [...params, limit, offset];
+        const [results] = await db.query(selectSql, queryParams);
 
         return res.status(200).json({
             success: true,
-            deals: results
+            deals: results,
+            pagination: {
+                totalDeals,
+                totalPages,
+                currentPage: page,
+                limit
+            }
         });
 
     } catch (error) {
-
         console.error("Fetch deals error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Failed to fetch deals"
         });
     }
 });
-
-
 
 /* =====================================================
    GET SINGLE DEAL

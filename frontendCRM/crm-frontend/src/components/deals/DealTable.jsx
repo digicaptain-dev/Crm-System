@@ -4,17 +4,27 @@ import { useNavigate } from "react-router-dom";
 import "../../styles/deals/deal-table.css";
 
 function DealTable({
-  deals,
-  selectedDeals,
+  deals = [],
+  selectedDeals = [],
   onSelectDeal,
   onSelectAll,
   onAssignDeal,
+
+  // Pagination props
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
+
+  // Permission
+  canAssign = false,
 }) {
   const navigate = useNavigate();
-  const selectAllRef = useRef(null);
+
+  const selectAllRef =
+    useRef(null);
 
   // =====================================================
-  // SELECT ALL STATE
+  // SELECTION
   // =====================================================
 
   const allSelected =
@@ -32,10 +42,6 @@ function DealTable({
       )
     ) && !allSelected;
 
-  // =====================================================
-  // INDETERMINATE CHECKBOX
-  // =====================================================
-
   useEffect(() => {
     if (selectAllRef.current) {
       selectAllRef.current.indeterminate =
@@ -48,6 +54,14 @@ function DealTable({
   // =====================================================
 
   const openDeal = (deal) => {
+    if (!deal?.deal_id) {
+      console.error(
+        "Deal ID missing:",
+        deal
+      );
+      return;
+    }
+
     navigate(
       `/deal/${deal.deal_id}`
     );
@@ -66,60 +80,48 @@ function DealTable({
       return "-";
     }
 
-    const numericValue = Number(value);
+    const numericValue =
+      Number(value);
 
-    if (Number.isNaN(numericValue)) {
-      return "-";
-    }
-
-    return `$${numericValue.toLocaleString()}`;
+    return Number.isNaN(
+      numericValue
+    )
+      ? "-"
+      : `$${numericValue.toLocaleString()}`;
   };
 
   // =====================================================
-  // PIPELINE
+  // HELPERS
   // =====================================================
 
-  const getPipelineName = (deal) => {
-    return (
-      deal.pipeline_name ||
-      deal.pipeline_id ||
-      "-"
-    );
-  };
+  const getPipelineName = (
+    deal
+  ) =>
+    deal.pipeline_name ||
+    deal.pipeline_id ||
+    "-";
+
+  const getStageName = (
+    deal
+  ) =>
+    deal.stage_name ||
+    deal.deal_stage ||
+    "-";
+
+  const getOwner = (deal) =>
+    deal.owner_name ||
+    deal.deal_owner ||
+    "Unassigned";
+
+  const getAssignedUser = (
+    deal
+  ) =>
+    deal.assigned_user_name ||
+    "Unassigned";
 
   // =====================================================
-  // STAGE
+  // RENDER
   // =====================================================
-
-  const getStageName = (deal) => {
-    return (
-      deal.stage_name ||
-      deal.deal_stage ||
-      "-"
-    );
-  };
-
-  // =====================================================
-  // OWNER
-  // =====================================================
-
-  const getOwner = (deal) => {
-    return (
-      deal.owner_name ||
-      "Unassigned"
-    );
-  };
-
-  // =====================================================
-  // ASSIGNED USER
-  // =====================================================
-
-  const getAssignedUser = (deal) => {
-    return (
-      deal.assigned_user_name ||
-      "Unassigned"
-    );
-  };
 
   return (
     <div className="deal-table-wrapper">
@@ -130,44 +132,40 @@ function DealTable({
 
           <tr>
 
+            {/* SELECT CHECKBOX */}
+
             <th className="deal-checkbox-column">
 
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                checked={allSelected}
-                onChange={(e) =>
-                  onSelectAll(
-                    e.target.checked
-                  )
-                }
-                onClick={(e) =>
-                  e.stopPropagation()
-                }
-              />
+              {canAssign && (
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={
+                    allSelected
+                  }
+                  onChange={(e) =>
+                    onSelectAll(
+                      e.target.checked
+                    )
+                  }
+                  onClick={(e) =>
+                    e.stopPropagation()
+                  }
+                />
+              )}
 
             </th>
 
             <th>Deal</th>
-
             <th>Organization</th>
-
             <th>Email</th>
-
             <th>Value</th>
-
             <th>Pipeline</th>
-
             <th>Stage</th>
-
             <th>Owner</th>
-
             <th>Assigned To</th>
-
             <th>Priority</th>
-
             <th>Status</th>
-
             <th>Actions</th>
 
           </tr>
@@ -188,7 +186,9 @@ function DealTable({
 
             return (
               <tr
-                key={deal.deal_id}
+                key={
+                  deal.deal_id
+                }
                 className={
                   isSelected
                     ? "deal-row-selected"
@@ -203,86 +203,76 @@ function DealTable({
 
                 <td>
 
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() =>
-                      onSelectDeal(
-                        deal.deal_id
-                      )
-                    }
-                    onClick={(e) =>
-                      e.stopPropagation()
-                    }
-                  />
+                  {canAssign && (
+                    <input
+                      type="checkbox"
+                      checked={
+                        isSelected
+                      }
+                      onChange={() =>
+                        onSelectDeal(
+                          deal.deal_id
+                        )
+                      }
+                      onClick={(e) =>
+                        e.stopPropagation()
+                      }
+                    />
+                  )}
 
                 </td>
 
                 {/* DEAL */}
 
                 <td className="deal-table-name">
-
                   {deal.deal_name ||
                     "Untitled Deal"}
-
                 </td>
 
                 {/* ORGANIZATION */}
 
                 <td>
-
                   {deal.deal_organization ||
                     "-"}
-
                 </td>
 
                 {/* EMAIL */}
 
                 <td>
-
                   {deal.customer_email ||
                     "-"}
-
                 </td>
 
                 {/* VALUE */}
 
                 <td>
-
                   {formatValue(
                     deal.deal_value
                   )}
-
                 </td>
 
                 {/* PIPELINE */}
 
                 <td>
-
                   {getPipelineName(
                     deal
                   )}
-
                 </td>
 
                 {/* STAGE */}
 
                 <td>
-
                   {getStageName(
                     deal
                   )}
-
                 </td>
 
                 {/* OWNER */}
 
                 <td>
-
                   {getOwner(
                     deal
                   )}
-
                 </td>
 
                 {/* ASSIGNED TO */}
@@ -296,11 +286,9 @@ function DealTable({
                         : "assigned-user"
                     }
                   >
-
                     {getAssignedUser(
                       deal
                     )}
-
                   </span>
 
                 </td>
@@ -315,10 +303,8 @@ function DealTable({
                       "Medium"
                     ).toLowerCase()}`}
                   >
-
                     {deal.deal_priority ||
                       "Medium"}
-
                   </span>
 
                 </td>
@@ -338,10 +324,8 @@ function DealTable({
                         "-"
                       )}`}
                   >
-
                     {deal.deal_status ||
                       "Open"}
-
                   </span>
 
                 </td>
@@ -352,12 +336,17 @@ function DealTable({
 
                   <div className="deal-table-actions">
 
-                    {isUnassigned &&
+                    {/* ASSIGN - ADMIN ONLY */}
+
+                    {canAssign &&
+                      isUnassigned &&
                       onAssignDeal && (
                         <button
                           type="button"
                           className="table-action table-action-assign"
-                          onClick={(e) => {
+                          onClick={(
+                            e
+                          ) => {
                             e.stopPropagation();
 
                             onAssignDeal(
@@ -369,13 +358,19 @@ function DealTable({
                         </button>
                       )}
 
+                    {/* VIEW */}
+
                     <button
                       type="button"
                       className="table-action"
-                      onClick={(e) => {
+                      onClick={(
+                        e
+                      ) => {
                         e.stopPropagation();
 
-                        openDeal(deal);
+                        openDeal(
+                          deal
+                        );
                       }}
                     >
                       View
@@ -392,6 +387,93 @@ function DealTable({
         </tbody>
 
       </table>
+
+      {/* =================================================
+          PAGINATION
+      ================================================= */}
+
+      {totalPages > 1 && (
+        <div
+          className="pagination-container"
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            padding: "16px",
+            borderTop:
+              "1px solid #e5e7eb",
+          }}
+        >
+
+          <button
+            type="button"
+            disabled={
+              currentPage === 1
+            }
+            onClick={() =>
+              onPageChange?.(
+                currentPage - 1
+              )
+            }
+            style={{
+              padding:
+                "6px 12px",
+              cursor:
+                currentPage === 1
+                  ? "not-allowed"
+                  : "pointer",
+              opacity:
+                currentPage === 1
+                  ? 0.5
+                  : 1,
+            }}
+          >
+            Previous
+          </button>
+
+          <span>
+            Page{" "}
+            <strong>
+              {currentPage}
+            </strong>{" "}
+            of{" "}
+            <strong>
+              {totalPages}
+            </strong>
+          </span>
+
+          <button
+            type="button"
+            disabled={
+              currentPage ===
+              totalPages
+            }
+            onClick={() =>
+              onPageChange?.(
+                currentPage + 1
+              )
+            }
+            style={{
+              padding:
+                "6px 12px",
+              cursor:
+                currentPage ===
+                totalPages
+                  ? "not-allowed"
+                  : "pointer",
+              opacity:
+                currentPage ===
+                totalPages
+                  ? 0.5
+                  : 1,
+            }}
+          >
+            Next
+          </button>
+
+        </div>
+      )}
 
     </div>
   );

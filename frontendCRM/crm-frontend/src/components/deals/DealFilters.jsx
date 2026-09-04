@@ -14,6 +14,9 @@ function DealFilters({
   setAssignedUser,
   users,
   onReset,
+
+  // Permission
+  isAdmin = false,
 }) {
   const hasActiveFilters =
     search ||
@@ -25,7 +28,9 @@ function DealFilters({
   return (
     <div className="deal-filters">
 
-      {/* SEARCH */}
+      {/* =================================================
+          SEARCH
+      ================================================= */}
 
       <div className="deal-filter-search">
 
@@ -38,7 +43,9 @@ function DealFilters({
           placeholder="Search deals, organization, email..."
           value={search}
           onChange={(e) =>
-            setSearch(e.target.value)
+            setSearch(
+              e.target.value
+            )
           }
         />
 
@@ -57,12 +64,16 @@ function DealFilters({
 
       </div>
 
-      {/* STATUS */}
+      {/* =================================================
+          STATUS
+      ================================================= */}
 
       <select
         value={status}
         onChange={(e) =>
-          setStatus(e.target.value)
+          setStatus(
+            e.target.value
+          )
         }
         aria-label="Filter by status"
       >
@@ -89,12 +100,16 @@ function DealFilters({
 
       </select>
 
-      {/* PRIORITY */}
+      {/* =================================================
+          PRIORITY
+      ================================================= */}
 
       <select
         value={priority}
         onChange={(e) =>
-          setPriority(e.target.value)
+          setPriority(
+            e.target.value
+          )
         }
         aria-label="Filter by priority"
       >
@@ -117,12 +132,16 @@ function DealFilters({
 
       </select>
 
-      {/* PIPELINE */}
+      {/* =================================================
+          PIPELINE
+      ================================================= */}
 
       <select
         value={pipeline}
         onChange={(e) =>
-          setPipeline(e.target.value)
+          setPipeline(
+            e.target.value
+          )
         }
         aria-label="Filter by pipeline"
       >
@@ -131,47 +150,70 @@ function DealFilters({
           All Pipelines
         </option>
 
-        {pipelines.map((item) => (
-          <option
-            key={item.pipeline_id}
-            value={item.pipeline_id}
-          >
-            {item.pipeline_name}
-          </option>
-        ))}
+        {pipelines.map(
+          (item) => (
+            <option
+              key={
+                item.pipeline_id
+              }
+              value={
+                item.pipeline_id
+              }
+            >
+              {
+                item.pipeline_name
+              }
+            </option>
+          )
+        )}
 
       </select>
 
-      {/* ASSIGNED USER */}
+      {/* =================================================
+          ASSIGNED USER
+          ADMIN ONLY
+      ================================================= */}
 
-      <select
-        value={assignedUser}
-        onChange={(e) =>
-          setAssignedUser(e.target.value)
-        }
-        aria-label="Filter by assigned user"
-      >
+      {isAdmin && (
+        <select
+          value={assignedUser}
+          onChange={(e) =>
+            setAssignedUser(
+              e.target.value
+            )
+          }
+          aria-label="Filter by assigned user"
+        >
 
-        <option value="">
-          All Assigned Users
-        </option>
-
-        <option value="unassigned">
-          Unassigned
-        </option>
-
-        {users.map((user) => (
-          <option
-            key={user.user_id}
-            value={user.user_id}
-          >
-            {user.name}
+          <option value="">
+            All Assigned Users
           </option>
-        ))}
 
-      </select>
+          <option value="unassigned">
+            Unassigned
+          </option>
 
-      {/* RESET */}
+          {users.map(
+            (user) => (
+              <option
+                key={
+                  user.user_id
+                }
+                value={
+                  user.user_id
+                }
+              >
+                {user.name}
+              </option>
+            )
+          )}
+
+        </select>
+      )}
+
+      {/* =================================================
+          RESET
+      ================================================= */}
 
       {hasActiveFilters && (
         <button
