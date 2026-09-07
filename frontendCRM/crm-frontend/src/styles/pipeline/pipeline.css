@@ -4,9 +4,15 @@
 
 .pipeline-page {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 100%;
+
   padding: 24px 28px 36px;
+
   box-sizing: border-box;
+
+  overflow-x: hidden;
 
   background: #f5f7fb;
   color: #172033;
@@ -28,6 +34,7 @@
   box-sizing: border-box;
 }
 
+
 /* =========================================================
    PAGE HEADER
    ========================================================= */
@@ -35,6 +42,7 @@
 .pipeline-page-header {
   width: 100%;
   max-width: 1600px;
+  min-width: 0;
 
   margin: 0 auto 22px;
 
@@ -46,8 +54,11 @@
 }
 
 .pipeline-page-heading {
+  min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 14px;
 }
 
@@ -85,7 +96,9 @@
 
   font-size: 25px;
   line-height: 1.2;
+
   font-weight: 750;
+
   letter-spacing: -0.35px;
 }
 
@@ -101,15 +114,17 @@
 .pipeline-page-summary {
   display: flex;
   align-items: center;
+
   gap: 7px;
 
   padding: 8px 12px;
+
+  flex-shrink: 0;
 
   border: 1px solid #e3e7ee;
   border-radius: 999px;
 
   background: #ffffff;
-
   color: #687386;
 
   font-size: 12px;
@@ -120,10 +135,13 @@
   width: 7px;
   height: 7px;
 
+  flex-shrink: 0;
+
   border-radius: 50%;
 
   background: #22c55e;
 }
+
 
 /* =========================================================
    ERROR
@@ -132,6 +150,7 @@
 .pipeline-error {
   width: 100%;
   max-width: 1600px;
+  min-width: 0;
 
   margin: 0 auto 16px;
 }
@@ -173,6 +192,7 @@
 
 .pipeline-error-message {
   min-width: 0;
+
   flex: 1;
 
   display: flex;
@@ -210,19 +230,25 @@
   border-radius: 7px;
 
   background: transparent;
-
   color: #991b1b;
 
   font-size: 20px;
 
   cursor: pointer;
 
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .pipeline-error-close:hover {
   background: #fee2e2;
 }
+
+.pipeline-error-close:active {
+  transform: translateY(1px);
+}
+
 
 /* =========================================================
    MAIN SECTIONS
@@ -232,6 +258,7 @@
 .pipeline-toolbar-section {
   width: 100%;
   max-width: 1600px;
+  min-width: 0;
 
   margin-left: auto;
   margin-right: auto;
@@ -253,22 +280,47 @@
   margin-bottom: 18px;
 }
 
+
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
 .pipeline-content {
   width: 100%;
   max-width: 1600px;
+  min-width: 0;
 
   margin: 0 auto;
+
+  box-sizing: border-box;
 }
 
 .pipeline-stats-section {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   margin-bottom: 18px;
+
+  box-sizing: border-box;
 }
 
 .pipeline-board-section {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+
+  margin: 0;
+
+  /*
+     IMPORTANT:
+     Prevent the wide board from expanding the page.
+  */
+  overflow: hidden;
+
+  box-sizing: border-box;
 }
+
 
 /* =========================================================
    LOADING
@@ -279,6 +331,7 @@
 
   display: flex;
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
 
@@ -296,12 +349,14 @@
 
   border-radius: 50%;
 
-  animation: pipeline-spin 0.8s linear infinite;
+  animation:
+    pipeline-spin 0.8s linear infinite;
 }
 
 .pipeline-loading-content {
   display: flex;
   flex-direction: column;
+
   align-items: center;
 
   gap: 3px;
@@ -326,6 +381,7 @@
   }
 }
 
+
 /* =========================================================
    EMPTY STATE
    ========================================================= */
@@ -340,6 +396,7 @@
 
   display: flex;
   flex-direction: column;
+
   align-items: center;
 
   text-align: center;
@@ -434,6 +491,7 @@
   transform: translateY(1px);
 }
 
+
 /* =========================================================
    GLOBAL PIPELINE CONTROLS
    ========================================================= */
@@ -453,8 +511,9 @@
   outline-offset: 2px;
 }
 
+
 /* =========================================================
-   SCROLLBAR
+   PAGE SCROLLBAR
    ========================================================= */
 
 .pipeline-page ::-webkit-scrollbar {
@@ -475,8 +534,9 @@
   background: #94a3b8;
 }
 
+
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE - TABLET
    ========================================================= */
 
 @media (max-width: 1100px) {
@@ -492,6 +552,11 @@
     font-size: 23px;
   }
 }
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   ========================================================= */
 
 @media (max-width: 768px) {
   .pipeline-page {
@@ -542,9 +607,15 @@
 
   .pipeline-empty {
     margin: 50px auto;
+
     padding: 40px 20px;
   }
 }
+
+
+/* =========================================================
+   RESPONSIVE - SMALL MOBILE
+   ========================================================= */
 
 @media (max-width: 480px) {
   .pipeline-page {
@@ -558,6 +629,7 @@
   .pipeline-page-icon {
     width: 38px;
     height: 38px;
+
     border-radius: 9px;
   }
 
@@ -583,6 +655,7 @@
 
   .pipeline-empty {
     margin: 35px auto;
+
     padding: 35px 16px;
   }
 

@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import api from "../../services/api";
@@ -19,11 +24,17 @@ function PipelineBoard({
 
   const [stages, setStages] = useState([]);
 
-  const [draggedDealId, setDraggedDealId] = useState(null);
-  const [updatingDealId, setUpdatingDealId] = useState(null);
+  const [draggedDealId, setDraggedDealId] =
+    useState(null);
 
-  const [draggedStageId, setDraggedStageId] = useState(null);
-  const [reorderingStages, setReorderingStages] = useState(false);
+  const [updatingDealId, setUpdatingDealId] =
+    useState(null);
+
+  const [draggedStageId, setDraggedStageId] =
+    useState(null);
+
+  const [reorderingStages, setReorderingStages] =
+    useState(false);
 
   const [error, setError] = useState("");
 
@@ -42,6 +53,7 @@ function PipelineBoard({
     const sortedStages = [...pipeline.stages]
       .map((stage) => ({
         ...stage,
+
         deals: Array.isArray(stage.deals)
           ? stage.deals
           : [],
@@ -63,7 +75,9 @@ function PipelineBoard({
 
   const getStageValue = (deals) => {
     return deals.reduce((total, deal) => {
-      const value = Number(deal?.deal_value);
+      const value = Number(
+        deal?.deal_value
+      );
 
       return Number.isFinite(value)
         ? total + value
@@ -133,7 +147,10 @@ function PipelineBoard({
    * =====================================================
    */
 
-  const handleStageDragStart = (event, stage) => {
+  const handleStageDragStart = (
+    event,
+    stage
+  ) => {
     if (!stage?.stage_id) {
       return;
     }
@@ -142,7 +159,8 @@ function PipelineBoard({
     setDraggedDealId(null);
     setError("");
 
-    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.effectAllowed =
+      "move";
 
     event.dataTransfer.setData(
       "application/x-pipeline-stage",
@@ -169,7 +187,8 @@ function PipelineBoard({
   const handleDragOver = (event) => {
     event.preventDefault();
 
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect =
+      "move";
   };
 
   /*
@@ -205,17 +224,19 @@ function PipelineBoard({
       return;
     }
 
-    const sourceIndex = stages.findIndex(
-      (stage) =>
-        String(stage.stage_id) ===
-        String(sourceStageId)
-    );
+    const sourceIndex =
+      stages.findIndex(
+        (stage) =>
+          String(stage.stage_id) ===
+          String(sourceStageId)
+      );
 
-    const targetIndex = stages.findIndex(
-      (stage) =>
-        String(stage.stage_id) ===
-        String(targetStage.stage_id)
-    );
+    const targetIndex =
+      stages.findIndex(
+        (stage) =>
+          String(stage.stage_id) ===
+          String(targetStage.stage_id)
+      );
 
     if (
       sourceIndex === -1 ||
@@ -239,10 +260,6 @@ function PipelineBoard({
       movedStage
     );
 
-    /*
-     * Immediately update local UI.
-     */
-
     const normalizedStages =
       reorderedStages.map(
         (stage, index) => ({
@@ -252,28 +269,18 @@ function PipelineBoard({
       );
 
     setStages(normalizedStages);
+
     setDraggedStageId(null);
     setReorderingStages(true);
     setError("");
 
     try {
-      /*
-       * Send complete ordered stage list
-       * to Pipeline.jsx.
-       */
-
       if (onReorderStages) {
         await onReorderStages(
           normalizedStages
         );
       }
     } catch (err) {
-      /*
-       * Parent handles the API error.
-       * Refreshing pipeline data will restore
-       * the correct backend order.
-       */
-
       console.error(
         "Stage reorder error:",
         err
@@ -296,11 +303,6 @@ function PipelineBoard({
     event.preventDefault();
     event.stopPropagation();
 
-    /*
-     * If this is a stage drag, do not
-     * process it as a deal drag.
-     */
-
     const stageDragId =
       event.dataTransfer.getData(
         "application/x-pipeline-stage"
@@ -322,10 +324,6 @@ function PipelineBoard({
       return;
     }
 
-    /*
-     * Find current stage.
-     */
-
     const sourceStage = stages.find(
       (stage) =>
         stage.deals.some(
@@ -338,11 +336,6 @@ function PipelineBoard({
     if (!sourceStage) {
       return;
     }
-
-    /*
-     * Don't call API if dropped in
-     * the same stage.
-     */
 
     if (
       String(sourceStage.stage_id) ===
@@ -367,21 +360,18 @@ function PipelineBoard({
     setError("");
 
     /*
-     * Optimistic UI update.
+     * Optimistic UI update
      */
 
     setStages((previousStages) =>
       previousStages.map((stage) => {
-        /*
-         * Remove deal from old stage.
-         */
-
         if (
           String(stage.stage_id) ===
           String(sourceStage.stage_id)
         ) {
           return {
             ...stage,
+
             deals: stage.deals.filter(
               (item) =>
                 String(item.deal_id) !==
@@ -390,20 +380,19 @@ function PipelineBoard({
           };
         }
 
-        /*
-         * Add deal to target stage.
-         */
-
         if (
           String(stage.stage_id) ===
           String(targetStage.stage_id)
         ) {
           return {
             ...stage,
+
             deals: [
               ...stage.deals,
+
               {
                 ...deal,
+
                 deal_stage:
                   targetStage.stage_id,
               },
@@ -416,22 +405,6 @@ function PipelineBoard({
     );
 
     try {
-      /*
-       * =================================================
-       * UPDATE DEAL STAGE IN BACKEND
-       * =================================================
-       *
-       * IMPORTANT:
-       * Use the configured `api` instance instead
-       * of raw axios.
-       *
-       * services/api.js automatically adds:
-       *
-       * Authorization: Bearer <token>
-       *
-       * through the request interceptor.
-       */
-
       await api.put(
         `/deals/${dealId}/stage`,
         {
@@ -446,21 +419,18 @@ function PipelineBoard({
       );
 
       /*
-       * Rollback optimistic update.
+       * Rollback
        */
 
       setStages((previousStages) =>
         previousStages.map((stage) => {
-          /*
-           * Restore deal to original stage.
-           */
-
           if (
             String(stage.stage_id) ===
             String(sourceStage.stage_id)
           ) {
             return {
               ...stage,
+
               deals: [
                 ...stage.deals,
                 deal,
@@ -468,16 +438,13 @@ function PipelineBoard({
             };
           }
 
-          /*
-           * Remove deal from target stage.
-           */
-
           if (
             String(stage.stage_id) ===
             String(targetStage.stage_id)
           ) {
             return {
               ...stage,
+
               deals: stage.deals.filter(
                 (item) =>
                   String(item.deal_id) !==
@@ -504,7 +471,7 @@ function PipelineBoard({
 
   /*
    * =====================================================
-   * COMBINED DROP HANDLER
+   * COMBINED DROP
    * =====================================================
    */
 
@@ -594,7 +561,7 @@ function PipelineBoard({
 
   if (view === "list") {
     return (
-      <div className="pipeline-board-wrapper">
+      <div className="pipeline-board-wrapper pipeline-list-wrapper">
 
         {error && (
           <div className="pipeline-board-error">
@@ -673,7 +640,7 @@ function PipelineBoard({
                       key={`${stage.stage_id}-${deal.deal_id}`}
                       onClick={() =>
                         navigate(
-                          `/deals/${deal.deal_id}`
+                          `/deal/${deal.deal_id}`
                         )
                       }
                     >
@@ -805,9 +772,16 @@ function PipelineBoard({
           )}
         </div>
       ) : (
+        /*
+         * IMPORTANT:
+         *
+         * pipeline-board-wrapper = scroll container
+         * pipeline-board         = wide track
+         */
+
         <div className="pipeline-board">
 
-          {stages.map((stage, index) => {
+          {stages.map((stage) => {
             const deals = Array.isArray(
               stage.deals
             )
@@ -857,9 +831,9 @@ function PipelineBoard({
 
                 <div className="pipeline-column-header">
 
-                  <div className="pipeline-column-title-row">
+                  <div className="pipeline-stage-header-row">
 
-                    {/* Stage Drag Handle */}
+                    {/* DRAG HANDLE */}
 
                     <div
                       className="pipeline-stage-drag-handle"
@@ -876,24 +850,32 @@ function PipelineBoard({
                         handleStageDragEnd
                       }
                       title="Drag to reorder stage"
+                      aria-label="Drag to reorder stage"
                     >
-                      ⋮⋮
-                    </div>
-
-                    <div className="pipeline-column-title">
-
-                      <h3>
-                        {stage.stage_name ||
-                          "Unnamed Stage"}
-                      </h3>
-
-                      <span className="pipeline-stage-count">
-                        {deals.length}
+                      <span className="pipeline-drag-dots">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
                       </span>
-
                     </div>
 
-                    {/* Stage Actions */}
+                    {/* STAGE NAME */}
+
+                    <h3 className="pipeline-column-title">
+                      {stage.stage_name ||
+                        "Unnamed Stage"}
+                    </h3>
+
+                    {/* DEAL COUNT */}
+
+                    <span className="pipeline-stage-count">
+                      {deals.length}
+                    </span>
+
+                    {/* ACTIONS */}
 
                     <div className="pipeline-stage-actions">
 
@@ -908,8 +890,28 @@ function PipelineBoard({
                             )
                           }
                           title="Edit stage"
+                          aria-label="Edit stage"
                         >
-                          ✎
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M12 20h9"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+
+                            <path
+                              d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </button>
                       )}
 
@@ -924,22 +926,56 @@ function PipelineBoard({
                             )
                           }
                           title="Delete stage"
+                          aria-label="Delete stage"
                         >
-                          ×
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M4 7h16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+
+                            <path
+                              d="M9 7V4h6v3"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+
+                            <path
+                              d="M7 7l1 13h8l1-13"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinejoin="round"
+                            />
+
+                            <path
+                              d="M10 11v5M14 11v5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
                         </button>
                       )}
 
                     </div>
                   </div>
 
-                  <div className="pipeline-column-meta">
-                    <span>
-                      {formatCurrency(
-                        stageValue
-                      )}
-                    </span>
-                  </div>
+                  {/* STAGE VALUE */}
 
+                  <div className="pipeline-column-meta">
+                    {formatCurrency(stageValue)}
+                  </div>
                 </div>
 
                 {/* =================================================
@@ -950,6 +986,32 @@ function PipelineBoard({
 
                   {deals.length === 0 ? (
                     <div className="pipeline-stage-empty">
+
+                      <div className="pipeline-stage-empty-icon">
+                        <svg
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <rect
+                            x="5"
+                            y="4"
+                            width="14"
+                            height="16"
+                            rx="2"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                          />
+
+                          <path
+                            d="M9 9h6M9 13h6M9 17h3"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </div>
 
                       <div className="pipeline-stage-empty-text">
                         No deals in this stage
@@ -1006,7 +1068,6 @@ function PipelineBoard({
                       </button>
                     </>
                   )}
-
                 </div>
               </div>
             );
@@ -1017,16 +1078,67 @@ function PipelineBoard({
           ================================================= */}
 
           {onAddStage && (
-            <button
-              type="button"
-              className="pipeline-add-stage-btn"
-              onClick={onAddStage}
-            >
-              <span>+</span>
-              Add Stage
-            </button>
-          )}
+            <div className="pipeline-add-stage-column">
 
+              <div className="pipeline-add-stage-header">
+
+                <div className="pipeline-add-stage-title-row">
+
+                  <span className="pipeline-stage-drag-placeholder">
+                    <span className="pipeline-drag-dots">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </span>
+
+                  <span className="pipeline-add-stage-title">
+                    Add Stage
+                  </span>
+
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="pipeline-add-stage-content"
+                onClick={onAddStage}
+                aria-label="Add new stage"
+              >
+                <span className="pipeline-add-stage-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 5v14M5 12h14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+
+                <strong>
+                  Add Stage
+                </strong>
+
+                <span>
+                  Create a new stage to
+                  track your deals.
+                </span>
+
+                <span className="pipeline-add-stage-action">
+                  <span>+</span>
+                  Add Stage
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,0 +1,242 @@
+.schedule-form {
+    width: 100%;
+}
+
+.schedule-form-error {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 14px;
+}
+
+.schedule-form-error span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dc2626;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.schedule-type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.schedule-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.schedule-type-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.schedule-type-card.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 1px #2563eb;
+}
+
+.schedule-type-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.schedule-type-card strong {
+    color: #111827;
+    font-size: 14px;
+}
+
+.schedule-type-card small {
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.schedule-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.schedule-field {
+    position: relative;
+}
+
+.schedule-field-full {
+    grid-column: 1 / -1;
+}
+
+.schedule-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.schedule-field input,
+.schedule-field select,
+.schedule-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 11px 12px;
+    background: #fff;
+    color: #111827;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.schedule-field textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.schedule-field input:focus,
+.schedule-field select:focus,
+.schedule-field textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.schedule-selected-deal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    background: #eff6ff;
+}
+
+.schedule-deal-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2563eb;
+}
+
+.schedule-selected-deal div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.schedule-selected-deal strong {
+    color: #1e3a8a;
+    font-size: 13px;
+}
+
+.schedule-selected-deal small {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.schedule-character-count {
+    margin-top: 5px;
+    text-align: right;
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+.schedule-form-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.schedule-btn {
+    min-height: 40px;
+    padding: 0 17px;
+    border: 0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.schedule-btn.secondary {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+}
+
+.schedule-btn.primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #2563eb;
+    color: #fff;
+}
+
+.schedule-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.schedule-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: scheduleSpin 0.7s linear infinite;
+}
+
+@keyframes scheduleSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 650px) {
+    .schedule-type-grid,
+    .schedule-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-field-full {
+        grid-column: auto;
+    }
+
+    .schedule-form-footer {
+        flex-direction: column-reverse;
+    }
+
+    .schedule-btn {
+        width: 100%;
+    }
+}

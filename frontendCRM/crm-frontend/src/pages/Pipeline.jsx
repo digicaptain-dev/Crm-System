@@ -4,7 +4,8 @@ import {
   useMemo,
   useState,
 } from "react";
-import axios from "axios";
+
+import api from "../services/api";
 
 import PipelineHeader from "../components/pipeline/PipelineHeader";
 import PipelineToolbar from "../components/pipeline/PipelineToolbar";
@@ -17,8 +18,6 @@ import AddStageModal from "../components/pipeline/AddStageModal";
 import EditStageModal from "../components/pipeline/EditStageModal";
 
 import "../styles/pipeline/pipeline.css";
-
-const API_URL = "http://localhost:1000/api";
 
 function Pipeline() {
   const [pipelines, setPipelines] = useState([]);
@@ -70,9 +69,7 @@ function Pipeline() {
 
         setError("");
 
-        const response = await axios.get(
-          `${API_URL}/pipelines`
-        );
+        const response = await api.get("/pipelines");
 
         const data = Array.isArray(response.data)
           ? response.data
@@ -262,8 +259,8 @@ function Pipeline() {
     try {
       setError("");
 
-      const response = await axios.post(
-        `${API_URL}/pipelines`,
+      const response = await api.post(
+        "/pipelines",
         pipeline
       );
 
@@ -310,8 +307,8 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.put(
-        `${API_URL}/pipelines/${selectedPipelineId}`,
+      await api.put(
+        `/pipelines/${selectedPipelineId}`,
         pipeline
       );
 
@@ -355,8 +352,8 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.delete(
-        `${API_URL}/pipelines/${selectedPipeline.pipeline_id}`
+      await api.delete(
+        `/pipelines/${selectedPipeline.pipeline_id}`
       );
 
       await fetchPipelines();
@@ -389,26 +386,100 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.post(
-        `${API_URL}/pipelines/${selectedPipelineId}/stages`,
+      console.log(
+        "========== CREATE STAGE START =========="
+      );
+
+      console.log(
+        "Pipeline ID:",
+        selectedPipelineId
+      );
+
+      console.log(
+        "Stage payload:",
         stage
+      );
+
+      const payload = {
+        stage_name:
+          stage.stage_name.trim(),
+
+        description:
+          stage.description?.trim() || "",
+
+        ...(stage.stage_order !== undefined
+          ? {
+              stage_order:
+                Number(stage.stage_order),
+            }
+          : {}),
+      };
+
+      console.log(
+        "Final payload:",
+        payload
+      );
+
+      const response = await api.post(
+        `/pipelines/${selectedPipelineId}/stages`,
+        payload
+      );
+
+      console.log(
+        "========== CREATE STAGE RESPONSE =========="
+      );
+
+      console.log(
+        "Status:",
+        response.status
+      );
+
+      console.log(
+        "Data:",
+        response.data
       );
 
       await fetchPipelines();
 
+      console.log(
+        "Pipelines refreshed successfully."
+      );
+
       setShowAddStageModal(false);
+
+      return response.data;
     } catch (err) {
       console.error(
-        "Create stage error:",
+        "========== CREATE STAGE ERROR =========="
+      );
+
+      console.error(
+        "Error:",
         err
       );
 
-      setError(
-        err.response?.data?.error ||
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to create stage."
+      console.error(
+        "Response:",
+        err.response
       );
+
+      console.error(
+        "Response data:",
+        err.response?.data
+      );
+
+      console.error(
+        "Response status:",
+        err.response?.status
+      );
+
+      const message =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to create stage.";
+
+      setError(message);
 
       throw err;
     }
@@ -440,11 +511,12 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.put(
-        `${API_URL}/pipelines/${selectedPipelineId}/stages/${selectedStage.stage_id}`,
+      await api.put(
+        `/pipelines/${selectedPipelineId}/stages/${selectedStage.stage_id}`,
         {
           stage_name:
             stageData.stage_name,
+
           description:
             stageData.description || "",
         }
@@ -496,8 +568,8 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.delete(
-        `${API_URL}/pipelines/${selectedPipelineId}/stages/${stage.stage_id}`
+      await api.delete(
+        `/pipelines/${selectedPipelineId}/stages/${stage.stage_id}`
       );
 
       await fetchPipelines();
@@ -533,13 +605,14 @@ function Pipeline() {
     try {
       setError("");
 
-      await axios.put(
-        `${API_URL}/pipelines/${selectedPipelineId}/stages/reorder`,
+      await api.put(
+        `/pipelines/${selectedPipelineId}/stages/reorder`,
         {
           stages: orderedStages.map(
             (stage, index) => ({
               stage_id:
                 stage.stage_id,
+
               stage_order:
                 index + 1,
             })
@@ -636,6 +709,7 @@ function Pipeline() {
           {pipelines.length > 0 && (
             <>
               <span className="pipeline-summary-dot" />
+
               <span>
                 {pipelines.length}{" "}
                 {pipelines.length === 1
@@ -863,6 +937,7 @@ function Pipeline() {
               setShowEditStageModal(
                 false
               );
+
               setSelectedStage(null);
             }}
             onUpdate={handleEditStage}
