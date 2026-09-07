@@ -1,5 +1,5 @@
 /* =========================================================
-   CREATE PIPELINE MODAL
+   EDIT PIPELINE MODAL
    ========================================================= */
 
 .pipeline-modal-overlay {
@@ -33,10 +33,10 @@
   box-shadow:
     0 24px 60px rgba(15, 23, 42, 0.18);
 
-  animation: pipeline-modal-in 0.18s ease;
+  animation: edit-pipeline-modal-in 0.18s ease;
 }
 
-@keyframes pipeline-modal-in {
+@keyframes edit-pipeline-modal-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.985);
@@ -47,8 +47,6 @@
     transform: translateY(0) scale(1);
   }
 }
-
-/* HEADER */
 
 .pipeline-modal-header {
   padding: 19px 20px 15px;
@@ -78,17 +76,11 @@
   font-size: 11px;
 }
 
-/* CLOSE */
-
 .modal-close-btn {
   width: 30px;
   height: 30px;
 
   flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   border: 0;
   border-radius: 7px;
@@ -106,8 +98,6 @@
   background: #f1f4f8;
   color: #334155;
 }
-
-/* FORM */
 
 .pipeline-modal form {
   padding: 18px 20px;
@@ -173,8 +163,6 @@
     0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 
-/* ACTIONS */
-
 .pipeline-modal-actions {
   margin-top: 20px;
 
@@ -234,11 +222,11 @@
     padding: 12px;
   }
 
-  .pipeline-modal form {
+  .pipeline-modal-header {
     padding: 16px;
   }
 
-  .pipeline-modal-header {
+  .pipeline-modal form {
     padding: 16px;
   }
 }

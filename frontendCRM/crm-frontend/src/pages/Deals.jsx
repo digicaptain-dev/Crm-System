@@ -29,8 +29,10 @@ function Deals() {
   const [view, setView] = useState("table");
 
   const [importing, setImporting] = useState(false);
-  const [showImportPreview, setShowImportPreview] = useState(false);
-  const [importPreview, setImportPreview] = useState(null);
+  const [showImportPreview, setShowImportPreview] =
+    useState(false);
+  const [importPreview, setImportPreview] =
+    useState(null);
 
   // =====================================================
   // PAGINATION STATES
@@ -39,6 +41,7 @@ function Deals() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalDeals, setTotalDeals] = useState(0);
+
   const [limit] = useState(10);
 
   // =====================================================
@@ -49,14 +52,16 @@ function Deals() {
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState("");
-  const [assignedUserFilter, setAssignedUserFilter] = useState("");
+  const [assignedUserFilter, setAssignedUserFilter] =
+    useState("");
 
   // =====================================================
   // ASSIGNMENT
   // =====================================================
 
   const [selectedDeals, setSelectedDeals] = useState([]);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] =
+    useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -103,10 +108,10 @@ function Deals() {
             pipelineFilter || undefined,
 
           /*
-           * Only send assigned-user filter for admin.
+           * Only Admin can use the assigned-user filter.
            *
-           * Normal users should not be able to
-           * request another user's deals.
+           * Normal users are restricted by the backend
+           * to their own assigned deals through JWT.
            */
           assign_to:
             isAdmin && assignedUserFilter
@@ -114,10 +119,12 @@ function Deals() {
               : undefined,
         };
 
-        const response =
-          await api.get("/deals", {
+        const response = await api.get(
+          "/deals",
+          {
             params,
-          });
+          }
+        );
 
         console.log(
           "Deals API response:",
@@ -141,8 +148,8 @@ function Deals() {
         );
 
         setTotalDeals(
-          paginationInfo.totalDeals ||
-            fetchedDeals.length ||
+          paginationInfo.totalDeals ??
+            fetchedDeals.length ??
             0
         );
 
@@ -281,6 +288,7 @@ function Deals() {
     priorityFilter,
     pipelineFilter,
     assignedUserFilter,
+    fetchDeals,
   ]);
 
   // =====================================================
@@ -459,6 +467,7 @@ function Deals() {
 
       await fetchDeals(1);
 
+      setCurrentPage(1);
       setShowCreateDeal(false);
     } catch (error) {
       console.error(
@@ -647,6 +656,8 @@ function Deals() {
         setShowImportPreview(false);
         setImportPreview(null);
         setSelectedDeals([]);
+
+        setCurrentPage(1);
 
         await fetchDeals(1);
 
@@ -946,6 +957,14 @@ function Deals() {
           </div>
         ) : view === "table" ? (
 
+          /*
+           * TABLE VIEW
+           *
+           * DealTable owns its pagination.
+           * Therefore Deals.jsx does NOT render
+           * another pagination control here.
+           */
+
           <DealTable
             deals={deals}
             selectedDeals={
@@ -974,88 +993,98 @@ function Deals() {
 
         ) : (
 
-          <div className="deal-card-grid">
+          /*
+           * CARD VIEW
+           *
+           * DealCard has no pagination,
+           * so Deals.jsx handles pagination here.
+           */
 
-            {deals.map((deal) => (
-              <DealCard
-                key={deal.deal_id}
-                deal={deal}
-              />
-            ))}
+          <>
+            <div className="deal-card-grid">
 
-          </div>
-        )}
+              {deals.map((deal) => (
+                <DealCard
+                  key={deal.deal_id}
+                  deal={deal}
+                />
+              ))}
 
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
+            </div>
 
-        {totalPages > 1 && (
-          <div
-            className="pagination-controls"
-            style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems: "center",
-              marginTop: "20px",
-              padding: "12px 16px",
-              background:
-                "#ffffff",
-              border:
-                "1px solid #e5e7eb",
-              borderRadius: "8px",
-            }}
-          >
+            {/* =================================================
+                CARD VIEW PAGINATION ONLY
+            ================================================= */}
 
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={
-                currentPage === 1
-              }
-              onClick={() =>
-                handlePageChange(
-                  currentPage - 1
-                )
-              }
-            >
-              ← Previous
-            </button>
+            {totalPages > 1 && (
+              <div
+                className="pagination-controls"
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  marginTop: "20px",
+                  padding: "12px 16px",
+                  background:
+                    "#ffffff",
+                  border:
+                    "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                }}
+              >
 
-            <span
-              style={{
-                fontSize: "14px",
-                color: "#374151",
-              }}
-            >
-              Page{" "}
-              <strong>
-                {currentPage}
-              </strong>{" "}
-              of{" "}
-              <strong>
-                {totalPages}
-              </strong>
-            </span>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={
+                    currentPage === 1
+                  }
+                  onClick={() =>
+                    handlePageChange(
+                      currentPage - 1
+                    )
+                  }
+                >
+                  ← Previous
+                </button>
 
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={
-                currentPage ===
-                totalPages
-              }
-              onClick={() =>
-                handlePageChange(
-                  currentPage + 1
-                )
-              }
-            >
-              Next →
-            </button>
+                <span
+                  style={{
+                    fontSize: "14px",
+                    color: "#374151",
+                  }}
+                >
+                  Page{" "}
+                  <strong>
+                    {currentPage}
+                  </strong>{" "}
+                  of{" "}
+                  <strong>
+                    {totalPages}
+                  </strong>
+                </span>
 
-          </div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={
+                    currentPage ===
+                    totalPages
+                  }
+                  onClick={() =>
+                    handlePageChange(
+                      currentPage + 1
+                    )
+                  }
+                >
+                  Next →
+                </button>
+
+              </div>
+            )}
+
+          </>
         )}
 
       </div>
@@ -1163,3 +1192,4 @@ function Deals() {
 }
 
 export default Deals;
+

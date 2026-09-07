@@ -7,21 +7,33 @@ function PipelineSelector({
 }) {
   return (
     <div className="pipeline-selector-wrapper">
-      <label>Pipeline</label>
+      <label htmlFor="pipeline-selector">
+        Pipeline
+      </label>
 
       <select
+        id="pipeline-selector"
         value={selectedPipelineId}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
         className="pipeline-selector"
+        disabled={pipelines.length === 0}
       >
-        {pipelines.map((pipeline) => (
-          <option
-            key={pipeline.pipeline_id}
-            value={pipeline.pipeline_id}
-          >
-            {pipeline.pipeline_name}
+        {pipelines.length === 0 ? (
+          <option value="">
+            No pipelines
           </option>
-        ))}
+        ) : (
+          pipelines.map((pipeline) => (
+            <option
+              key={pipeline.pipeline_id}
+              value={pipeline.pipeline_id}
+            >
+              {pipeline.pipeline_name}
+            </option>
+          ))
+        )}
       </select>
     </div>
   );

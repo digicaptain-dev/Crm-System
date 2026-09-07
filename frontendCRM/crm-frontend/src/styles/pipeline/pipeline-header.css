@@ -1,50 +1,247 @@
 .pipeline-header {
+  min-height: 78px;
+
+  padding: 15px 18px;
+
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
+
+  gap: 20px;
 }
 
-.pipeline-header-left h1 {
+/* LEFT */
+
+.pipeline-header-left {
+  min-width: 170px;
+}
+
+.pipeline-header-title h1 {
+  display: none;
+}
+
+.pipeline-header-title p {
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: #111827;
+
+  color: #7b8494;
+
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.pipeline-header-left p {
-  margin: 7px 0 0;
-  color: #6b7280;
-  font-size: 14px;
-}
+/* RIGHT */
 
 .pipeline-header-right {
+  flex: 1;
+
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: flex-end;
+
   gap: 12px;
 }
 
-.create-pipeline-btn {
-  height: 42px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+/* ACTIONS */
+
+.pipeline-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+
+  gap: 7px;
+}
+
+/* COMMON BUTTON */
+
+.pipeline-header-icon-btn,
+.pipeline-header-secondary-btn,
+.pipeline-header-delete-btn,
+.create-pipeline-btn {
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  border-radius: 8px;
+
+  font-size: 11px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s ease;
+}
+
+/* REFRESH */
+
+.pipeline-header-icon-btn {
+  width: 36px;
+
+  border: 1px solid #dfe4eb;
+
+  background: #ffffff;
+
+  color: #667085;
+}
+
+.pipeline-header-icon-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd3df;
+  color: #334155;
+}
+
+.pipeline-header-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* EDIT */
+
+.pipeline-header-secondary-btn {
+  padding: 0 12px;
+
+  border: 1px solid #dce2ea;
+
+  background: #ffffff;
+
+  color: #526074;
+}
+
+.pipeline-header-secondary-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd4df;
+  color: #263247;
+}
+
+/* DELETE */
+
+.pipeline-header-delete-btn {
+  padding: 0 12px;
+
+  border: 1px solid #fecaca;
+
+  background: #ffffff;
+
+  color: #dc2626;
+}
+
+.pipeline-header-delete-btn:hover {
+  background: #fff5f5;
+  border-color: #fca5a5;
+}
+
+/* CREATE */
+
+.create-pipeline-btn {
+  padding: 0 14px;
+
+  border: 1px solid #2563eb;
+
+  background: #2563eb;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 3px 7px rgba(37, 99, 235, 0.14);
 }
 
 .create-pipeline-btn:hover {
   background: #1d4ed8;
+  border-color: #1d4ed8;
+
+  box-shadow:
+    0 5px 11px rgba(37, 99, 235, 0.18);
 }
 
-.create-pipeline-btn span {
-  font-size: 20px;
+.create-pipeline-btn:active {
+  transform: translateY(1px);
+}
+
+.create-pipeline-icon {
+  font-size: 17px;
   line-height: 1;
+}
+
+/* REFRESH ICON */
+
+.pipeline-refresh-icon {
+  display: inline-block;
+
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pipeline-refresh-icon.spinning {
+  animation: pipeline-header-spin 0.8s linear infinite;
+}
+
+@keyframes pipeline-header-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .pipeline-header {
+    align-items: flex-start;
+  }
+
+  .pipeline-header-right {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .pipeline-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 14px;
+  }
+
+  .pipeline-header-left {
+    display: none;
+  }
+
+  .pipeline-header-right {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .pipeline-header-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .pipeline-header-right {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pipeline-header-actions {
+    width: 100%;
+  }
+
+  .pipeline-header-actions button {
+    flex: 1;
+  }
+
+  .pipeline-header-icon-btn {
+    flex: 0 0 36px !important;
+  }
+
+  .create-pipeline-btn {
+    flex: 1.4 !important;
+  }
 }

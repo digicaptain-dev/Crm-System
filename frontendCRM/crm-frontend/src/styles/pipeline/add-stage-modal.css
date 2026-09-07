@@ -1,8 +1,8 @@
 /* =========================================================
-   CREATE PIPELINE MODAL
+   ADD STAGE MODAL
    ========================================================= */
 
-.pipeline-modal-overlay {
+.stage-modal-overlay {
   position: fixed;
   inset: 0;
 
@@ -20,8 +20,8 @@
   -webkit-backdrop-filter: blur(2px);
 }
 
-.pipeline-modal {
-  width: min(440px, 100%);
+.stage-modal {
+  width: min(450px, 100%);
 
   overflow: hidden;
 
@@ -33,10 +33,10 @@
   box-shadow:
     0 24px 60px rgba(15, 23, 42, 0.18);
 
-  animation: pipeline-modal-in 0.18s ease;
+  animation: add-stage-modal-in 0.18s ease;
 }
 
-@keyframes pipeline-modal-in {
+@keyframes add-stage-modal-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.985);
@@ -50,7 +50,7 @@
 
 /* HEADER */
 
-.pipeline-modal-header {
+.stage-modal-header {
   padding: 19px 20px 15px;
 
   display: flex;
@@ -61,7 +61,7 @@
   border-bottom: 1px solid #edf0f4;
 }
 
-.pipeline-modal-header h2 {
+.stage-modal-header h2 {
   margin: 0;
 
   color: #1c2738;
@@ -70,7 +70,7 @@
   font-weight: 750;
 }
 
-.pipeline-modal-header p {
+.stage-modal-header p {
   margin: 5px 0 0;
 
   color: #8993a5;
@@ -78,9 +78,13 @@
   font-size: 11px;
 }
 
+.stage-modal-header strong {
+  color: #526074;
+}
+
 /* CLOSE */
 
-.modal-close-btn {
+.stage-modal-close {
   width: 30px;
   height: 30px;
 
@@ -102,22 +106,40 @@
   cursor: pointer;
 }
 
-.modal-close-btn:hover {
+.stage-modal-close:hover {
   background: #f1f4f8;
   color: #334155;
 }
 
+/* ERROR */
+
+.stage-modal-error {
+  margin: 12px 20px 0;
+
+  padding: 9px 10px;
+
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+
+  background: #fff7f7;
+
+  color: #b91c1c;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 /* FORM */
 
-.pipeline-modal form {
+.stage-modal form {
   padding: 18px 20px;
 }
 
-.form-group {
+.stage-form-group {
   margin-bottom: 15px;
 }
 
-.form-group label {
+.stage-form-group label {
   display: block;
 
   margin-bottom: 6px;
@@ -128,8 +150,22 @@
   font-weight: 700;
 }
 
-.form-group input,
-.form-group textarea {
+.stage-form-group label > span:not(.optional-label) {
+  color: #dc2626;
+}
+
+.optional-label {
+  margin-left: 6px;
+
+  color: #9aa3b1 !important;
+
+  font-size: 10px;
+
+  font-weight: 500 !important;
+}
+
+.stage-form-group input,
+.stage-form-group textarea {
   width: 100%;
 
   padding: 10px 11px;
@@ -150,32 +186,43 @@
     box-shadow 0.15s ease;
 }
 
-.form-group input {
+.stage-form-group input {
   height: 38px;
 }
 
-.form-group textarea {
+.stage-form-group textarea {
   min-height: 90px;
 
   resize: vertical;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
+.stage-form-group input::placeholder,
+.stage-form-group textarea::placeholder {
   color: #a4acb9;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.stage-form-group input:focus,
+.stage-form-group textarea:focus {
   border-color: #60a5fa;
 
   box-shadow:
     0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 
+.stage-form-group small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #9aa3b1;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 /* ACTIONS */
 
-.pipeline-modal-actions {
+.stage-modal-actions {
   margin-top: 20px;
 
   display: flex;
@@ -184,8 +231,8 @@
   gap: 8px;
 }
 
-.cancel-btn,
-.save-pipeline-btn {
+.stage-cancel-btn,
+.stage-save-btn {
   height: 36px;
 
   padding: 0 14px;
@@ -198,7 +245,7 @@
   cursor: pointer;
 }
 
-.cancel-btn {
+.stage-cancel-btn {
   border: 1px solid #dce2ea;
 
   background: #ffffff;
@@ -206,11 +253,11 @@
   color: #596579;
 }
 
-.cancel-btn:hover {
+.stage-cancel-btn:hover {
   background: #f8fafc;
 }
 
-.save-pipeline-btn {
+.stage-save-btn {
   border: 1px solid #2563eb;
 
   background: #2563eb;
@@ -218,27 +265,32 @@
   color: #ffffff;
 }
 
-.save-pipeline-btn:hover {
+.stage-save-btn:hover {
   background: #1d4ed8;
 }
 
-.save-pipeline-btn:disabled,
-.cancel-btn:disabled {
+.stage-save-btn:disabled,
+.stage-cancel-btn:disabled {
   opacity: 0.55;
 
   cursor: not-allowed;
 }
 
 @media (max-width: 480px) {
-  .pipeline-modal-overlay {
+  .stage-modal-overlay {
     padding: 12px;
   }
 
-  .pipeline-modal form {
+  .stage-modal-header {
     padding: 16px;
   }
 
-  .pipeline-modal-header {
+  .stage-modal form {
     padding: 16px;
+  }
+
+  .stage-modal-error {
+    margin-left: 16px;
+    margin-right: 16px;
   }
 }

@@ -1,8 +1,8 @@
 /* =========================================================
-   CREATE PIPELINE MODAL
+   EDIT STAGE MODAL
    ========================================================= */
 
-.pipeline-modal-overlay {
+.edit-stage-modal-overlay {
   position: fixed;
   inset: 0;
 
@@ -20,8 +20,8 @@
   -webkit-backdrop-filter: blur(2px);
 }
 
-.pipeline-modal {
-  width: min(440px, 100%);
+.edit-stage-modal {
+  width: min(450px, 100%);
 
   overflow: hidden;
 
@@ -33,10 +33,10 @@
   box-shadow:
     0 24px 60px rgba(15, 23, 42, 0.18);
 
-  animation: pipeline-modal-in 0.18s ease;
+  animation: edit-stage-modal-in 0.18s ease;
 }
 
-@keyframes pipeline-modal-in {
+@keyframes edit-stage-modal-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.985);
@@ -50,7 +50,7 @@
 
 /* HEADER */
 
-.pipeline-modal-header {
+.edit-stage-modal-header {
   padding: 19px 20px 15px;
 
   display: flex;
@@ -61,7 +61,7 @@
   border-bottom: 1px solid #edf0f4;
 }
 
-.pipeline-modal-header h2 {
+.edit-stage-modal-header h2 {
   margin: 0;
 
   color: #1c2738;
@@ -70,7 +70,7 @@
   font-weight: 750;
 }
 
-.pipeline-modal-header p {
+.edit-stage-modal-header p {
   margin: 5px 0 0;
 
   color: #8993a5;
@@ -80,7 +80,7 @@
 
 /* CLOSE */
 
-.modal-close-btn {
+.edit-stage-modal-close {
   width: 30px;
   height: 30px;
 
@@ -100,24 +100,52 @@
   font-size: 20px;
 
   cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.modal-close-btn:hover {
+.edit-stage-modal-close:hover:not(:disabled) {
   background: #f1f4f8;
   color: #334155;
 }
 
+.edit-stage-modal-close:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+/* ERROR */
+
+.edit-stage-modal-error {
+  margin: 12px 20px 0;
+
+  padding: 9px 10px;
+
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+
+  background: #fff7f7;
+
+  color: #b91c1c;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 /* FORM */
 
-.pipeline-modal form {
+.edit-stage-modal form {
   padding: 18px 20px;
 }
 
-.form-group {
+.edit-stage-form-group {
   margin-bottom: 15px;
 }
 
-.form-group label {
+.edit-stage-form-group label {
   display: block;
 
   margin-bottom: 6px;
@@ -128,8 +156,22 @@
   font-weight: 700;
 }
 
-.form-group input,
-.form-group textarea {
+.edit-stage-form-group label > span:first-child {
+  color: #dc2626;
+}
+
+.edit-stage-optional-label {
+  margin-left: 4px;
+
+  color: #9aa3b1 !important;
+
+  font-size: 10px;
+
+  font-weight: 500 !important;
+}
+
+.edit-stage-form-group input,
+.edit-stage-form-group textarea {
   width: 100%;
 
   padding: 10px 11px;
@@ -150,23 +192,23 @@
     box-shadow 0.15s ease;
 }
 
-.form-group input {
+.edit-stage-form-group input {
   height: 38px;
 }
 
-.form-group textarea {
+.edit-stage-form-group textarea {
   min-height: 90px;
 
   resize: vertical;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
+.edit-stage-form-group input::placeholder,
+.edit-stage-form-group textarea::placeholder {
   color: #a4acb9;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.edit-stage-form-group input:focus,
+.edit-stage-form-group textarea:focus {
   border-color: #60a5fa;
 
   box-shadow:
@@ -175,7 +217,7 @@
 
 /* ACTIONS */
 
-.pipeline-modal-actions {
+.edit-stage-modal-actions {
   margin-top: 20px;
 
   display: flex;
@@ -184,8 +226,8 @@
   gap: 8px;
 }
 
-.cancel-btn,
-.save-pipeline-btn {
+.edit-stage-cancel-btn,
+.edit-stage-save-btn {
   height: 36px;
 
   padding: 0 14px;
@@ -196,9 +238,14 @@
   font-weight: 700;
 
   cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
-.cancel-btn {
+.edit-stage-cancel-btn {
   border: 1px solid #dce2ea;
 
   background: #ffffff;
@@ -206,11 +253,11 @@
   color: #596579;
 }
 
-.cancel-btn:hover {
+.edit-stage-cancel-btn:hover:not(:disabled) {
   background: #f8fafc;
 }
 
-.save-pipeline-btn {
+.edit-stage-save-btn {
   border: 1px solid #2563eb;
 
   background: #2563eb;
@@ -218,27 +265,34 @@
   color: #ffffff;
 }
 
-.save-pipeline-btn:hover {
+.edit-stage-save-btn:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
-.save-pipeline-btn:disabled,
-.cancel-btn:disabled {
+.edit-stage-cancel-btn:disabled,
+.edit-stage-save-btn:disabled {
   opacity: 0.55;
 
   cursor: not-allowed;
 }
 
+/* MOBILE */
+
 @media (max-width: 480px) {
-  .pipeline-modal-overlay {
+  .edit-stage-modal-overlay {
     padding: 12px;
   }
 
-  .pipeline-modal form {
+  .edit-stage-modal-header {
     padding: 16px;
   }
 
-  .pipeline-modal-header {
+  .edit-stage-modal form {
     padding: 16px;
+  }
+
+  .edit-stage-modal-error {
+    margin-left: 16px;
+    margin-right: 16px;
   }
 }

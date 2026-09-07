@@ -1,113 +1,170 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import api from "../../services/api";
 
 import PipelineDealCard from "./PipelineDealCard";
 
 import "../../styles/pipeline/pipeline-board.css";
 
-function PipelineBoard({ pipeline }) {
-  const [deals, setDeals] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [draggedDeal, setDraggedDeal] = useState(null);
+function PipelineBoard({
+  pipeline,
+  view = "board",
+  onAddStage,
+  onEditStage,
+  onDeleteStage,
+  onReorderStages,
+}) {
+  const navigate = useNavigate();
+
+  const [stages, setStages] = useState([]);
+
+  const [draggedDealId, setDraggedDealId] = useState(null);
   const [updatingDealId, setUpdatingDealId] = useState(null);
+
+  const [draggedStageId, setDraggedStageId] = useState(null);
+  const [reorderingStages, setReorderingStages] = useState(false);
+
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
-  // =====================================================
-  // GET DEALS
-  // =====================================================
+  /*
+   * =====================================================
+   * SYNC PIPELINE DATA
+   * =====================================================
+   */
 
-  const fetchDeals = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await api.get("/deals");
-
-      console.log("Pipeline deals response:", response.data);
-
-      const fetchedDeals =
-        response.data?.deals ||
-        response.data ||
-        [];
-
-      setDeals(
-        Array.isArray(fetchedDeals)
-          ? fetchedDeals
-          : []
-      );
-
-    } catch (error) {
-      console.error(
-        "Failed to fetch pipeline deals:",
-        error
-      );
-
-      setError(
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to load deals."
-      );
-
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!pipeline?.stages) {
+      setStages([]);
+      return;
     }
+
+    const sortedStages = [...pipeline.stages]
+      .map((stage) => ({
+        ...stage,
+        deals: Array.isArray(stage.deals)
+          ? stage.deals
+          : [],
+      }))
+      .sort(
+        (a, b) =>
+          Number(a.stage_order || 0) -
+          Number(b.stage_order || 0)
+      );
+
+    setStages(sortedStages);
+  }, [pipeline]);
+
+  /*
+   * =====================================================
+   * STAGE VALUE
+   * =====================================================
+   */
+
+  const getStageValue = (deals) => {
+    return deals.reduce((total, deal) => {
+      const value = Number(deal?.deal_value);
+
+      return Number.isFinite(value)
+        ? total + value
+        : total;
+    }, 0);
   };
 
-  // =====================================================
-  // LOAD DEALS
-  // =====================================================
+  /*
+   * =====================================================
+   * FORMAT CURRENCY
+   * =====================================================
+   */
 
-  useEffect(() => {
-    if (!pipeline?.pipeline_id) {
-      setDeals([]);
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  /*
+   * =====================================================
+   * TOTAL VISIBLE DEALS
+   * =====================================================
+   */
+
+  const totalVisibleDeals = useMemo(() => {
+    return stages.reduce(
+      (total, stage) =>
+        total + stage.deals.length,
+      0
+    );
+  }, [stages]);
+
+  /*
+   * =====================================================
+   * DEAL DRAG START
+   * =====================================================
+   */
+
+  const handleDealDragStart = (deal) => {
+    const dealId = deal?.deal_id;
+
+    if (!dealId) {
       return;
     }
 
-    fetchDeals();
-  }, [pipeline?.pipeline_id]);
-
-  // =====================================================
-  // CLEAR SUCCESS MESSAGE
-  // =====================================================
-
-  useEffect(() => {
-    if (!successMessage) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setSuccessMessage("");
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [successMessage]);
-
-  // =====================================================
-  // DRAG START
-  // =====================================================
-
-  const handleDragStart = (deal) => {
-    console.log("Drag started:", deal);
-
-    setDraggedDeal(deal);
+    setDraggedDealId(dealId);
+    setDraggedStageId(null);
     setError("");
-    setSuccessMessage("");
   };
 
-  // =====================================================
-  // DRAG END
-  // =====================================================
+  /*
+   * =====================================================
+   * DEAL DRAG END
+   * =====================================================
+   */
 
-  const handleDragEnd = () => {
-    console.log("Drag ended");
-
-    setDraggedDeal(null);
+  const handleDealDragEnd = () => {
+    setDraggedDealId(null);
   };
 
-  // =====================================================
-  // DRAG OVER
-  // =====================================================
+  /*
+   * =====================================================
+   * STAGE DRAG START
+   * =====================================================
+   */
+
+  const handleStageDragStart = (event, stage) => {
+    if (!stage?.stage_id) {
+      return;
+    }
+
+    setDraggedStageId(stage.stage_id);
+    setDraggedDealId(null);
+    setError("");
+
+    event.dataTransfer.effectAllowed = "move";
+
+    event.dataTransfer.setData(
+      "application/x-pipeline-stage",
+      String(stage.stage_id)
+    );
+  };
+
+  /*
+   * =====================================================
+   * STAGE DRAG END
+   * =====================================================
+   */
+
+  const handleStageDragEnd = () => {
+    setDraggedStageId(null);
+  };
+
+  /*
+   * =====================================================
+   * DRAG OVER
+   * =====================================================
+   */
 
   const handleDragOver = (event) => {
     event.preventDefault();
@@ -115,346 +172,863 @@ function PipelineBoard({ pipeline }) {
     event.dataTransfer.dropEffect = "move";
   };
 
-  // =====================================================
-  // DROP DEAL
-  // =====================================================
+  /*
+   * =====================================================
+   * REORDER STAGES
+   * =====================================================
+   */
 
-  const handleDrop = async (event, targetStage) => {
+  const handleStageDrop = async (
+    event,
+    targetStage
+  ) => {
     event.preventDefault();
+    event.stopPropagation();
 
-    if (!draggedDeal) {
+    const sourceStageId =
+      event.dataTransfer.getData(
+        "application/x-pipeline-stage"
+      );
+
+    if (
+      !sourceStageId ||
+      !targetStage?.stage_id
+    ) {
       return;
     }
 
-    if (!targetStage?.stage_id) {
+    if (
+      String(sourceStageId) ===
+      String(targetStage.stage_id)
+    ) {
+      setDraggedStageId(null);
+      return;
+    }
+
+    const sourceIndex = stages.findIndex(
+      (stage) =>
+        String(stage.stage_id) ===
+        String(sourceStageId)
+    );
+
+    const targetIndex = stages.findIndex(
+      (stage) =>
+        String(stage.stage_id) ===
+        String(targetStage.stage_id)
+    );
+
+    if (
+      sourceIndex === -1 ||
+      targetIndex === -1
+    ) {
+      setDraggedStageId(null);
+      return;
+    }
+
+    const reorderedStages = [...stages];
+
+    const [movedStage] =
+      reorderedStages.splice(
+        sourceIndex,
+        1
+      );
+
+    reorderedStages.splice(
+      targetIndex,
+      0,
+      movedStage
+    );
+
+    /*
+     * Immediately update local UI.
+     */
+
+    const normalizedStages =
+      reorderedStages.map(
+        (stage, index) => ({
+          ...stage,
+          stage_order: index + 1,
+        })
+      );
+
+    setStages(normalizedStages);
+    setDraggedStageId(null);
+    setReorderingStages(true);
+    setError("");
+
+    try {
+      /*
+       * Send complete ordered stage list
+       * to Pipeline.jsx.
+       */
+
+      if (onReorderStages) {
+        await onReorderStages(
+          normalizedStages
+        );
+      }
+    } catch (err) {
+      /*
+       * Parent handles the API error.
+       * Refreshing pipeline data will restore
+       * the correct backend order.
+       */
+
       console.error(
-        "Target stage does not contain stage_id:",
+        "Stage reorder error:",
+        err
+      );
+    } finally {
+      setReorderingStages(false);
+    }
+  };
+
+  /*
+   * =====================================================
+   * DEAL DROP
+   * =====================================================
+   */
+
+  const handleDealDrop = async (
+    event,
+    targetStage
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    /*
+     * If this is a stage drag, do not
+     * process it as a deal drag.
+     */
+
+    const stageDragId =
+      event.dataTransfer.getData(
+        "application/x-pipeline-stage"
+      );
+
+    if (stageDragId) {
+      return;
+    }
+
+    const dealId =
+      event.dataTransfer.getData(
+        "text/plain"
+      );
+
+    if (
+      !dealId ||
+      !targetStage?.stage_id
+    ) {
+      return;
+    }
+
+    /*
+     * Find current stage.
+     */
+
+    const sourceStage = stages.find(
+      (stage) =>
+        stage.deals.some(
+          (deal) =>
+            String(deal.deal_id) ===
+            String(dealId)
+        )
+    );
+
+    if (!sourceStage) {
+      return;
+    }
+
+    /*
+     * Don't call API if dropped in
+     * the same stage.
+     */
+
+    if (
+      String(sourceStage.stage_id) ===
+      String(targetStage.stage_id)
+    ) {
+      setDraggedDealId(null);
+      return;
+    }
+
+    const deal = sourceStage.deals.find(
+      (item) =>
+        String(item.deal_id) ===
+        String(dealId)
+    );
+
+    if (!deal) {
+      setDraggedDealId(null);
+      return;
+    }
+
+    setUpdatingDealId(dealId);
+    setError("");
+
+    /*
+     * Optimistic UI update.
+     */
+
+    setStages((previousStages) =>
+      previousStages.map((stage) => {
+        /*
+         * Remove deal from old stage.
+         */
+
+        if (
+          String(stage.stage_id) ===
+          String(sourceStage.stage_id)
+        ) {
+          return {
+            ...stage,
+            deals: stage.deals.filter(
+              (item) =>
+                String(item.deal_id) !==
+                String(dealId)
+            ),
+          };
+        }
+
+        /*
+         * Add deal to target stage.
+         */
+
+        if (
+          String(stage.stage_id) ===
+          String(targetStage.stage_id)
+        ) {
+          return {
+            ...stage,
+            deals: [
+              ...stage.deals,
+              {
+                ...deal,
+                deal_stage:
+                  targetStage.stage_id,
+              },
+            ],
+          };
+        }
+
+        return stage;
+      })
+    );
+
+    try {
+      /*
+       * =================================================
+       * UPDATE DEAL STAGE IN BACKEND
+       * =================================================
+       *
+       * IMPORTANT:
+       * Use the configured `api` instance instead
+       * of raw axios.
+       *
+       * services/api.js automatically adds:
+       *
+       * Authorization: Bearer <token>
+       *
+       * through the request interceptor.
+       */
+
+      await api.put(
+        `/deals/${dealId}/stage`,
+        {
+          deal_stage:
+            targetStage.stage_id,
+        }
+      );
+    } catch (err) {
+      console.error(
+        "Move deal error:",
+        err
+      );
+
+      /*
+       * Rollback optimistic update.
+       */
+
+      setStages((previousStages) =>
+        previousStages.map((stage) => {
+          /*
+           * Restore deal to original stage.
+           */
+
+          if (
+            String(stage.stage_id) ===
+            String(sourceStage.stage_id)
+          ) {
+            return {
+              ...stage,
+              deals: [
+                ...stage.deals,
+                deal,
+              ],
+            };
+          }
+
+          /*
+           * Remove deal from target stage.
+           */
+
+          if (
+            String(stage.stage_id) ===
+            String(targetStage.stage_id)
+          ) {
+            return {
+              ...stage,
+              deals: stage.deals.filter(
+                (item) =>
+                  String(item.deal_id) !==
+                  String(dealId)
+              ),
+            };
+          }
+
+          return stage;
+        })
+      );
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to move deal."
+      );
+    } finally {
+      setUpdatingDealId(null);
+      setDraggedDealId(null);
+    }
+  };
+
+  /*
+   * =====================================================
+   * COMBINED DROP HANDLER
+   * =====================================================
+   */
+
+  const handleDrop = async (
+    event,
+    targetStage
+  ) => {
+    const stageDragId =
+      event.dataTransfer.getData(
+        "application/x-pipeline-stage"
+      );
+
+    if (stageDragId) {
+      await handleStageDrop(
+        event,
         targetStage
       );
 
       return;
     }
 
-    const dealId = draggedDeal.deal_id;
+    await handleDealDrop(
+      event,
+      targetStage
+    );
+  };
 
-    const oldStage =
-      draggedDeal.deal_stage;
+  /*
+   * =====================================================
+   * ADD DEAL
+   * =====================================================
+   */
 
-    const newStage =
-      targetStage.stage_id;
-
-    // ---------------------------------------------
-    // Prevent unnecessary API request
-    // ---------------------------------------------
-
-    if (
-      String(oldStage) ===
-      String(newStage)
-    ) {
-      setDraggedDeal(null);
+  const handleAddDeal = (stage) => {
+    if (!stage) {
       return;
     }
 
-    console.log(
-      "Moving deal:",
-      dealId,
-      "from:",
-      oldStage,
-      "to:",
-      newStage
-    );
+    navigate("/deals");
+  };
 
-    // ---------------------------------------------
-    // Save original deals for rollback
-    // ---------------------------------------------
+  /*
+   * =====================================================
+   * EDIT STAGE
+   * =====================================================
+   */
 
-    const previousDeals = [...deals];
+  const handleEditStageClick = (
+    event,
+    stage
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
 
-    // ---------------------------------------------
-    // Optimistic UI update
-    // ---------------------------------------------
-
-    setDeals((currentDeals) =>
-      currentDeals.map((deal) =>
-        deal.deal_id === dealId
-          ? {
-              ...deal,
-              deal_stage: newStage,
-            }
-          : deal
-      )
-    );
-
-    setDraggedDeal(null);
-    setUpdatingDealId(dealId);
-    setError("");
-
-    try {
-      // -------------------------------------------
-      // UPDATE BACKEND
-      // -------------------------------------------
-
-      const response = await api.put(
-        `/deals/${dealId}/stage`,
-        {
-          deal_stage: newStage,
-        }
-      );
-
-      console.log(
-        "Stage update response:",
-        response.data
-      );
-
-      if (
-        response.data &&
-        response.data.success === false
-      ) {
-        throw new Error(
-          response.data.message ||
-          "Failed to update deal stage."
-        );
-      }
-
-      // -------------------------------------------
-      // Update frontend using backend response
-      // -------------------------------------------
-
-      if (response.data?.deal) {
-        setDeals((currentDeals) =>
-          currentDeals.map((deal) =>
-            deal.deal_id === dealId
-              ? {
-                  ...deal,
-                  ...response.data.deal,
-                }
-              : deal
-          )
-        );
-      }
-
-      setSuccessMessage(
-        "Deal stage updated successfully."
-      );
-
-    } catch (error) {
-      console.error(
-        "Failed to update deal stage:",
-        error
-      );
-
-      // -------------------------------------------
-      // ROLLBACK UI
-      // -------------------------------------------
-
-      setDeals(previousDeals);
-
-      setError(
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        "Failed to update deal stage."
-      );
-
-    } finally {
-      setUpdatingDealId(null);
+    if (!stage || !onEditStage) {
+      return;
     }
+
+    onEditStage(stage);
   };
 
-  // =====================================================
-  // GET DEALS FOR STAGE
-  // =====================================================
+  /*
+   * =====================================================
+   * DELETE STAGE
+   * =====================================================
+   */
 
-  const getDealsForStage = (stageId) => {
-    return deals.filter(
-      (deal) =>
-        String(deal.deal_stage) ===
-        String(stageId) &&
-        String(deal.pipeline_id) ===
-        String(pipeline?.pipeline_id)
-    );
+  const handleDeleteStageClick = (
+    event,
+    stage
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!stage || !onDeleteStage) {
+      return;
+    }
+
+    onDeleteStage(stage);
   };
 
-  // =====================================================
-  // NO PIPELINE
-  // =====================================================
+  /*
+   * =====================================================
+   * LIST VIEW
+   * =====================================================
+   */
 
-  if (!pipeline) {
+  if (view === "list") {
     return (
-      <div className="pipeline-board-empty">
-        <h3>No pipeline selected</h3>
+      <div className="pipeline-board-wrapper">
 
-        <p>
-          Select a pipeline to view its deals.
-        </p>
+        {error && (
+          <div className="pipeline-board-error">
+            <span>{error}</span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setError("")
+              }
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <div className="pipeline-list-header">
+          <div>
+            <h3>
+              {pipeline?.pipeline_name ||
+                "Pipeline"}
+            </h3>
+
+            <span>
+              {totalVisibleDeals}{" "}
+              {totalVisibleDeals === 1
+                ? "deal"
+                : "deals"}
+            </span>
+          </div>
+
+          {onAddStage && (
+            <button
+              type="button"
+              className="pipeline-list-add-stage-btn"
+              onClick={onAddStage}
+            >
+              <span>+</span>
+              Add Stage
+            </button>
+          )}
+        </div>
+
+        {totalVisibleDeals === 0 ? (
+          <div className="pipeline-board-empty">
+            <div className="pipeline-board-empty-icon">
+              +
+            </div>
+
+            <h3>No deals found</h3>
+
+            <p>
+              There are no deals matching the
+              current filters.
+            </p>
+          </div>
+        ) : (
+          <div className="pipeline-list-container">
+            <table className="pipeline-list-table">
+              <thead>
+                <tr>
+                  <th>Deal</th>
+                  <th>Stage</th>
+                  <th>Value</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {stages.flatMap((stage) =>
+                  stage.deals.map((deal) => (
+                    <tr
+                      key={`${stage.stage_id}-${deal.deal_id}`}
+                      onClick={() =>
+                        navigate(
+                          `/deals/${deal.deal_id}`
+                        )
+                      }
+                    >
+                      <td>
+                        <strong>
+                          {deal.deal_name ||
+                            "Untitled Deal"}
+                        </strong>
+                      </td>
+
+                      <td>
+                        <span className="pipeline-list-stage">
+                          {stage.stage_name}
+                        </span>
+                      </td>
+
+                      <td>
+                        {deal.deal_value !==
+                          null &&
+                        deal.deal_value !==
+                          undefined &&
+                        deal.deal_value !== ""
+                          ? formatCurrency(
+                              Number(
+                                deal.deal_value
+                              )
+                            )
+                          : "No value"}
+                      </td>
+
+                      <td>
+                        {deal.deal_owner ||
+                          "Unassigned"}
+                      </td>
+
+                      <td>
+                        <span
+                          className={[
+                            "pipeline-list-status",
+                            String(
+                              deal.deal_status ||
+                                "Open"
+                            )
+                              .toLowerCase()
+                              .replace(
+                                /\s+/g,
+                                "-"
+                              ),
+                          ].join(" ")}
+                        >
+                          {deal.deal_status ||
+                            "Open"}
+                        </span>
+                      </td>
+
+                      <td>
+                        {deal.deal_priority ||
+                          "Medium"}
+                      </td>
+
+                      <td>
+                        {deal.customer_email ||
+                          "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   }
 
-  // =====================================================
-  // LOADING
-  // =====================================================
-
-  if (loading) {
-    return (
-      <div className="pipeline-board-loading">
-        Loading deals...
-      </div>
-    );
-  }
-
-  // =====================================================
-  // GET STAGES
-  // =====================================================
-
-  const stages = Array.isArray(
-    pipeline.stages
-  )
-    ? pipeline.stages
-    : [];
-
-  // =====================================================
-  // NO STAGES
-  // =====================================================
-
-  if (stages.length === 0) {
-    return (
-      <div className="pipeline-board-empty">
-        <h3>No stages found</h3>
-
-        <p>
-          This pipeline does not have any stages.
-        </p>
-      </div>
-    );
-  }
-
-  // =====================================================
-  // PAGE
-  // =====================================================
+  /*
+   * =====================================================
+   * BOARD VIEW
+   * =====================================================
+   */
 
   return (
     <div className="pipeline-board-wrapper">
 
-      {/* =================================================
-          MESSAGES
-      ================================================= */}
-
       {error && (
         <div className="pipeline-board-error">
-          {error}
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setError("")
+            }
+          >
+            ×
+          </button>
         </div>
       )}
 
-      {successMessage && (
-        <div className="pipeline-board-success">
-          {successMessage}
+      {reorderingStages && (
+        <div className="pipeline-reorder-status">
+          Saving stage order...
         </div>
       )}
 
-      {/* =================================================
-          BOARD
-      ================================================= */}
+      {stages.length === 0 ? (
+        <div className="pipeline-board-empty">
 
-      <div className="pipeline-board">
+          <div className="pipeline-board-empty-icon">
+            +
+          </div>
 
-        {stages.map((stage) => {
+          <h3>No stages found</h3>
 
-          const stageDeals =
-            getDealsForStage(
-              stage.stage_id
-            );
+          <p>
+            This pipeline does not have any
+            stages yet.
+          </p>
 
-          return (
-            <div
-              className={[
-                "pipeline-stage",
-                draggedDeal
-                  ? "pipeline-stage-drag-active"
-                  : "",
-              ].join(" ")}
-              key={stage.stage_id}
-              onDragOver={handleDragOver}
-              onDrop={(event) =>
-                handleDrop(
-                  event,
-                  stage
-                )
-              }
+          {onAddStage && (
+            <button
+              type="button"
+              className="pipeline-add-stage-empty-btn"
+              onClick={onAddStage}
             >
+              <span>+</span>
+              Add Stage
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="pipeline-board">
 
-              {/* =======================================
-                  STAGE HEADER
-              ======================================= */}
+          {stages.map((stage, index) => {
+            const deals = Array.isArray(
+              stage.deals
+            )
+              ? stage.deals
+              : [];
 
-              <div className="pipeline-stage-header">
+            const stageValue =
+              getStageValue(deals);
 
-                <div className="pipeline-stage-title">
-                  <h3>
-                    {stage.stage_name ||
-                      "Untitled Stage"}
-                  </h3>
+            const isDraggedStage =
+              String(draggedStageId) ===
+              String(stage.stage_id);
 
-                  <span className="pipeline-stage-count">
-                    {stageDeals.length}
-                  </span>
-                </div>
+            return (
+              <div
+                className={[
+                  "pipeline-column",
 
-              </div>
+                  draggedDealId
+                    ? "pipeline-column-drag-active"
+                    : "",
 
-              {/* =======================================
-                  DEALS
-              ======================================= */}
+                  isDraggedStage
+                    ? "pipeline-column-stage-dragging"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
 
-              <div className="pipeline-stage-deals">
+                key={stage.stage_id}
 
-                {stageDeals.length === 0 ? (
+                onDragOver={
+                  handleDragOver
+                }
 
-                  <div className="pipeline-stage-empty">
+                onDrop={(event) =>
+                  handleDrop(
+                    event,
+                    stage
+                  )
+                }
+              >
 
-                    {draggedDeal ? (
-                      <span>
-                        Drop deal here
-                      </span>
-                    ) : (
-                      <span>
-                        No deals
-                      </span>
-                    )}
+                {/* =================================================
+                    STAGE HEADER
+                ================================================= */}
 
-                  </div>
+                <div className="pipeline-column-header">
 
-                ) : (
+                  <div className="pipeline-column-title-row">
 
-                  stageDeals.map((deal) => (
+                    {/* Stage Drag Handle */}
 
-                    <PipelineDealCard
-                      key={deal.deal_id}
-                      deal={deal}
-                      onDragStart={
-                        handleDragStart
+                    <div
+                      className="pipeline-stage-drag-handle"
+                      draggable={
+                        !reorderingStages
+                      }
+                      onDragStart={(event) =>
+                        handleStageDragStart(
+                          event,
+                          stage
+                        )
                       }
                       onDragEnd={
-                        handleDragEnd
+                        handleStageDragEnd
                       }
-                      updating={
-                        updatingDealId ===
-                        deal.deal_id
-                      }
-                    />
+                      title="Drag to reorder stage"
+                    >
+                      ⋮⋮
+                    </div>
 
-                  ))
+                    <div className="pipeline-column-title">
 
-                )}
+                      <h3>
+                        {stage.stage_name ||
+                          "Unnamed Stage"}
+                      </h3>
 
+                      <span className="pipeline-stage-count">
+                        {deals.length}
+                      </span>
+
+                    </div>
+
+                    {/* Stage Actions */}
+
+                    <div className="pipeline-stage-actions">
+
+                      {onEditStage && (
+                        <button
+                          type="button"
+                          className="pipeline-stage-action-btn"
+                          onClick={(event) =>
+                            handleEditStageClick(
+                              event,
+                              stage
+                            )
+                          }
+                          title="Edit stage"
+                        >
+                          ✎
+                        </button>
+                      )}
+
+                      {onDeleteStage && (
+                        <button
+                          type="button"
+                          className="pipeline-stage-action-btn pipeline-stage-delete-btn"
+                          onClick={(event) =>
+                            handleDeleteStageClick(
+                              event,
+                              stage
+                            )
+                          }
+                          title="Delete stage"
+                        >
+                          ×
+                        </button>
+                      )}
+
+                    </div>
+                  </div>
+
+                  <div className="pipeline-column-meta">
+                    <span>
+                      {formatCurrency(
+                        stageValue
+                      )}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* =================================================
+                    DEALS
+                ================================================= */}
+
+                <div className="pipeline-column-body">
+
+                  {deals.length === 0 ? (
+                    <div className="pipeline-stage-empty">
+
+                      <div className="pipeline-stage-empty-text">
+                        No deals in this stage
+                      </div>
+
+                      <button
+                        type="button"
+                        className="pipeline-add-deal-btn"
+                        onClick={() =>
+                          handleAddDeal(
+                            stage
+                          )
+                        }
+                      >
+                        <span>+</span>
+                        Add Deal
+                      </button>
+
+                    </div>
+                  ) : (
+                    <>
+                      {deals.map((deal) => (
+                        <PipelineDealCard
+                          key={deal.deal_id}
+                          deal={deal}
+                          onDragStart={
+                            handleDealDragStart
+                          }
+                          onDragEnd={
+                            handleDealDragEnd
+                          }
+                          updating={
+                            String(
+                              updatingDealId
+                            ) ===
+                            String(
+                              deal.deal_id
+                            )
+                          }
+                        />
+                      ))}
+
+                      <button
+                        type="button"
+                        className="pipeline-add-deal-btn pipeline-add-deal-btn-bottom"
+                        onClick={() =>
+                          handleAddDeal(
+                            stage
+                          )
+                        }
+                      >
+                        <span>+</span>
+                        Add Deal
+                      </button>
+                    </>
+                  )}
+
+                </div>
               </div>
+            );
+          })}
 
-            </div>
-          );
-        })}
+          {/* =================================================
+              ADD STAGE
+          ================================================= */}
 
-      </div>
+          {onAddStage && (
+            <button
+              type="button"
+              className="pipeline-add-stage-btn"
+              onClick={onAddStage}
+            >
+              <span>+</span>
+              Add Stage
+            </button>
+          )}
 
+        </div>
+      )}
     </div>
   );
 }

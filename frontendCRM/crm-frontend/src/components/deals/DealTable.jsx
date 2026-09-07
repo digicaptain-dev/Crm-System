@@ -1,4 +1,8 @@
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+} from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import "../../styles/deals/deal-table.css";
@@ -10,12 +14,18 @@ function DealTable({
   onSelectAll,
   onAssignDeal,
 
-  // Pagination props
+  // =====================================================
+  // PAGINATION PROPS
+  // =====================================================
+
   currentPage = 1,
   totalPages = 1,
   onPageChange,
 
-  // Permission
+  // =====================================================
+  // PERMISSION
+  // =====================================================
+
   canAssign = false,
 }) {
   const navigate = useNavigate();
@@ -118,6 +128,32 @@ function DealTable({
   ) =>
     deal.assigned_user_name ||
     "Unassigned";
+
+  // =====================================================
+  // PAGE HANDLERS
+  // =====================================================
+
+  const handlePreviousPage = () => {
+    if (
+      currentPage > 1 &&
+      onPageChange
+    ) {
+      onPageChange(
+        currentPage - 1
+      );
+    }
+  };
+
+  const handleNextPage = () => {
+    if (
+      currentPage < totalPages &&
+      onPageChange
+    ) {
+      onPageChange(
+        currentPage + 1
+      );
+    }
+  };
 
   // =====================================================
   // RENDER
@@ -389,7 +425,11 @@ function DealTable({
       </table>
 
       {/* =================================================
-          PAGINATION
+          TABLE PAGINATION
+          
+          Pagination belongs to DealTable.
+          Deals.jsx does NOT render another pagination
+          control when view === "table".
       ================================================= */}
 
       {totalPages > 1 && (
@@ -406,33 +446,29 @@ function DealTable({
           }}
         >
 
+          {/* PREVIOUS */}
+
           <button
             type="button"
+            className="secondary-button"
             disabled={
               currentPage === 1
             }
-            onClick={() =>
-              onPageChange?.(
-                currentPage - 1
-              )
+            onClick={
+              handlePreviousPage
             }
-            style={{
-              padding:
-                "6px 12px",
-              cursor:
-                currentPage === 1
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                currentPage === 1
-                  ? 0.5
-                  : 1,
-            }}
           >
-            Previous
+            ← Previous
           </button>
 
-          <span>
+          {/* PAGE NUMBER */}
+
+          <span
+            style={{
+              fontSize: "14px",
+              color: "#374151",
+            }}
+          >
             Page{" "}
             <strong>
               {currentPage}
@@ -443,33 +479,20 @@ function DealTable({
             </strong>
           </span>
 
+          {/* NEXT */}
+
           <button
             type="button"
+            className="secondary-button"
             disabled={
               currentPage ===
               totalPages
             }
-            onClick={() =>
-              onPageChange?.(
-                currentPage + 1
-              )
+            onClick={
+              handleNextPage
             }
-            style={{
-              padding:
-                "6px 12px",
-              cursor:
-                currentPage ===
-                totalPages
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                currentPage ===
-                totalPages
-                  ? 0.5
-                  : 1,
-            }}
           >
-            Next
+            Next →
           </button>
 
         </div>
@@ -480,3 +503,4 @@ function DealTable({
 }
 
 export default DealTable;
+

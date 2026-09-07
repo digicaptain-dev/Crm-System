@@ -10,10 +10,6 @@ function PipelineDealCard({
 }) {
   const navigate = useNavigate();
 
-  // =====================================================
-  // OPEN DEAL DETAILS
-  // =====================================================
-
   const handleOpenDeal = (event) => {
     event.stopPropagation();
 
@@ -21,12 +17,10 @@ function PipelineDealCard({
       return;
     }
 
-    navigate(`/deals/${deal.deal_id}`);
+    navigate(
+      `/deals/${deal.deal_id}`
+    );
   };
-
-  // =====================================================
-  // DRAG START
-  // =====================================================
 
   const handleDragStart = (event) => {
     if (updating) {
@@ -34,7 +28,6 @@ function PipelineDealCard({
       return;
     }
 
-    // Store deal ID in browser drag data
     event.dataTransfer.setData(
       "text/plain",
       deal.deal_id
@@ -43,34 +36,20 @@ function PipelineDealCard({
     event.dataTransfer.effectAllowed =
       "move";
 
-    console.log(
-      "Dragging deal:",
-      deal
-    );
-
-    if (onDragStart) {
-      onDragStart(deal);
-    }
+    onDragStart?.(deal);
   };
-
-  // =====================================================
-  // DRAG END
-  // =====================================================
 
   const handleDragEnd = () => {
-    console.log(
-      "Finished dragging:",
-      deal?.deal_id
-    );
-
-    if (onDragEnd) {
-      onDragEnd();
-    }
+    onDragEnd?.();
   };
 
-  // =====================================================
-  // FORMAT VALUE
-  // =====================================================
+  const priority =
+    deal?.deal_priority ||
+    "Medium";
+
+  const status =
+    deal?.deal_status ||
+    "Open";
 
   const formattedValue =
     deal?.deal_value !== null &&
@@ -81,25 +60,27 @@ function PipelineDealCard({
         ).toLocaleString()}`
       : "No value";
 
-  // =====================================================
-  // PRIORITY
-  // =====================================================
+  const priorityClass =
+    priority
+      .toLowerCase()
+      .replace(/\s+/g, "-");
 
-  const priority =
-    deal?.deal_priority ||
-    "Medium";
+  const statusClass =
+    status
+      .toLowerCase()
+      .replace(/\s+/g, "-");
 
-  // =====================================================
-  // STATUS
-  // =====================================================
-
-  const status =
-    deal?.deal_status ||
-    "Open";
-
-  // =====================================================
-  // PAGE
-  // =====================================================
+  const formattedDate = deal?.close_date
+    ? new Date(
+        deal.close_date
+      ).toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          day: "numeric",
+        }
+      )
+    : null;
 
   return (
     <div
@@ -108,24 +89,26 @@ function PipelineDealCard({
         updating
           ? "pipeline-deal-card-updating"
           : "",
-      ].join(" ")}
+      ]
+        .filter(Boolean)
+        .join(" ")}
       draggable={!updating}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      onDragStart={
+        handleDragStart
+      }
+      onDragEnd={
+        handleDragEnd
+      }
     >
 
-      {/* =================================================
-          CARD TOP
-      ================================================= */}
+      {/* TOP */}
 
       <div className="deal-card-top">
 
         <span
           className={[
             "deal-priority",
-            priority
-              .toLowerCase()
-              .replace(/\s+/g, "-"),
+            priorityClass,
           ].join(" ")}
         >
           {priority}
@@ -134,9 +117,7 @@ function PipelineDealCard({
         <span
           className={[
             "deal-status",
-            status
-              .toLowerCase()
-              .replace(/\s+/g, "-"),
+            statusClass,
           ].join(" ")}
         >
           {status}
@@ -144,61 +125,77 @@ function PipelineDealCard({
 
       </div>
 
-      {/* =================================================
-          DEAL NAME
-      ================================================= */}
+      {/* NAME */}
 
       <button
         type="button"
         className="deal-card-name"
-        onClick={handleOpenDeal}
+        onClick={
+          handleOpenDeal
+        }
       >
         {deal?.deal_name ||
           "Untitled Deal"}
       </button>
 
-      {/* =================================================
-          DEAL VALUE
-      ================================================= */}
+      {/* VALUE */}
 
       <div className="deal-card-value">
         {formattedValue}
       </div>
 
-      {/* =================================================
-          CUSTOMER EMAIL
-      ================================================= */}
+      {/* CUSTOMER */}
 
       {deal?.customer_email && (
         <div className="deal-card-email">
+          <span>✉</span>
           {deal.customer_email}
         </div>
       )}
 
-      {/* =================================================
-          OWNER
-      ================================================= */}
+      {/* CLOSE DATE */}
 
-      {deal?.deal_owner && (
-        <div className="deal-card-owner">
-          <span>Owner:</span>
-
-          <strong>
-            {deal.deal_owner}
-          </strong>
+      {formattedDate && (
+        <div className="deal-card-date">
+          <span>◷</span>
+          Close {formattedDate}
         </div>
       )}
 
-      {/* =================================================
-          FOOTER
-      ================================================= */}
+      {/* OWNER */}
+
+      {deal?.deal_owner && (
+        <div className="deal-card-owner">
+
+          <div className="deal-owner-avatar">
+            {String(
+              deal.deal_owner
+            )
+              .charAt(0)
+              .toUpperCase()}
+          </div>
+
+          <div>
+            <span>Owner</span>
+
+            <strong>
+              {deal.deal_owner}
+            </strong>
+          </div>
+
+        </div>
+      )}
+
+      {/* FOOTER */}
 
       <div className="deal-card-footer">
 
         <button
           type="button"
           className="deal-view-button"
-          onClick={handleOpenDeal}
+          onClick={
+            handleOpenDeal
+          }
         >
           View Deal
         </button>
