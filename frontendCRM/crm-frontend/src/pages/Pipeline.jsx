@@ -69,16 +69,83 @@ function Pipeline() {
 
         setError("");
 
-        const response = await api.get("/pipelines");
+        // Concurrently fetch pipelines and deals for comprehensive data hydration
+        const [pipelinesRes, dealsRes] = await Promise.allSettled([
+          api.get("/pipelines"),
+          api.get("/deals?limit=500"),
+        ]);
 
-        const data = Array.isArray(response.data)
-          ? response.data
-          : response.data?.pipelines || [];
+        let rawPipelines = [];
+        if (pipelinesRes.status === "fulfilled") {
+          const resData = pipelinesRes.value.data;
+          rawPipelines = Array.isArray(resData)
+            ? resData
+            : resData?.pipelines || resData?.data || [];
+        }
 
-        setPipelines(data);
+        let rawDeals = [];
+        if (dealsRes.status === "fulfilled") {
+          const dData = dealsRes.value.data;
+          rawDeals = Array.isArray(dData)
+            ? dData
+            : dData?.deals || dData?.data || [];
+        }
+
+        // Default stages template for fallback
+        const defaultStageTemplates = [
+          { stage_id: 1, stage_name: "Qualified", stage_order: 1, description: "Qualified" },
+          { stage_id: 2, stage_name: "Content Made", stage_order: 2, description: "Content Made" },
+          { stage_id: 3, stage_name: "Demo Scheduled", stage_order: 3, description: "Demo Scheduled" },
+          { stage_id: 4, stage_name: "Proposal Made", stage_order: 4, description: "Proposal Made" },
+          { stage_id: 5, stage_name: "Negotiations Started", stage_order: 5, description: "Negotiations Started" },
+        ];
+
+        // Enrich pipelines with stages and deals
+        const enrichedPipelines = rawPipelines.map((pipe) => {
+          const pipeDeals = rawDeals.filter(
+            (deal) => String(deal.pipeline_id) === String(pipe.pipeline_id)
+          );
+
+          const stages =
+            Array.isArray(pipe.stages) && pipe.stages.length > 0
+              ? pipe.stages
+              : defaultStageTemplates.map((tmpl) => ({
+                  ...tmpl,
+                  pipeline_id: pipe.pipeline_id,
+                }));
+
+          const enrichedStages = stages.map((stage) => {
+            const existingDeals = Array.isArray(stage.deals)
+              ? stage.deals
+              : [];
+
+            if (existingDeals.length > 0) {
+              return { ...stage, deals: existingDeals };
+            }
+
+            const matchingDeals = pipeDeals.filter(
+              (deal) =>
+                String(deal.deal_stage) === String(stage.stage_id) ||
+                String(deal.deal_stage || "").toLowerCase() ===
+                  String(stage.stage_name || "").toLowerCase()
+            );
+
+            return {
+              ...stage,
+              deals: matchingDeals,
+            };
+          });
+
+          return {
+            ...pipe,
+            stages: enrichedStages,
+          };
+        });
+
+        setPipelines(enrichedPipelines);
 
         setSelectedPipelineId((currentId) => {
-          const exists = data.some(
+          const exists = enrichedPipelines.some(
             (pipeline) =>
               String(pipeline.pipeline_id) ===
               String(currentId)
@@ -88,10 +155,21 @@ function Pipeline() {
             return currentId;
           }
 
-          return data.length > 0
-            ? data[0].pipeline_id
+          return enrichedPipelines.length > 0
+            ? enrichedPipelines[0].pipeline_id
             : "";
         });
+
+        if (pipelinesRes.status === "rejected" && enrichedPipelines.length === 0) {
+          const err = pipelinesRes.reason;
+          console.error("Fetch pipelines rejected:", err);
+          setError(
+            err.response?.data?.error ||
+              err.response?.data?.message ||
+              err.message ||
+              "Failed to load pipelines."
+          );
+        }
       } catch (err) {
         console.error(
           "Fetch pipelines error:",
