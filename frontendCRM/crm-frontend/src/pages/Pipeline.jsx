@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import api from "../services/api";
-import { defaultPipelines } from "../data/mockData";
 
 import PipelineHeader from "../components/pipeline/PipelineHeader";
 import PipelineToolbar from "../components/pipeline/PipelineToolbar";
@@ -101,71 +100,50 @@ function Pipeline() {
           { stage_id: 5, stage_name: "Negotiations Started", stage_order: 5, description: "Negotiations Started" },
         ];
 
-        let enrichedPipelines = [];
+        // Enrich fetched pipelines with stages and deals — real data only. A
+        // failed or empty fetch surfaces as a real error/empty state below,
+        // never as substitute demo data: this is a live CRM and a person
+        // reading a "deal" here has to be able to trust it is a real one.
+        const enrichedPipelines = rawPipelines.map((pipe) => {
+          const pipeDeals = rawDeals.filter(
+            (deal) => String(deal.pipeline_id) === String(pipe.pipeline_id)
+          );
 
-        if (rawPipelines.length > 0) {
-          // Enrich fetched pipelines with stages and deals
-          enrichedPipelines = rawPipelines.map((pipe) => {
-            const pipeDeals = rawDeals.filter(
-              (deal) => String(deal.pipeline_id) === String(pipe.pipeline_id)
+          const stages =
+            Array.isArray(pipe.stages) && pipe.stages.length > 0
+              ? pipe.stages
+              : defaultStageTemplates.map((tmpl) => ({
+                  ...tmpl,
+                  pipeline_id: pipe.pipeline_id,
+                }));
+
+          const enrichedStages = stages.map((stage) => {
+            const existingDeals = Array.isArray(stage.deals)
+              ? stage.deals
+              : [];
+
+            if (existingDeals.length > 0) {
+              return { ...stage, deals: existingDeals };
+            }
+
+            const matchingDeals = pipeDeals.filter(
+              (deal) =>
+                String(deal.deal_stage) === String(stage.stage_id) ||
+                String(deal.deal_stage || "").toLowerCase() ===
+                  String(stage.stage_name || "").toLowerCase()
             );
 
-            const stages =
-              Array.isArray(pipe.stages) && pipe.stages.length > 0
-                ? pipe.stages
-                : defaultStageTemplates.map((tmpl) => ({
-                    ...tmpl,
-                    pipeline_id: pipe.pipeline_id,
-                  }));
-
-            const enrichedStages = stages.map((stage) => {
-              const existingDeals = Array.isArray(stage.deals)
-                ? stage.deals
-                : [];
-
-              if (existingDeals.length > 0) {
-                return { ...stage, deals: existingDeals };
-              }
-
-              const matchingDeals = pipeDeals.filter(
-                (deal) =>
-                  String(deal.deal_stage) === String(stage.stage_id) ||
-                  String(deal.deal_stage || "").toLowerCase() ===
-                    String(stage.stage_name || "").toLowerCase()
-              );
-
-              return {
-                ...stage,
-                deals: matchingDeals,
-              };
-            });
-
             return {
-              ...pipe,
-              stages: enrichedStages,
+              ...stage,
+              deals: matchingDeals,
             };
           });
-        } else {
-          // Fallback to default pipeline template if no pipelines in DB or on network error
-          enrichedPipelines = defaultPipelines.map((pipe) => {
-            if (rawDeals.length > 0) {
-              const enrichedStages = pipe.stages.map((stage) => {
-                const matchingDeals = rawDeals.filter(
-                  (deal) =>
-                    String(deal.deal_stage) === String(stage.stage_id) ||
-                    String(deal.deal_stage || "").toLowerCase() ===
-                      String(stage.stage_name || "").toLowerCase()
-                );
-                return {
-                  ...stage,
-                  deals: matchingDeals.length > 0 ? matchingDeals : stage.deals,
-                };
-              });
-              return { ...pipe, stages: enrichedStages };
-            }
-            return pipe;
-          });
-        }
+
+          return {
+            ...pipe,
+            stages: enrichedStages,
+          };
+        });
 
         setPipelines(enrichedPipelines);
 
@@ -185,15 +163,24 @@ function Pipeline() {
             : "";
         });
 
-        if (pipelinesRes.status === "rejected") {
-          console.warn("Pipelines API offline or unreachable, loaded default pipeline data gracefully:", pipelinesRes.reason);
+        if (pipelinesRes.status === "rejected" && enrichedPipelines.length === 0) {
+          const err = pipelinesRes.reason;
+          console.error("Fetch pipelines rejected:", err);
+          setError(
+            err.response?.data?.error ||
+              err.response?.data?.message ||
+              err.message ||
+              "Failed to load pipelines."
+          );
         }
       } catch (err) {
-        console.warn("Fetch pipelines error handled with fallback:", err);
-        setPipelines(defaultPipelines);
-        if (defaultPipelines.length > 0) {
-          setSelectedPipelineId(defaultPipelines[0].pipeline_id);
-        }
+        console.error("Fetch pipelines error:", err);
+        setError(
+          err.response?.data?.error ||
+            err.response?.data?.message ||
+            err.message ||
+            "Failed to load pipelines."
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
