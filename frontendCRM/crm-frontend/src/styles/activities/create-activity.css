@@ -1,0 +1,69 @@
+.create-activity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-activity-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-activity-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.create-activity-form input,
+.create-activity-form select,
+.create-activity-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 10px 12px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  font-size: 14px;
+  color: #111827;
+
+  outline: none;
+}
+
+.create-activity-form input:focus,
+.create-activity-form select:focus,
+.create-activity-form textarea:focus {
+  border-color: #6366f1;
+}
+
+.create-activity-form textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.create-activity-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding-top: 8px;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+.create-activity-form .secondary-button,
+.create-activity-form .primary-button {
+  padding: 10px 16px;
+
+  border-radius: 6px;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+}

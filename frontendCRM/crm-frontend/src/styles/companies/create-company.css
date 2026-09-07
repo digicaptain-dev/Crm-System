@@ -1,0 +1,53 @@
+.create-company-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.create-company-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.create-company-form label {
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.create-company-form input,
+.create-company-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+}
+
+.create-company-form input:focus,
+.create-company-form select:focus {
+  border-color: var(--primary);
+}
+
+.create-company-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 450px) {
+  .create-company-form .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .create-company-form .form-actions button {
+    width: 100%;
+  }
+}

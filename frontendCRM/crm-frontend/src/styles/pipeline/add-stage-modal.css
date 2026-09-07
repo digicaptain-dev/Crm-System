@@ -1,0 +1,296 @@
+/* =========================================================
+   ADD STAGE MODAL
+   ========================================================= */
+
+.stage-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1000;
+
+  padding: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(15, 23, 42, 0.48);
+
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.stage-modal {
+  width: min(450px, 100%);
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+  border: 1px solid #e1e6ee;
+  border-radius: 14px;
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.18);
+
+  animation: add-stage-modal-in 0.18s ease;
+}
+
+@keyframes add-stage-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* HEADER */
+
+.stage-modal-header {
+  padding: 19px 20px 15px;
+
+  display: flex;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  border-bottom: 1px solid #edf0f4;
+}
+
+.stage-modal-header h2 {
+  margin: 0;
+
+  color: #1c2738;
+
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.stage-modal-header p {
+  margin: 5px 0 0;
+
+  color: #8993a5;
+
+  font-size: 11px;
+}
+
+.stage-modal-header strong {
+  color: #526074;
+}
+
+/* CLOSE */
+
+.stage-modal-close {
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #8b95a6;
+
+  font-size: 20px;
+
+  cursor: pointer;
+}
+
+.stage-modal-close:hover {
+  background: #f1f4f8;
+  color: #334155;
+}
+
+/* ERROR */
+
+.stage-modal-error {
+  margin: 12px 20px 0;
+
+  padding: 9px 10px;
+
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+
+  background: #fff7f7;
+
+  color: #b91c1c;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* FORM */
+
+.stage-modal form {
+  padding: 18px 20px;
+}
+
+.stage-form-group {
+  margin-bottom: 15px;
+}
+
+.stage-form-group label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #465268;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stage-form-group label > span:not(.optional-label) {
+  color: #dc2626;
+}
+
+.optional-label {
+  margin-left: 6px;
+
+  color: #9aa3b1 !important;
+
+  font-size: 10px;
+
+  font-weight: 500 !important;
+}
+
+.stage-form-group input,
+.stage-form-group textarea {
+  width: 100%;
+
+  padding: 10px 11px;
+
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #263247;
+
+  font-size: 12px;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.stage-form-group input {
+  height: 38px;
+}
+
+.stage-form-group textarea {
+  min-height: 90px;
+
+  resize: vertical;
+}
+
+.stage-form-group input::placeholder,
+.stage-form-group textarea::placeholder {
+  color: #a4acb9;
+}
+
+.stage-form-group input:focus,
+.stage-form-group textarea:focus {
+  border-color: #60a5fa;
+
+  box-shadow:
+    0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+.stage-form-group small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #9aa3b1;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+/* ACTIONS */
+
+.stage-modal-actions {
+  margin-top: 20px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+.stage-cancel-btn,
+.stage-save-btn {
+  height: 36px;
+
+  padding: 0 14px;
+
+  border-radius: 7px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.stage-cancel-btn {
+  border: 1px solid #dce2ea;
+
+  background: #ffffff;
+
+  color: #596579;
+}
+
+.stage-cancel-btn:hover {
+  background: #f8fafc;
+}
+
+.stage-save-btn {
+  border: 1px solid #2563eb;
+
+  background: #2563eb;
+
+  color: #ffffff;
+}
+
+.stage-save-btn:hover {
+  background: #1d4ed8;
+}
+
+.stage-save-btn:disabled,
+.stage-cancel-btn:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .stage-modal-overlay {
+    padding: 12px;
+  }
+
+  .stage-modal-header {
+    padding: 16px;
+  }
+
+  .stage-modal form {
+    padding: 16px;
+  }
+
+  .stage-modal-error {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}

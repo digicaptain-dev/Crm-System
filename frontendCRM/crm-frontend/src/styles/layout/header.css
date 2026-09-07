@@ -1,0 +1,183 @@
+.app-header {
+  position: sticky;
+
+  top: 0;
+
+  height: var(--header-height);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 22px;
+
+  background: #fff;
+
+  border-bottom: 1px solid var(--border);
+
+  z-index: 90;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  gap: 12px;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mobile-menu-button {
+  display: none;
+
+  margin-right: 10px;
+
+  padding: 5px;
+
+  border: 0;
+
+  background: transparent;
+
+  font-size: 18px;
+}
+
+.header-icon-button {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+
+  font-size: 14px;
+}
+
+.header-icon-button:hover {
+  background: #f5f5f5;
+}
+
+/* Profile */
+
+.header-profile {
+  position: relative;
+}
+
+.profile-button {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 4px;
+
+  border: 0;
+
+  background: transparent;
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--primary);
+
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-start;
+}
+
+.profile-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-role {
+  margin-top: 2px;
+
+  color: #888;
+
+  font-size: 10px;
+}
+
+.profile-arrow {
+  margin-left: 3px;
+
+  color: #888;
+
+  font-size: 8px;
+}
+
+.profile-menu {
+  position: absolute;
+
+  top: calc(100% + 8px);
+  right: 0;
+
+  width: 150px;
+
+  padding: 5px;
+
+  background: #fff;
+
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  box-shadow:
+    0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.profile-menu button {
+  width: 100%;
+
+  padding: 9px 10px;
+
+  border: 0;
+
+  border-radius: 4px;
+
+  background: transparent;
+
+  text-align: left;
+
+  font-size: 12px;
+}
+
+.profile-menu button:hover {
+  background: #f5f7fb;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-button {
+    display: block;
+  }
+
+  .profile-info,
+  .profile-arrow {
+    display: none;
+  }
+}

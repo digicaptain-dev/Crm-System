@@ -1,0 +1,298 @@
+/* =========================================================
+   EDIT STAGE MODAL
+   ========================================================= */
+
+.edit-stage-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1000;
+
+  padding: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(15, 23, 42, 0.48);
+
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.edit-stage-modal {
+  width: min(450px, 100%);
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+  border: 1px solid #e1e6ee;
+  border-radius: 14px;
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.18);
+
+  animation: edit-stage-modal-in 0.18s ease;
+}
+
+@keyframes edit-stage-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* HEADER */
+
+.edit-stage-modal-header {
+  padding: 19px 20px 15px;
+
+  display: flex;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  border-bottom: 1px solid #edf0f4;
+}
+
+.edit-stage-modal-header h2 {
+  margin: 0;
+
+  color: #1c2738;
+
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.edit-stage-modal-header p {
+  margin: 5px 0 0;
+
+  color: #8993a5;
+
+  font-size: 11px;
+}
+
+/* CLOSE */
+
+.edit-stage-modal-close {
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #8b95a6;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.edit-stage-modal-close:hover:not(:disabled) {
+  background: #f1f4f8;
+  color: #334155;
+}
+
+.edit-stage-modal-close:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+/* ERROR */
+
+.edit-stage-modal-error {
+  margin: 12px 20px 0;
+
+  padding: 9px 10px;
+
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+
+  background: #fff7f7;
+
+  color: #b91c1c;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* FORM */
+
+.edit-stage-modal form {
+  padding: 18px 20px;
+}
+
+.edit-stage-form-group {
+  margin-bottom: 15px;
+}
+
+.edit-stage-form-group label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #465268;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.edit-stage-form-group label > span:first-child {
+  color: #dc2626;
+}
+
+.edit-stage-optional-label {
+  margin-left: 4px;
+
+  color: #9aa3b1 !important;
+
+  font-size: 10px;
+
+  font-weight: 500 !important;
+}
+
+.edit-stage-form-group input,
+.edit-stage-form-group textarea {
+  width: 100%;
+
+  padding: 10px 11px;
+
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #263247;
+
+  font-size: 12px;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.edit-stage-form-group input {
+  height: 38px;
+}
+
+.edit-stage-form-group textarea {
+  min-height: 90px;
+
+  resize: vertical;
+}
+
+.edit-stage-form-group input::placeholder,
+.edit-stage-form-group textarea::placeholder {
+  color: #a4acb9;
+}
+
+.edit-stage-form-group input:focus,
+.edit-stage-form-group textarea:focus {
+  border-color: #60a5fa;
+
+  box-shadow:
+    0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+/* ACTIONS */
+
+.edit-stage-modal-actions {
+  margin-top: 20px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+.edit-stage-cancel-btn,
+.edit-stage-save-btn {
+  height: 36px;
+
+  padding: 0 14px;
+
+  border-radius: 7px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.edit-stage-cancel-btn {
+  border: 1px solid #dce2ea;
+
+  background: #ffffff;
+
+  color: #596579;
+}
+
+.edit-stage-cancel-btn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.edit-stage-save-btn {
+  border: 1px solid #2563eb;
+
+  background: #2563eb;
+
+  color: #ffffff;
+}
+
+.edit-stage-save-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.edit-stage-cancel-btn:disabled,
+.edit-stage-save-btn:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+/* MOBILE */
+
+@media (max-width: 480px) {
+  .edit-stage-modal-overlay {
+    padding: 12px;
+  }
+
+  .edit-stage-modal-header {
+    padding: 16px;
+  }
+
+  .edit-stage-modal form {
+    padding: 16px;
+  }
+
+  .edit-stage-modal-error {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}

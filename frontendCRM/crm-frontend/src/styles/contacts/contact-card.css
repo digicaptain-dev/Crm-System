@@ -1,0 +1,150 @@
+.contact-card {
+  padding: 15px;
+
+  background: #ffffff;
+
+  border: 1px solid var(--border);
+
+  border-radius: 7px;
+}
+
+.contact-card-header {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 16px;
+}
+
+.contact-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contact-avatar.small {
+  width: 28px;
+  height: 28px;
+
+  font-size: 10px;
+}
+
+.contact-name {
+  color: var(--text-primary);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contact-company {
+  margin-top: 3px;
+
+  color: var(--text-secondary);
+
+  font-size: 9px;
+}
+
+.contact-card-info {
+  display: flex;
+  flex-direction: column;
+
+  gap: 9px;
+
+  margin-bottom: 15px;
+}
+
+.contact-card-info > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.contact-card-info span {
+  color: var(--text-secondary);
+
+  font-size: 9px;
+}
+
+.contact-card-info strong {
+  color: var(--text-primary);
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.contact-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-top: 11px;
+
+  border-top: 1px solid var(--border);
+}
+
+.contact-status {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.contact-status-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #9ca3af;
+}
+
+.contact-status.active {
+  color: #15803d;
+}
+
+.contact-status.active .contact-status-dot {
+  background: #22c55e;
+}
+
+.contact-status.inactive {
+  color: #6b7280;
+}
+
+.contact-delete-button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #dc2626;
+
+  font-family: inherit;
+
+  font-size: 9px;
+
+  cursor: pointer;
+}
+
+.contact-delete-button:hover {
+  text-decoration: underline;
+}

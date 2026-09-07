@@ -1,0 +1,163 @@
+.assign-deal-modal {
+  width: 100%;
+  max-width: 500px;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.assign-deal-modal .modal-header p {
+  margin: 5px 0 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+/* =====================================================
+   BODY
+===================================================== */
+
+.assign-deal-modal .modal-body {
+  padding: 24px;
+}
+
+.assign-deal-modal .modal-body label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #374151;
+
+  font-size: 14px;
+
+  font-weight: 600;
+}
+
+.assign-deal-modal .modal-body select {
+  width: 100%;
+  height: 44px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-size: 14px;
+
+  outline: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.assign-deal-modal .modal-body select:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* =====================================================
+   INFO BOX
+===================================================== */
+
+.assign-info-box {
+  margin-bottom: 20px;
+
+  padding: 12px 14px;
+
+  border: 1px solid #e0e7ff;
+
+  border-radius: 8px;
+
+  background: #f5f7ff;
+
+  color: #4b5563;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+.assign-info-box strong {
+  color: #111827;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.assign-loading {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.assign-empty {
+  padding: 14px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 8px;
+
+  background: #f9fafb;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+.assign-deal-modal .modal-footer {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  padding: 16px 24px;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 600px) {
+  .assign-deal-modal {
+    max-width: calc(100vw - 24px);
+  }
+
+  .assign-deal-modal .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .assign-deal-modal .modal-footer button {
+    width: 100%;
+  }
+}

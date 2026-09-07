@@ -1,0 +1,309 @@
+/* =========================================================
+   DEAL CARD
+   ========================================================= */
+
+.pipeline-deal-card {
+  width: 100%;
+
+  margin-bottom: 8px;
+
+  padding: 11px;
+
+  background: #ffffff;
+
+  border: 1px solid #e0e5ec;
+  border-radius: 9px;
+
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.035);
+
+  cursor: grab;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.pipeline-deal-card:hover {
+  transform: translateY(-1px);
+
+  border-color: #cbd6e5;
+
+  box-shadow:
+    0 6px 15px rgba(15, 23, 42, 0.07);
+}
+
+.pipeline-deal-card:active {
+  cursor: grabbing;
+}
+
+.pipeline-deal-card-updating {
+  opacity: 0.6;
+
+  cursor: wait;
+}
+
+/* =========================================================
+   TOP
+   ========================================================= */
+
+.deal-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 7px;
+
+  margin-bottom: 9px;
+}
+
+/* BADGES */
+
+.deal-priority,
+.deal-status {
+  min-height: 19px;
+
+  padding: 4px 6px;
+
+  display: inline-flex;
+  align-items: center;
+
+  border-radius: 5px;
+
+  font-size: 8px;
+  line-height: 1;
+
+  font-weight: 750;
+}
+
+/* PRIORITY */
+
+.deal-priority {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.deal-priority.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.deal-priority.medium {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.deal-priority.low {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* STATUS */
+
+.deal-status {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.deal-status.open {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.deal-status.won {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.deal-status.lost {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* =========================================================
+   DEAL NAME
+   ========================================================= */
+
+.deal-card-name {
+  width: 100%;
+
+  padding: 0;
+
+  display: block;
+
+  border: 0;
+
+  background: transparent;
+
+  text-align: left;
+
+  color: #1f2a3d;
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: color 0.15s ease;
+}
+
+.deal-card-name:hover {
+  color: #2563eb;
+}
+
+/* =========================================================
+   VALUE
+   ========================================================= */
+
+.deal-card-value {
+  margin-top: 8px;
+
+  color: #172033;
+
+  font-size: 14px;
+  line-height: 1.2;
+
+  font-weight: 750;
+}
+
+/* =========================================================
+   EMAIL / DATE
+   ========================================================= */
+
+.deal-card-email,
+.deal-card-date {
+  min-width: 0;
+
+  margin-top: 8px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: #7b8596;
+
+  font-size: 9px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-card-email span,
+.deal-card-date span {
+  flex-shrink: 0;
+
+  color: #98a2b3;
+
+  font-size: 11px;
+}
+
+/* =========================================================
+   OWNER
+   ========================================================= */
+
+.deal-card-owner {
+  margin-top: 10px;
+  padding-top: 9px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  border-top: 1px solid #eef1f5;
+}
+
+.deal-owner-avatar {
+  width: 25px;
+  height: 25px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #eaf2ff;
+
+  color: #2563eb;
+
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.deal-card-owner div:last-child {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 1px;
+}
+
+.deal-card-owner span {
+  color: #9aa3b1;
+
+  font-size: 8px;
+}
+
+.deal-card-owner strong {
+  max-width: 145px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #526074;
+
+  font-size: 9px;
+  font-weight: 650;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.deal-card-footer {
+  margin-top: 10px;
+  padding-top: 9px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  border-top: 1px solid #eef1f5;
+}
+
+.deal-view-button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #2563eb;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.deal-view-button:hover {
+  text-decoration: underline;
+}
+
+.deal-updating-text {
+  color: #8b95a6;
+
+  font-size: 8px;
+}
