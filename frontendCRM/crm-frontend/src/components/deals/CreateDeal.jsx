@@ -43,8 +43,7 @@ function CreateDeal({
     );
   }
 
-  // Allow all logged-in users to create deals unless explicitly restricted
-  const canCreate = currentUser ? currentUser.role !== "viewer" : true;
+  const isAdmin = currentUser?.role === "admin";
 
 
   // =====================================================
@@ -96,7 +95,7 @@ function CreateDeal({
      * Additional frontend permission guard.
      */
 
-    if (!canCreate) {
+    if (!isAdmin) {
       alert(
         "You do not have permission to create deals."
       );
@@ -209,7 +208,7 @@ function CreateDeal({
    * This is an additional safety layer.
    */
 
-  if (!canCreate) {
+  if (!isAdmin) {
     return null;
   }
 

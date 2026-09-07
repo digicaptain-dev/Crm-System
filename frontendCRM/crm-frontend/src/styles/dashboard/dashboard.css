@@ -759,6 +759,23 @@
   box-shadow: var(--shadow-sm);
 }
 
+.kanban-empty-dropzone.is-readonly {
+  cursor: default;
+}
+
+.kanban-empty-dropzone.is-readonly:hover {
+  border-color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: none;
+}
+
+.kanban-empty-dropzone.is-readonly:hover .empty-dropzone-icon {
+  background: #f1f5f9;
+  color: #94a3b8;
+  transform: none;
+}
+
+
 .empty-dropzone-icon {
   width: 28px;
   height: 28px;
