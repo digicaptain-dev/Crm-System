@@ -34,13 +34,28 @@ const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${PORT}/api`;
 
 // Dynamic CORS Configuration
 const corsOptions = {
-    origin: CLIENT_URL === '*' ? '*' : CLIENT_URL.split(',').map(url => url.trim()),
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, server-to-server)
+        if (!origin) return callback(null, true);
+
+        if (CLIENT_URL === '*' || !CLIENT_URL) {
+            return callback(null, true);
+        }
+
+        const allowedOrigins = CLIENT_URL.split(',').map(url => url.trim());
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
