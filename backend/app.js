@@ -124,7 +124,12 @@ app.get('/health', async (req, res) => {
 });
 
 // Mount Routes
-app.use('/api', dealRoutes, stageRoutes, pipelineRoutes, userRoutes, authRoutes, commentRoutes);
+app.use('/api', dealRoutes);
+app.use('/api', stageRoutes);
+app.use('/api', pipelineRoutes);
+app.use('/api', userRoutes);
+app.use('/api', authRoutes);
+app.use('/api', commentRoutes);
 app.use('/api/deals/upload', uploadRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/deals', conversationRoutes);
