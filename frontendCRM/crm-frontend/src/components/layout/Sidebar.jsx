@@ -11,8 +11,8 @@ function Sidebar() {
     console.error("Failed to read logged-in user:", error);
   }
 
-  const isUser = user?.role === "user";
-  const isAdmin = user?.role === "admin";
+  const isUser = user?.role?.toLowerCase() === "user";
+  const isAdmin = user?.role?.toLowerCase() === "admin";
 
   return (
     <aside className="app-sidebar">
