@@ -118,17 +118,6 @@ function Sidebar() {
               <span className="sidebar-icon">♙</span>
               <span>Users</span>
             </NavLink>
-
-            {/* Leads */}
-            <NavLink
-              to="/leads"
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? "active" : ""}`
-              }
-            >
-              <span className="sidebar-icon">◈</span>
-              <span>Leads</span>
-            </NavLink>
           </>
         )}
 
