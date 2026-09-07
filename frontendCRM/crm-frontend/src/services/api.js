@@ -1,7 +1,9 @@
 import axios from "axios";
 
-// Clean base URL extraction safely resolving ending slashes
-const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:1000/api";
+const rawBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  "https://crm-system-production-f0eb.up.railway.app/api";
+
 const cleanBaseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
 const api = axios.create({
