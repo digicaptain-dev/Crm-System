@@ -57,8 +57,8 @@ router.get('/pipelines', async (req, res) => {
             ON p.pipeline_id = s.pipeline_id
 
         LEFT JOIN deals d
-            ON s.pipeline_id = d.pipeline_id
-            AND s.stage_id = d.deal_stage
+            ON (s.pipeline_id = d.pipeline_id OR d.pipeline_id IS NULL OR d.pipeline_id = '')
+            AND (CAST(s.stage_id AS CHAR) = CAST(d.deal_stage AS CHAR) OR LOWER(s.stage_name) = LOWER(d.deal_stage))
 
         ORDER BY
             p.created_at DESC,
