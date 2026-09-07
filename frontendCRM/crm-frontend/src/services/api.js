@@ -8,6 +8,7 @@ const cleanBaseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBas
 
 const api = axios.create({
     baseURL: cleanBaseUrl,
+    timeout: 15000,
     headers: {
         "Content-Type": "application/json",
     },
