@@ -10,40 +10,17 @@ function PipelineDealCard({
 }) {
   const navigate = useNavigate();
 
-  /*
-   * =====================================================
-   * OPEN DEAL DETAILS
-   * =====================================================
-   */
-
   const handleOpenDeal = (event) => {
-    event.preventDefault();
     event.stopPropagation();
 
     if (!deal?.deal_id) {
       return;
     }
 
-    /*
-     * IMPORTANT:
-     *
-     * AppRoutes.jsx has:
-     *
-     * /deal/:id
-     *
-     * So we must navigate to:
-     *
-     * /deal/{deal_id}
-     */
-
-    navigate(`/deal/${deal.deal_id}`);
+    navigate(
+      `/deals/${deal.deal_id}`
+    );
   };
-
-  /*
-   * =====================================================
-   * DEAL DRAG START
-   * =====================================================
-   */
 
   const handleDragStart = (event) => {
     if (updating) {
@@ -51,48 +28,28 @@ function PipelineDealCard({
       return;
     }
 
-    if (!deal?.deal_id) {
-      event.preventDefault();
-      return;
-    }
-
     event.dataTransfer.setData(
       "text/plain",
-      String(deal.deal_id)
+      deal.deal_id
     );
 
-    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.effectAllowed =
+      "move";
 
     onDragStart?.(deal);
   };
-
-  /*
-   * =====================================================
-   * DEAL DRAG END
-   * =====================================================
-   */
 
   const handleDragEnd = () => {
     onDragEnd?.();
   };
 
-  /*
-   * =====================================================
-   * DEAL DATA
-   * =====================================================
-   */
-
   const priority =
-    deal?.deal_priority || "Medium";
+    deal?.deal_priority ||
+    "Medium";
 
   const status =
-    deal?.deal_status || "Open";
-
-  /*
-   * =====================================================
-   * DEAL VALUE
-   * =====================================================
-   */
+    deal?.deal_status ||
+    "Open";
 
   const formattedValue =
     deal?.deal_value !== null &&
@@ -103,25 +60,15 @@ function PipelineDealCard({
         ).toLocaleString()}`
       : "No value";
 
-  /*
-   * =====================================================
-   * CSS CLASSES
-   * =====================================================
-   */
+  const priorityClass =
+    priority
+      .toLowerCase()
+      .replace(/\s+/g, "-");
 
-  const priorityClass = String(priority)
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-
-  const statusClass = String(status)
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-
-  /*
-   * =====================================================
-   * CLOSE DATE
-   * =====================================================
-   */
+  const statusClass =
+    status
+      .toLowerCase()
+      .replace(/\s+/g, "-");
 
   const formattedDate = deal?.close_date
     ? new Date(
@@ -135,12 +82,6 @@ function PipelineDealCard({
       )
     : null;
 
-  /*
-   * =====================================================
-   * RENDER
-   * =====================================================
-   */
-
   return (
     <div
       className={[
@@ -152,14 +93,18 @@ function PipelineDealCard({
         .filter(Boolean)
         .join(" ")}
       draggable={!updating}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      onDragStart={
+        handleDragStart
+      }
+      onDragEnd={
+        handleDragEnd
+      }
     >
-      {/* =================================================
-          TOP
-      ================================================= */}
+
+      {/* TOP */}
 
       <div className="deal-card-top">
+
         <span
           className={[
             "deal-priority",
@@ -177,32 +122,29 @@ function PipelineDealCard({
         >
           {status}
         </span>
+
       </div>
 
-      {/* =================================================
-          DEAL NAME
-      ================================================= */}
+      {/* NAME */}
 
       <button
         type="button"
         className="deal-card-name"
-        onClick={handleOpenDeal}
-        disabled={updating}
+        onClick={
+          handleOpenDeal
+        }
       >
-        {deal?.deal_name || "Untitled Deal"}
+        {deal?.deal_name ||
+          "Untitled Deal"}
       </button>
 
-      {/* =================================================
-          VALUE
-      ================================================= */}
+      {/* VALUE */}
 
       <div className="deal-card-value">
         {formattedValue}
       </div>
 
-      {/* =================================================
-          CUSTOMER EMAIL
-      ================================================= */}
+      {/* CUSTOMER */}
 
       {deal?.customer_email && (
         <div className="deal-card-email">
@@ -211,9 +153,7 @@ function PipelineDealCard({
         </div>
       )}
 
-      {/* =================================================
-          CLOSE DATE
-      ================================================= */}
+      {/* CLOSE DATE */}
 
       {formattedDate && (
         <div className="deal-card-date">
@@ -222,12 +162,11 @@ function PipelineDealCard({
         </div>
       )}
 
-      {/* =================================================
-          OWNER
-      ================================================= */}
+      {/* OWNER */}
 
       {deal?.deal_owner && (
         <div className="deal-card-owner">
+
           <div className="deal-owner-avatar">
             {String(
               deal.deal_owner
@@ -243,19 +182,20 @@ function PipelineDealCard({
               {deal.deal_owner}
             </strong>
           </div>
+
         </div>
       )}
 
-      {/* =================================================
-          FOOTER
-      ================================================= */}
+      {/* FOOTER */}
 
       <div className="deal-card-footer">
+
         <button
           type="button"
           className="deal-view-button"
-          onClick={handleOpenDeal}
-          disabled={updating}
+          onClick={
+            handleOpenDeal
+          }
         >
           View Deal
         </button>
@@ -265,7 +205,9 @@ function PipelineDealCard({
             Updating...
           </span>
         )}
+
       </div>
+
     </div>
   );
 }

@@ -176,14 +176,14 @@ router.post('/login', [
         }
 
         const { email, password } = req.body;
-        const cleanEmail = email ? email.trim().toLowerCase() : '';
 
-        console.log("1. Login request received:", cleanEmail);
+        console.log("1. Login request received:", email);
+
         console.log("2. Starting database query...");
 
         const [result] = await db.query(
-            'SELECT * FROM users WHERE LOWER(TRIM(email)) = ?',
-            [cleanEmail]
+            'SELECT * FROM users WHERE email = ?',
+            [email]
         );
 
         console.log("3. Database query completed");
@@ -192,7 +192,7 @@ router.post('/login', [
         if (result.length === 0) {
             return res.status(400).json({
                 success: false,
-                msg: "Invalid email or password"
+                msg: "Invalid credentials"
             });
         }
 
@@ -217,13 +217,11 @@ router.post('/login', [
         if (!isMatch) {
             return res.status(400).json({
                 success: false,
-                msg: "Invalid email or password"
+                msg: "Invalid credentials"
             });
         }
 
         console.log("8. Creating JWT...");
-
-        const jwtSecret = process.env.JWT_SECRET || "crm_super_secure_jwt_secret_key_2026";
 
         const token = jwt.sign(
             {
@@ -231,14 +229,13 @@ router.post('/login', [
                 email: user.email,
                 role: user.role
             },
-            jwtSecret,
+            process.env.JWT_SECRET,
             {
                 expiresIn: "48h"
             }
         );
 
         console.log("9. JWT created");
-
 
         const safeUser = {
             user_id: user.user_id,

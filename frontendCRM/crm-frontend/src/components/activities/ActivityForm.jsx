@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import api from "../../services/api";
 
@@ -16,171 +16,92 @@ function ActivityForm({
     details: "",
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(false);
 
-  const MAX_DETAILS_LENGTH = 2000;
-
-  // =====================================================
-  // FORMAT SELECTED DATE
-  // =====================================================
-
-  const formattedSelectedDate = useMemo(() => {
-    if (!selectedDate) {
-      return "";
-    }
-
-    const date = new Date(
-      `${selectedDate}T00:00:00`
-    );
-
-    if (Number.isNaN(date.getTime())) {
-      return selectedDate;
-    }
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  }, [selectedDate]);
-
-  // =====================================================
-  // SELECTED DEAL
-  // =====================================================
-
-  const selectedDeal = useMemo(() => {
-    return deals.find(
-      (deal) =>
-        String(deal.deal_id) ===
-        String(form.deal_id)
-    );
-  }, [deals, form.deal_id]);
-
-  // =====================================================
-  // ACTIVITY TYPES
-  // =====================================================
-
-  const activityTypes = [
-    {
-      value: "task",
-      label: "Task",
-      description: "Action or follow-up required",
-    },
-    {
-      value: "comment",
-      label: "Comment",
-      description: "Internal note or update",
-    },
-    {
-      value: "stage change",
-      label: "Stage Change",
-      description: "Pipeline stage update",
-    },
-  ];
+  const [error, setError] =
+    useState("");
 
   // =====================================================
   // HANDLE CHANGE
   // =====================================================
 
-  const handleChange = (event) => {
+  const handleChange = (e) => {
     const {
       name,
       value,
-    } = event.target;
+    } = e.target;
 
-    setError("");
-
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  };
-
-  // =====================================================
-  // HANDLE DETAILS CHANGE
-  // =====================================================
-
-  const handleDetailsChange = (event) => {
-    const value =
-      event.target.value.slice(
-        0,
-        MAX_DETAILS_LENGTH
-      );
-
-    setError("");
-
-    setForm((current) => ({
-      ...current,
-      details: value,
-    }));
-  };
-
-  // =====================================================
-  // VALIDATE
-  // =====================================================
-
-  const validateForm = () => {
-    if (!form.deal_id) {
-      return "Please select a related deal.";
-    }
-
-    if (!form.activity_type) {
-      return "Please select an activity type.";
-    }
-
-    const details = form.details.trim();
-
-    if (!details) {
-      return "Please enter activity details.";
-    }
-
-    if (details.length < 3) {
-      return "Activity details must contain at least 3 characters.";
-    }
-
-    return "";
+    setForm(
+      (current) => ({
+        ...current,
+        [name]: value,
+      })
+    );
   };
 
   // =====================================================
   // SUBMIT
   // =====================================================
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (loading) {
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     setError("");
 
-    const validationError = validateForm();
+    if (!form.deal_id) {
+      setError(
+        "Please select a deal."
+      );
 
-    if (validationError) {
-      setError(validationError);
+      return;
+    }
+
+    if (!form.activity_type) {
+      setError(
+        "Please select an activity type."
+      );
+
+      return;
+    }
+
+    if (!form.details.trim()) {
+      setError(
+        "Please enter activity details."
+      );
+
       return;
     }
 
     try {
       setLoading(true);
 
-      const payload = {
-        deal_id: form.deal_id,
-        activity_type: form.activity_type,
-        details: form.details.trim(),
-      };
+      const response =
+        await api.post(
+          "/activities",
+          {
+            deal_id:
+              form.deal_id,
 
-      const response = await api.post(
-        "/activities",
-        payload
+            activity_type:
+              form.activity_type,
+
+            details:
+              form.details.trim(),
+          }
+        );
+
+      console.log(
+        "Create activity response:",
+        response.data
       );
 
-      if (!response.data?.success) {
+      if (
+        !response.data?.success
+      ) {
         throw new Error(
           response.data?.message ||
-            "Failed to create activity."
+          "Failed to create activity."
         );
       }
 
@@ -190,7 +111,6 @@ function ActivityForm({
         );
       }
 
-      // Reset form
       setForm({
         deal_id: "",
         activity_type: "task",
@@ -198,6 +118,7 @@ function ActivityForm({
       });
 
       onClose?.();
+
     } catch (error) {
       console.error(
         "Create activity error:",
@@ -205,39 +126,32 @@ function ActivityForm({
       );
 
       setError(
-        error.response?.data?.message ||
-          error.response?.data?.error ||
-          error.message ||
-          "Failed to create activity."
+        error.response?.data
+          ?.message ||
+        error.response?.data
+          ?.error ||
+        error.message ||
+        "Failed to create activity."
       );
+
     } finally {
       setLoading(false);
     }
   };
-
-  // =====================================================
-  // RENDER
-  // =====================================================
 
   return (
     <form
       className="activity-form"
       onSubmit={handleSubmit}
     >
+
       {/* =================================================
           ERROR
       ================================================= */}
 
       {error && (
-        <div
-          className="activity-form-error"
-          role="alert"
-        >
-          <span className="activity-error-icon">
-            !
-          </span>
-
-          <span>{error}</span>
+        <div className="activity-form-error">
+          {error}
         </div>
       )}
 
@@ -247,137 +161,116 @@ function ActivityForm({
 
       {selectedDate && (
         <div className="activity-selected-date">
-          <div className="selected-date-icon">
-            <span />
-          </div>
 
-          <div className="selected-date-content">
-            <span className="selected-date-label">
-              Activity Date
-            </span>
+          <span>
+            Selected Date
+          </span>
 
-            <strong>
-              {formattedSelectedDate}
-            </strong>
-          </div>
+          <strong>
+            {selectedDate}
+          </strong>
+
         </div>
       )}
 
       {/* =================================================
-          RELATED DEAL
+          DEAL
       ================================================= */}
 
       <div className="form-group">
-        <label htmlFor="activity-deal">
+
+        <label htmlFor="deal_id">
           Related Deal
-          <span className="required-mark">
-            *
-          </span>
         </label>
 
         <select
-          id="activity-deal"
+          id="deal_id"
           name="deal_id"
           value={form.deal_id}
           onChange={handleChange}
-          disabled={
-            loading ||
-            deals.length === 0
-          }
+          disabled={loading}
           required
         >
+
           <option value="">
             Select a deal
           </option>
 
-          {deals.map((deal) => (
-            <option
-              key={deal.deal_id}
-              value={deal.deal_id}
-            >
-              {deal.deal_name ||
-                "Untitled Deal"}
-            </option>
-          ))}
+          {deals.map(
+            (deal) => (
+              <option
+                key={deal.deal_id}
+                value={
+                  deal.deal_id
+                }
+              >
+                {deal.deal_name ||
+                  "Untitled Deal"}
+              </option>
+            )
+          )}
+
         </select>
 
-        {deals.length === 0 ? (
-          <small className="form-help form-help-warning">
-            No deals are available for your
-            account.
-          </small>
-        ) : (
+        {deals.length === 0 && (
           <small className="form-help">
-            Select the deal this activity
-            belongs to.
+            No deals are available
+            for this user.
           </small>
         )}
+
       </div>
-
-      {/* =================================================
-          SELECTED DEAL PREVIEW
-      ================================================= */}
-
-      {selectedDeal && (
-        <div className="selected-deal-preview">
-          <div className="selected-deal-info">
-            <span className="selected-deal-label">
-              Selected Deal
-            </span>
-
-            <strong>
-              {selectedDeal.deal_name ||
-                "Untitled Deal"}
-            </strong>
-          </div>
-
-          {selectedDeal.deal_organization && (
-            <span className="selected-deal-organization">
-              {selectedDeal.deal_organization}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* =================================================
           ACTIVITY TYPE
       ================================================= */}
 
       <div className="form-group">
-        <label htmlFor="activity-type">
+
+        <label htmlFor="activity_type">
           Activity Type
-          <span className="required-mark">
-            *
-          </span>
         </label>
 
         <select
-          id="activity-type"
+          id="activity_type"
           name="activity_type"
-          value={form.activity_type}
+          value={
+            form.activity_type
+          }
           onChange={handleChange}
           disabled={loading}
-          required
         >
-          {activityTypes.map((type) => (
-            <option
-              key={type.value}
-              value={type.value}
-            >
-              {type.label}
-            </option>
-          ))}
+
+          <option value="task">
+            Task
+          </option>
+
+          <option value="comment">
+            Comment
+          </option>
+
+          <option value="stage change">
+            Stage Change
+          </option>
+
+          <option value="call">
+            Call
+          </option>
+
+          <option value="meeting">
+            Meeting
+          </option>
+
+          <option value="message">
+            Message
+          </option>
+
+          <option value="negotiation">
+            Negotiation
+          </option>
+
         </select>
 
-        <small className="form-help">
-          {
-            activityTypes.find(
-              (type) =>
-                type.value ===
-                form.activity_type
-            )?.description
-          }
-        </small>
       </div>
 
       {/* =================================================
@@ -385,36 +278,22 @@ function ActivityForm({
       ================================================= */}
 
       <div className="form-group">
-        <div className="form-label-row">
-          <label htmlFor="activity-details">
-            Details
-            <span className="required-mark">
-              *
-            </span>
-          </label>
 
-          <span className="character-count">
-            {form.details.length}/
-            {MAX_DETAILS_LENGTH}
-          </span>
-        </div>
+        <label htmlFor="details">
+          Details
+        </label>
 
         <textarea
-          id="activity-details"
+          id="details"
           name="details"
           value={form.details}
-          onChange={handleDetailsChange}
-          placeholder="Enter activity details, notes, or follow-up information..."
-          rows={5}
-          maxLength={MAX_DETAILS_LENGTH}
+          onChange={handleChange}
+          placeholder="Enter activity details..."
+          rows="5"
           disabled={loading}
           required
         />
 
-        <small className="form-help">
-          Add relevant information that your
-          team can use for future reference.
-        </small>
       </div>
 
       {/* =================================================
@@ -422,6 +301,7 @@ function ActivityForm({
       ================================================= */}
 
       <div className="activity-form-actions">
+
         <button
           type="button"
           className="secondary-button"
@@ -439,21 +319,13 @@ function ActivityForm({
             deals.length === 0
           }
         >
-          {loading ? (
-            <>
-              <span className="button-spinner" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <span className="button-check">
-                ✓
-              </span>
-              Create Activity
-            </>
-          )}
+          {loading
+            ? "Saving..."
+            : "Create Activity"}
         </button>
+
       </div>
+
     </form>
   );
 }

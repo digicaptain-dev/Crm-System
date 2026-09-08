@@ -4,6 +4,8 @@ function CreateDeal({
   onClose,
   onCreate,
   pipelines = [],
+  initialPipelineId = "",
+  initialStageId = "",
 }) {
   const [form, setForm] = useState({
     deal_name: "",
@@ -13,8 +15,8 @@ function CreateDeal({
     deal_value: "",
     deal_priority: "Medium",
 
-    pipeline_id: "",
-    deal_stage: "",
+    pipeline_id: initialPipelineId || (pipelines[0]?.pipeline_id || ""),
+    deal_stage: initialStageId || "",
 
     deal_status: "Open",
 
@@ -41,8 +43,9 @@ function CreateDeal({
     );
   }
 
-  const isAdmin =
-    currentUser?.role === "admin";
+  // Allow all logged-in users to create deals unless explicitly restricted
+  const canCreate = currentUser ? currentUser.role !== "viewer" : true;
+
 
   // =====================================================
   // HANDLE INPUT CHANGE
@@ -93,7 +96,7 @@ function CreateDeal({
      * Additional frontend permission guard.
      */
 
-    if (!isAdmin) {
+    if (!canCreate) {
       alert(
         "You do not have permission to create deals."
       );
@@ -206,7 +209,7 @@ function CreateDeal({
    * This is an additional safety layer.
    */
 
-  if (!isAdmin) {
+  if (!canCreate) {
     return null;
   }
 
