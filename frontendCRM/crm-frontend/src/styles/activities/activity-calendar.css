@@ -1,183 +1,429 @@
+/* =========================================================
+   ACTIVITY CALENDAR
+========================================================= */
+
 .activity-calendar {
   width: 100%;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
   box-sizing: border-box;
-  padding: 24px;
 }
 
-.calendar-header {
+/* =========================================================
+   HEADER
+========================================================= */
+
+.activity-calendar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.calendar-title h2 {
-  margin: 0;
-  font-size: 20px;
+.activity-calendar-title {
+  font-size: 16px;
   font-weight: 700;
   color: #111827;
 }
 
-.calendar-title p {
-  margin: 5px 0 0;
-  font-size: 13px;
+.activity-calendar-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
   color: #6b7280;
 }
 
-.calendar-actions {
+.activity-calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activity-calendar-actions button {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.activity-calendar-actions button:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.activity-calendar-actions .activity-calendar-today {
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* =========================================================
+   MONTH / YEAR SELECTORS
+========================================================= */
+
+.activity-calendar-selectors {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.calendar-nav-button,
-.calendar-today-button {
-  height: 36px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.calendar-nav-button {
-  width: 36px;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.calendar-today-button {
-  padding: 0 14px;
-  font-weight: 500;
-}
-
-.calendar-nav-button:hover,
-.calendar-today-button:hover {
-  background: #f9fafb;
-}
-
-.calendar-selectors {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.calendar-selectors select {
-  padding: 9px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #ffffff;
-  font-size: 14px;
-  color: #111827;
-  cursor: pointer;
-}
-
-.calendar-weekdays,
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.calendar-weekday {
-  padding: 10px 6px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  padding: 12px 20px;
   border-bottom: 1px solid #e5e7eb;
-}
-
-.calendar-day {
-  position: relative;
-  min-height: 82px;
-  padding: 10px;
-  border: 0;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
-  text-align: left;
-  cursor: pointer;
-}
-
-.calendar-day:nth-child(7n) {
-  border-right: 0;
-}
-
-.calendar-day:hover {
-  background: #f9fafb;
-}
-
-.calendar-day.outside-month {
-  color: #9ca3af;
   background: #fafafa;
 }
 
-.calendar-day.selected {
-  background: #eef2ff;
+.activity-calendar-selectors select {
+  height: 34px;
+  padding: 0 30px 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
 }
 
-.calendar-day.today .day-number {
-  display: inline-flex;
+.activity-calendar-selectors select:focus {
+  border-color: #2563eb;
+}
+
+/* =========================================================
+   WEEKDAYS
+========================================================= */
+
+.activity-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.activity-calendar-weekdays > div {
+  min-width: 0;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   CALENDAR GRID
+========================================================= */
+
+.activity-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(78px, auto);
+  background: #e5e7eb;
+  gap: 1px;
+}
+
+/* =========================================================
+   CALENDAR DAY
+========================================================= */
+
+.activity-calendar-day {
+  position: relative;
+  min-width: 0;
+  min-height: 78px;
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.activity-calendar-day:hover {
+  background: #f8fafc;
+  box-shadow: inset 0 0 0 1px #dbeafe;
+  z-index: 1;
+}
+
+.activity-calendar-day.outside {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.activity-calendar-day.outside .activity-day-number {
+  color: #9ca3af;
+}
+
+.activity-calendar-day.selected {
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 2px #2563eb;
+  z-index: 2;
+}
+
+.activity-calendar-day.today:not(.selected) {
+  background: #fafafa;
+}
+
+/* =========================================================
+   DAY NUMBER
+========================================================= */
+
+.activity-day-number {
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 5px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
-  background: #111827;
-  color: #ffffff;
-}
-
-.day-number {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #374151;
 }
 
-.activity-indicator {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
+.activity-calendar-day.today
+  .activity-day-number {
+  background: #2563eb;
+  color: #ffffff;
+}
 
+.activity-calendar-day.selected
+  .activity-day-number {
+  font-weight: 700;
+}
+
+/* =========================================================
+   ACTIVITY COUNT
+========================================================= */
+
+.activity-day-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  min-width: 20px;
+  min-width: 22px;
   height: 20px;
   padding: 0 5px;
-
-  border-radius: 10px;
-
+  border-radius: 999px;
   background: #eef2ff;
   color: #4f46e5;
-
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
 }
 
-@media (max-width: 700px) {
-  .activity-calendar {
-    padding: 16px;
+/* =========================================================
+   SCHEDULE ICONS
+========================================================= */
+
+.activity-day-schedules {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  min-height: 22px;
+}
+
+.schedule-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schedule-mini.schedule-call {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.schedule-mini.schedule-meeting {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.schedule-mini.schedule-follow_up {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.schedule-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.activity-calendar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #fafafa;
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.calendar-legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+}
+
+.calendar-selected-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+  .activity-calendar-grid {
+    grid-auto-rows: minmax(70px, auto);
   }
 
-  .calendar-header {
+  .activity-calendar-day {
+    min-height: 70px;
+    padding: 6px;
+  }
+
+  .activity-day-schedules {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 650px) {
+  .activity-calendar-header {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .calendar-day {
-    min-height: 60px;
-    padding: 7px;
+  .activity-calendar-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
-  .calendar-weekday {
+  .activity-calendar-selectors {
+    padding: 10px;
+  }
+
+  .activity-calendar-grid {
+    grid-auto-rows: minmax(62px, auto);
+  }
+
+  .activity-calendar-day {
+    min-height: 62px;
+    padding: 5px;
+  }
+
+  .activity-day-number {
+    width: 22px;
+    height: 22px;
     font-size: 11px;
   }
 
-  .activity-indicator {
-    left: 7px;
-    bottom: 6px;
+  .activity-day-indicator {
+    top: 5px;
+    right: 5px;
+    min-width: 19px;
+    height: 18px;
+    font-size: 9px;
+  }
+
+  .activity-day-schedules {
+    margin-top: 6px;
+    gap: 2px;
+  }
+
+  .schedule-mini {
+    width: 19px;
+    height: 19px;
+    font-size: 10px;
+  }
+
+  .schedule-more {
+    min-width: 20px;
+    height: 19px;
+    font-size: 9px;
+  }
+
+  .activity-calendar-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calendar-selected-date {
+    text-align: left;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-calendar-subtitle {
+    font-size: 11px;
+  }
+
+  .activity-calendar-weekdays > div {
+    font-size: 9px;
+    padding: 8px 2px;
+  }
+
+  .activity-calendar-grid {
+    grid-auto-rows: minmax(52px, auto);
+  }
+
+  .activity-calendar-day {
+    min-height: 52px;
+    padding: 4px;
+  }
+
+  .activity-day-schedules {
+    display: none;
+  }
+
+  .activity-day-indicator {
+    top: auto;
+    right: 4px;
+    bottom: 4px;
   }
 }
