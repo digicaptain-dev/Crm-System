@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
 import api from "../services/api";
 
 import "../styles/deal-details/deal-details.css";
@@ -9,247 +8,391 @@ function DealDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // =====================================================
+  // DEAL STATE
+  // =====================================================
+
   const [deal, setDeal] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // =====================================================
+  // STATUS STATE
+  // =====================================================
+
   const [status, setStatus] = useState("");
 
+  // =====================================================
+  // COMMENT STATE
+  // =====================================================
+
   const [comment, setComment] = useState("");
+
+  // =====================================================
+  // ACTIVITY STATE
+  // =====================================================
+
   const [activities, setActivities] = useState([]);
-
   const [activityLoading, setActivityLoading] = useState(false);
-  const [activitySubmitting, setActivitySubmitting] = useState(false);
+  const [activitySubmitting, setActivitySubmitting] =
+    useState(false);
 
-  /* =========================
-     FETCH DEAL
-  ========================= */
+  // =====================================================
+  // GET SINGLE DEAL
+  // =====================================================
 
   const fetchDeal = async () => {
-    try {
-      setLoading(true);
 
-      const response = await api.get(`/deal/${id}`);
+  if (!id) {
+    console.error("Deal ID is missing");
+    setLoading(false);
+    return;
+  }
 
-      const dealData = response.data?.deal || response.data;
+  try {
 
-      if (!dealData?.deal_id) {
-        throw new Error("Invalid deal response");
-      }
+    setLoading(true);
 
-      setDeal(dealData);
-      setStatus(dealData.deal_status || "Open");
-    } catch (error) {
-      console.error("FETCH DEAL ERROR:", error);
+    console.log(
+      "Fetching deal:",
+      id
+    );
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to load deal details."
+    const response = await api.get(
+      `/deal/${id}`
+    );
+
+    console.log(
+      "Deal details response:",
+      response.data
+    );
+
+    const fetchedDeal =
+      response.data?.deal ||
+      response.data;
+
+    console.log(
+      "Fetched deal:",
+      fetchedDeal
+    );
+
+    if (!fetchedDeal?.deal_id) {
+
+      console.error(
+        "Invalid deal response:",
+        response.data
       );
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  /* =========================
-     FETCH ACTIVITIES
-  ========================= */
+      setDeal(null);
+      return;
+    }
+
+    setDeal(fetchedDeal);
+
+    setStatus(
+      fetchedDeal.deal_status ||
+      "Open"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Failed to fetch deal:",
+      error
+    );
+
+    console.error(
+      "Status:",
+      error.response?.status
+    );
+
+    console.error(
+      "Response:",
+      error.response?.data
+    );
+
+    setDeal(null);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
+
+  // =====================================================
+  // GET ACTIVITIES FOR DEAL
+  // Backend:
+  // GET /deals/:dealId/activities
+  // =====================================================
 
   const fetchActivities = async () => {
+    if (!id) {
+      return;
+    }
+
     try {
       setActivityLoading(true);
+
+      console.log(
+        "Fetching activities for deal:",
+        id
+      );
 
       const response = await api.get(
         `/deals/${id}/activities`
       );
 
-      const activityData =
-        response.data?.activities ||
-        response.data ||
-        [];
+      console.log(
+        "Deal activities response:",
+        response.data
+      );
+
+      const fetchedActivities =
+        response.data?.activities || [];
 
       setActivities(
-        Array.isArray(activityData)
-          ? activityData
+        Array.isArray(fetchedActivities)
+          ? fetchedActivities
           : []
       );
+
     } catch (error) {
-      console.error("FETCH ACTIVITIES ERROR:", error);
+      console.error(
+        "Failed to fetch deal activities:",
+        error
+      );
 
       setActivities([]);
+
     } finally {
       setActivityLoading(false);
     }
   };
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
   useEffect(() => {
+    if (!id) {
+      return;
+    }
+
     fetchDeal();
     fetchActivities();
+
   }, [id]);
 
-  /* =========================
-     LOG ACTIVITY
-  ========================= */
+  // =====================================================
+  // CREATE ACTIVITY
+  //
+  // IMPORTANT:
+  // Backend gets user_id from JWT.
+  // Therefore we DON'T send user_id here.
+  // =====================================================
 
   const logActivity = async (
     activityType,
     details
   ) => {
-    try {
-      await api.post("/activities", {
-        deal_id: id,
-        activity_type: activityType,
-        details: details || null,
-      });
-
-      await fetchActivities();
-    } catch (error) {
-      console.error("LOG ACTIVITY ERROR:", error);
+    if (!deal?.deal_id) {
+      return;
     }
-  };
-
-  /* =========================
-     ADD COMMENT
-  ========================= */
-
-  const addComment = async (e) => {
-    e.preventDefault();
-
-    const trimmedComment = comment.trim();
-
-    if (!trimmedComment) return;
 
     try {
       setActivitySubmitting(true);
 
-      await logActivity(
-        "comment",
-        trimmedComment
+      console.log(
+        "Recording activity:",
+        {
+          deal_id: deal.deal_id,
+          activity_type: activityType,
+          details,
+        }
       );
 
-      setComment("");
+      const response = await api.post(
+        "/activities",
+        {
+          deal_id: deal.deal_id,
+          activity_type: activityType,
+          details: details || null,
+        }
+      );
+
+      console.log(
+        "Activity response:",
+        response.data
+      );
+
+      if (!response.data?.success) {
+        alert(
+          response.data?.message ||
+          response.data?.error ||
+          "Failed to record activity."
+        );
+
+        return false;
+      }
+
+      // Refresh activity timeline
+      await fetchActivities();
+
+      return true;
+
     } catch (error) {
-      console.error("ADD COMMENT ERROR:", error);
+      console.error(
+        "Failed to record activity:",
+        error
+      );
+
+      alert(
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to record activity."
+      );
+
+      return false;
+
     } finally {
       setActivitySubmitting(false);
     }
   };
 
-  /* =========================
-     STATUS CHANGE
-  ========================= */
+  // =====================================================
+  // ADD COMMENT
+  // =====================================================
 
-  const handleStatusChange = async (
-    newStatus
-  ) => {
-    if (!deal) return;
+  const addComment = async (e) => {
+    e.preventDefault();
+
+    if (!comment.trim()) {
+      return;
+    }
+
+    const success = await logActivity(
+      "comment",
+      comment.trim()
+    );
+
+    if (success) {
+      setComment("");
+    }
+  };
+
+  // =====================================================
+  // UPDATE DEAL STATUS
+  // =====================================================
+
+  const handleStatusChange = async (newStatus) => {
+    if (!deal?.deal_id) {
+      return;
+    }
+
+    const previousStatus =
+      deal.deal_status || "Open";
 
     try {
-      await api.put(
+      setActivitySubmitting(true);
+      setStatus(newStatus);
+
+      console.log(
+        "Updating deal status:",
+        newStatus
+      );
+
+      const response = await api.put(
         `/deal/${deal.deal_id}`,
         {
           deal_status: newStatus,
         }
       );
 
-      setDeal((previous) => ({
-        ...previous,
+      console.log(
+        "Status update response:",
+        response.data
+      );
+
+      if (
+        response.data &&
+        response.data.success === false
+      ) {
+        throw new Error(
+          response.data.message ||
+          "Failed to update status."
+        );
+      }
+
+      setDeal((current) => ({
+        ...current,
         deal_status: newStatus,
       }));
 
-      setStatus(newStatus);
-
+      // Record stage/status change in activity timeline
       await logActivity(
         "stage change",
-        `Deal status changed to ${newStatus}`
+        `Deal status changed from "${previousStatus}" to "${newStatus}".`
       );
+
     } catch (error) {
       console.error(
-        "STATUS CHANGE ERROR:",
+        "Failed to update deal status:",
         error
       );
 
+      setStatus(previousStatus);
+
       alert(
         error.response?.data?.message ||
-          "Unable to update deal status."
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to update deal status."
       );
+
+    } finally {
+      setActivitySubmitting(false);
     }
   };
 
-  /* =========================
-     FORMAT HELPERS
-  ========================= */
+  // =====================================================
+  // MARK WON
+  // =====================================================
 
-  const formatCurrency = (value) => {
-    if (
-      value === null ||
-      value === undefined ||
-      value === ""
-    ) {
-      return "—";
-    }
-
-    const numberValue = Number(value);
-
-    if (Number.isNaN(numberValue)) {
-      return value;
-    }
-
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: deal?.currency || "USD",
-      maximumFractionDigits: 2,
-    }).format(numberValue);
+  const markAsWon = () => {
+    handleStatusChange("Won");
   };
 
-  const formatDate = (value) => {
-    if (!value) return "—";
+  // =====================================================
+  // MARK LOST
+  // =====================================================
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const markAsLost = () => {
+    handleStatusChange("Lost");
   };
 
-  const formatDateTime = (value) => {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  // =====================================================
+  // ACTIVITY ICON
+  // =====================================================
 
   const getActivityIcon = (type) => {
     switch (type) {
       case "comment":
-        return "💬";
+        return "💭";
 
       case "stage change":
-        return "↗";
+        return "🔄";
 
       case "task":
         return "✓";
 
       default:
-        return "•";
+        return "📝";
     }
   };
+
+  // =====================================================
+  // ACTIVITY LABEL
+  // =====================================================
 
   const getActivityLabel = (type) => {
     switch (type) {
@@ -263,794 +406,636 @@ function DealDetails() {
         return "Task";
 
       default:
-        return "Activity";
+        return type || "Activity";
     }
   };
 
-  const getStatusClass = (value) => {
-    switch (value) {
-      case "Closed Won":
-        return "status-won";
+  // =====================================================
+  // FORMAT DATE
+  // =====================================================
 
-      case "Closed Lost":
-        return "status-lost";
+  const formatActivityDate = (date) => {
+    if (!date) {
+      return "-";
+    }
 
-      case "Removed":
-        return "status-removed";
-
-      default:
-        return "status-open";
+    try {
+      return new Date(date).toLocaleString();
+    } catch {
+      return "-";
     }
   };
 
-  const getPriorityClass = (value) => {
-    switch (value) {
-      case "High":
-        return "priority-high";
-
-      case "Low":
-        return "priority-low";
-
-      default:
-        return "priority-medium";
-    }
-  };
-
-  /* =========================
-     LOADING
-  ========================= */
+  // =====================================================
+  // LOADING
+  // =====================================================
 
   if (loading) {
     return (
-      <div className="deal-details-page">
-        <div className="deal-details-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading deal details...</p>
+      <div className="deal-details">
+        <div className="not-found">
+          <h2>Loading deal...</h2>
         </div>
       </div>
     );
   }
 
-  /* =========================
-     EMPTY STATE
-  ========================= */
+  // =====================================================
+  // DEAL NOT FOUND
+  // =====================================================
 
   if (!deal) {
     return (
-      <div className="deal-details-page">
-        <div className="deal-empty-state">
-          <div className="empty-icon">!</div>
+      <div className="not-found">
+        <h2>Deal not found</h2>
 
-          <h2>Deal Not Found</h2>
-
-          <p>
-            The deal you're looking for could not
-            be found or you don't have access to it.
-          </p>
-
-          <button
-            className="primary-button"
-            onClick={() => navigate("/deals")}
-          >
-            Back to Deals
-          </button>
-        </div>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => navigate("/deals")}
+        >
+          Back to Deals
+        </button>
       </div>
     );
   }
 
+  // =====================================================
+  // PAGE
+  // =====================================================
+
   return (
-    <div className="deal-details-page">
+    <div className="deal-details">
 
-      {/* =========================
+      {/* =================================================
           HEADER
-      ========================= */}
+      ================================================= */}
 
-      <header className="deal-header">
+      <div className="deal-details-header">
 
-        <div className="deal-header-left">
+        <div className="deal-title-area">
 
           <button
+            type="button"
             className="back-button"
             onClick={() => navigate("/deals")}
-            aria-label="Back to deals"
           >
-            ←
+            ← Back to Deals
           </button>
 
-          <div className="deal-header-content">
+          <h1>
+            {deal.deal_name || "Untitled Deal"}
+          </h1>
 
-            <div className="breadcrumb">
-              Deals
-              <span>/</span>
-              Deal Details
-            </div>
+          <p>
+            {deal.deal_organization ||
+              "No organization"}
+          </p>
 
-            <div className="deal-title-row">
+        </div>
 
-              <h1>
-                {deal.deal_name || "Untitled Deal"}
-              </h1>
+      </div>
 
-              <span
-                className={`status-badge ${getStatusClass(
-                  status
-                )}`}
-              >
-                <span className="status-dot"></span>
-                {status || "Open"}
-              </span>
+      {/* =================================================
+          QUICK ACTIONS
+      ================================================= */}
 
-            </div>
+      <div className="deal-quick-actions">
 
-            {deal.deal_organization && (
-              <div className="deal-organization">
-                <span className="organization-icon">
-                  ◈
-                </span>
+        <div className="quick-actions-left">
 
-                {deal.deal_organization}
-              </div>
-            )}
+          <span className="quick-actions-label">
+            Quick Actions
+          </span>
+
+        </div>
+
+        <div className="quick-actions-buttons">
+
+          {/* COMMENT */}
+
+          <button
+            type="button"
+            className="activity-action"
+            onClick={() => {
+              const text =
+                window.prompt(
+                  "Enter comment:"
+                );
+
+              if (
+                text &&
+                text.trim()
+              ) {
+                logActivity(
+                  "comment",
+                  text.trim()
+                );
+              }
+            }}
+            disabled={activitySubmitting}
+          >
+            <span>💭</span>
+            Add Comment
+          </button>
+
+          {/* TASK */}
+
+          <button
+            type="button"
+            className="activity-action"
+            onClick={() => {
+              const text =
+                window.prompt(
+                  "Enter task details:"
+                );
+
+              if (
+                text &&
+                text.trim()
+              ) {
+                logActivity(
+                  "task",
+                  text.trim()
+                );
+              }
+            }}
+            disabled={activitySubmitting}
+          >
+            <span>✓</span>
+            Add Task
+          </button>
+
+          {/* WON */}
+
+          <button
+            type="button"
+            className="status-action won"
+            onClick={markAsWon}
+            disabled={activitySubmitting}
+          >
+            ✓ Won
+          </button>
+
+          {/* LOST */}
+
+          <button
+            type="button"
+            className="status-action lost"
+            onClick={markAsLost}
+            disabled={activitySubmitting}
+          >
+            ✕ Lost
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          MAIN INFORMATION
+      ================================================= */}
+
+      <div className="deal-info-grid">
+
+        {/* =================================================
+            DEAL INFORMATION
+        ================================================= */}
+
+        <div className="deal-info-card">
+
+          <div className="section-title">
+            Deal Information
+          </div>
+
+          <div className="info-grid">
+
+            <InfoItem
+              label="Deal ID"
+              value={deal.deal_id}
+            />
+
+            <InfoItem
+              label="Deal Name"
+              value={deal.deal_name}
+            />
+
+            <InfoItem
+              label="Organization"
+              value={
+                deal.deal_organization ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Email"
+              value={
+                deal.customer_email ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Phone"
+              value={
+                deal.customer_number ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Contact Person"
+              value={
+                deal.contact_person ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Owner"
+              value={
+                deal.deal_owner ||
+                "Unassigned"
+              }
+            />
+
+            <InfoItem
+              label="Value"
+              value={
+                deal.deal_value !== null &&
+                deal.deal_value !== undefined
+                  ? `$${Number(
+                      deal.deal_value
+                    ).toLocaleString()}`
+                  : "-"
+              }
+            />
+
+            <InfoItem
+              label="Priority"
+              value={
+                deal.deal_priority ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Stage"
+              value={
+                deal.deal_stage ??
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Status"
+              value={
+                deal.deal_status ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Pipeline"
+              value={
+                deal.pipeline_id ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Source"
+              value={
+                deal.deal_source ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Probability"
+              value={
+                deal.probability ??
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Time Zone"
+              value={
+                deal.time_zone ||
+                "-"
+              }
+            />
+
+            <InfoItem
+              label="Customer Address"
+              value={
+                deal.customer_address ||
+                "-"
+              }
+            />
 
           </div>
 
         </div>
 
-        <div className="deal-header-actions">
+        {/* =================================================
+            CURRENT STATUS
+        ================================================= */}
 
-          <button
-            className="secondary-button"
-            onClick={() => navigate("/deals")}
+        <div className="deal-status-card">
+
+          <div className="section-title">
+            Current Status
+          </div>
+
+          <div
+            className={`current-status ${
+              (status || "Open")
+                .toLowerCase()
+            }`}
           >
-            Back to Deals
-          </button>
+            {status ||
+              deal.deal_status ||
+              "Open"}
+          </div>
 
-          <button
-            className="primary-button"
-            onClick={() =>
-              handleStatusChange("Closed Won")
+          <label htmlFor="deal-status">
+            Update Status
+          </label>
+
+          <select
+            id="deal-status"
+            value={
+              status ||
+              deal.deal_status ||
+              "Open"
             }
-            disabled={status === "Closed Won"}
+            onChange={(e) =>
+              handleStatusChange(
+                e.target.value
+              )
+            }
+            disabled={activitySubmitting}
           >
-            Mark as Won
+            <option value="Open">
+              Open
+            </option>
+
+            <option value="Won">
+              Won
+            </option>
+
+            <option value="Lost">
+              Lost
+            </option>
+          </select>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          NOTES
+      ================================================= */}
+
+      <section className="details-section">
+
+        <div className="section-title">
+          Deal Notes
+        </div>
+
+        <div className="deal-notes">
+
+          {deal.deal_notes ? (
+            <p>
+              {deal.deal_notes}
+            </p>
+          ) : (
+            <p className="empty-text">
+              No notes added to this deal.
+            </p>
+          )}
+
+        </div>
+
+      </section>
+
+      {/* =================================================
+          COMMENTS
+      ================================================= */}
+
+      <section className="details-section">
+
+        <div className="section-title">
+          Comments
+        </div>
+
+        <form
+          className="comment-form"
+          onSubmit={addComment}
+        >
+
+          <textarea
+            value={comment}
+            onChange={(e) =>
+              setComment(e.target.value)
+            }
+            placeholder="Add a comment about this deal..."
+            rows="3"
+            disabled={activitySubmitting}
+          />
+
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={
+              activitySubmitting ||
+              !comment.trim()
+            }
+          >
+            {activitySubmitting
+              ? "Posting..."
+              : "Post Comment"}
+          </button>
+
+        </form>
+
+      </section>
+
+      {/* =================================================
+          DEAL ACTIVITY TIMELINE
+      ================================================= */}
+
+      <section className="details-section">
+
+        <div className="activity-section-header">
+
+          <div>
+
+            <div className="section-title">
+              Deal Activity
+            </div>
+
+            <p className="activity-subtitle">
+              Track everything happening
+              on this deal.
+            </p>
+
+          </div>
+
+          <span className="activity-count">
+            {activities.length}
+          </span>
+
+        </div>
+
+        {activityLoading ? (
+
+          <div className="activity-loading">
+            Loading activities...
+          </div>
+
+        ) : activities.length === 0 ? (
+
+          <div className="activity-empty">
+
+            <div className="activity-empty-icon">
+              📋
+            </div>
+
+            <h3>
+              No activity yet
+            </h3>
+
+            <p>
+              Comments, tasks and status
+              changes will appear here.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div className="activity-timeline">
+
+            {activities.map((activity) => (
+
+              <div
+                className="activity-item"
+                key={activity.id}
+              >
+
+                <div className="activity-icon">
+                  {getActivityIcon(
+                    activity.activity_type
+                  )}
+                </div>
+
+                <div className="activity-content">
+
+                  <div className="activity-top">
+
+                    <span className="activity-type">
+                      {getActivityLabel(
+                        activity.activity_type
+                      )}
+                    </span>
+
+                    <span className="activity-time">
+                      {formatActivityDate(
+                        activity.created_at
+                      )}
+                    </span>
+
+                  </div>
+
+                  <div className="activity-details">
+                    {activity.details ||
+                      "No details available."}
+                  </div>
+
+                  <div className="activity-meta">
+                    By:{" "}
+                    {activity.user_name ||
+                      activity.user_id ||
+                      "Unknown"}
+                  </div>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </section>
+
+      {/* =================================================
+          SCHEDULE
+      ================================================= */}
+
+      <section className="details-section">
+
+        <div className="section-title">
+          Schedule
+        </div>
+
+        <div className="schedule-placeholder">
+
+          <div className="calendar-icon">
+            📅
+          </div>
+
+          <h3>
+            Schedule an Activity
+          </h3>
+
+          <p>
+            Schedule a call, meeting or
+            follow-up with this customer.
+          </p>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => {
+              alert(
+                "Scheduling feature will be implemented next."
+              );
+            }}
+          >
+            + Schedule
           </button>
 
         </div>
 
-      </header>
+      </section>
 
-      {/* =========================
-          MAIN CONTENT
-      ========================= */}
+    </div>
+  );
+}
 
-      <main className="deal-main">
+// =====================================================
+// INFO ITEM
+// =====================================================
 
-        {/* =========================
-            SUMMARY CARDS
-        ========================= */}
+function InfoItem({ label, value }) {
+  return (
+    <div className="info-item">
 
-        <section className="deal-summary-grid">
+      <div className="info-label">
+        {label}
+      </div>
 
-          <div className="summary-card">
+      <div className="info-value">
+        {value || "-" }
+      </div>
 
-            <div className="summary-label">
-              Deal Value
-            </div>
-
-            <div className="summary-value">
-              {formatCurrency(deal.deal_value)}
-            </div>
-
-          </div>
-
-          <div className="summary-card">
-
-            <div className="summary-label">
-              Probability
-            </div>
-
-            <div className="summary-value">
-              {deal.probability !== null &&
-              deal.probability !== undefined
-                ? `${deal.probability}%`
-                : "—"}
-            </div>
-
-          </div>
-
-          <div className="summary-card">
-
-            <div className="summary-label">
-              Priority
-            </div>
-
-            <div
-              className={`summary-priority ${getPriorityClass(
-                deal.deal_priority
-              )}`}
-            >
-              <span className="priority-indicator"></span>
-
-              {deal.deal_priority || "Medium"}
-            </div>
-
-          </div>
-
-          <div className="summary-card">
-
-            <div className="summary-label">
-              Expected Close
-            </div>
-
-            <div className="summary-value">
-              {formatDate(deal.close_date)}
-            </div>
-
-          </div>
-
-        </section>
-
-        <div className="deal-content-grid">
-
-          {/* =========================
-              LEFT COLUMN
-          ========================= */}
-
-          <div className="deal-left-column">
-
-            {/* DEAL INFORMATION */}
-
-            <section className="deal-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>Deal Information</h2>
-                  <p>
-                    Key information about this opportunity
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="info-grid">
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Pipeline
-                  </span>
-
-                  <span className="info-value">
-                    {deal.pipeline_name || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Stage
-                  </span>
-
-                  <span className="info-value">
-                    {deal.stage_name || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Deal Owner
-                  </span>
-
-                  <span className="info-value">
-                    {deal.owner_name || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Assigned To
-                  </span>
-
-                  <span className="info-value">
-                    {deal.assigned_user_name || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Lead Source
-                  </span>
-
-                  <span className="info-value">
-                    {deal.deal_source || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Currency
-                  </span>
-
-                  <span className="info-value">
-                    {deal.currency || "USD"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Time Zone
-                  </span>
-
-                  <span className="info-value">
-                    {deal.time_zone || "—"}
-                  </span>
-                </div>
-
-                <div className="info-item">
-                  <span className="info-label">
-                    Created
-                  </span>
-
-                  <span className="info-value">
-                    {formatDateTime(
-                      deal.creation_date
-                    )}
-                  </span>
-                </div>
-
-              </div>
-
-            </section>
-
-            {/* CUSTOMER */}
-
-            <section className="deal-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>Customer</h2>
-                  <p>
-                    Customer and contact information
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="customer-profile">
-
-                <div className="customer-avatar">
-                  {(
-                    deal.contact_person ||
-                    deal.deal_organization ||
-                    "C"
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-
-                <div className="customer-profile-info">
-
-                  <h3>
-                    {deal.contact_person ||
-                      "Contact Person"}
-                  </h3>
-
-                  <span>
-                    {deal.deal_organization ||
-                      "Organization not specified"}
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div className="customer-details">
-
-                <div className="contact-detail">
-
-                  <span className="contact-icon">
-                    ✉
-                  </span>
-
-                  <div>
-                    <span className="contact-label">
-                      Email
-                    </span>
-
-                    <span className="contact-value">
-                      {deal.customer_email || "—"}
-                    </span>
-                  </div>
-
-                </div>
-
-                <div className="contact-detail">
-
-                  <span className="contact-icon">
-                    ☎
-                  </span>
-
-                  <div>
-                    <span className="contact-label">
-                      Phone
-                    </span>
-
-                    <span className="contact-value">
-                      {deal.customer_number || "—"}
-                    </span>
-                  </div>
-
-                </div>
-
-                <div className="contact-detail">
-
-                  <span className="contact-icon">
-                    ⌖
-                  </span>
-
-                  <div>
-                    <span className="contact-label">
-                      Address
-                    </span>
-
-                    <span className="contact-value">
-                      {deal.customer_address || "—"}
-                    </span>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </section>
-
-            {/* NOTES */}
-
-            <section className="deal-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>Notes</h2>
-                  <p>
-                    Additional information about this deal
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="deal-notes">
-
-                {deal.deal_notes ? (
-                  <p>{deal.deal_notes}</p>
-                ) : (
-                  <span className="empty-text">
-                    No notes have been added to this deal.
-                  </span>
-                )}
-
-              </div>
-
-            </section>
-
-            {/* PRODUCTS / SERVICES */}
-
-            {(deal.products_services ||
-              deal.tags) && (
-              <section className="deal-section">
-
-                <div className="section-header">
-
-                  <div>
-                    <h2>Additional Details</h2>
-                    <p>
-                      Products, services and tags
-                    </p>
-                  </div>
-
-                </div>
-
-                {deal.products_services && (
-                  <div className="additional-row">
-
-                    <span className="info-label">
-                      Products / Services
-                    </span>
-
-                    <span className="info-value">
-                      {deal.products_services}
-                    </span>
-
-                  </div>
-                )}
-
-                {deal.tags && (
-                  <div className="additional-row">
-
-                    <span className="info-label">
-                      Tags
-                    </span>
-
-                    <div className="tags-list">
-
-                      {deal.tags
-                        .split(",")
-                        .map((tag, index) => (
-                          <span
-                            className="deal-tag"
-                            key={`${tag}-${index}`}
-                          >
-                            {tag.trim()}
-                          </span>
-                        ))}
-
-                    </div>
-
-                  </div>
-                )}
-
-              </section>
-            )}
-
-          </div>
-
-          {/* =========================
-              RIGHT COLUMN
-          ========================= */}
-
-          <aside className="deal-right-column">
-
-            {/* STATUS */}
-
-            <section className="deal-section status-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>Deal Status</h2>
-                  <p>
-                    Update the current status
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="status-actions">
-
-                <button
-                  className={`status-action ${
-                    status === "Open"
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    handleStatusChange("Open")
-                  }
-                >
-                  <span className="status-action-dot open"></span>
-                  Open
-                </button>
-
-                <button
-                  className={`status-action ${
-                    status === "Closed Won"
-                      ? "active won"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    handleStatusChange(
-                      "Closed Won"
-                    )
-                  }
-                >
-                  <span className="status-action-dot won"></span>
-                  Closed Won
-                </button>
-
-                <button
-                  className={`status-action ${
-                    status === "Closed Lost"
-                      ? "active lost"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    handleStatusChange(
-                      "Closed Lost"
-                    )
-                  }
-                >
-                  <span className="status-action-dot lost"></span>
-                  Closed Lost
-                </button>
-
-                <button
-                  className={`status-action ${
-                    status === "Removed"
-                      ? "active removed"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    handleStatusChange("Removed")
-                  }
-                >
-                  <span className="status-action-dot removed"></span>
-                  Removed
-                </button>
-
-              </div>
-
-            </section>
-
-            {/* ACTIVITY */}
-
-            <section className="deal-section activity-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>Activity</h2>
-                  <p>
-                    Recent activity on this deal
-                  </p>
-                </div>
-
-                <span className="activity-count">
-                  {activities.length}
-                </span>
-
-              </div>
-
-              {/* COMMENT */}
-
-              <form
-                className="comment-form"
-                onSubmit={addComment}
-              >
-
-                <textarea
-                  value={comment}
-                  onChange={(e) =>
-                    setComment(e.target.value)
-                  }
-                  placeholder="Write a comment..."
-                  rows="3"
-                  disabled={activitySubmitting}
-                />
-
-                <div className="comment-form-footer">
-
-                  <span>
-                    Add an internal note
-                  </span>
-
-                  <button
-                    type="submit"
-                    className="comment-button"
-                    disabled={
-                      activitySubmitting ||
-                      !comment.trim()
-                    }
-                  >
-                    {activitySubmitting
-                      ? "Adding..."
-                      : "Add Comment"}
-                  </button>
-
-                </div>
-
-              </form>
-
-              {/* TIMELINE */}
-
-              <div className="activity-timeline">
-
-                {activityLoading ? (
-                  <div className="activity-loading">
-                    Loading activity...
-                  </div>
-                ) : activities.length === 0 ? (
-                  <div className="activity-empty">
-
-                    <div className="activity-empty-icon">
-                      ○
-                    </div>
-
-                    <p>
-                      No activity yet
-                    </p>
-
-                    <span>
-                      Comments and deal updates
-                      will appear here.
-                    </span>
-
-                  </div>
-                ) : (
-                  activities.map(
-                    (activity, index) => (
-                      <div
-                        className="activity-item"
-                        key={
-                          activity.id ||
-                          activity.activity_id ||
-                          index
-                        }
-                      >
-
-                        <div className="activity-line">
-
-                          <div className="activity-icon">
-                            {getActivityIcon(
-                              activity.activity_type
-                            )}
-                          </div>
-
-                          {index !==
-                            activities.length - 1 && (
-                            <div className="timeline-line"></div>
-                          )}
-
-                        </div>
-
-                        <div className="activity-content">
-
-                          <div className="activity-top">
-
-                            <span className="activity-type">
-                              {getActivityLabel(
-                                activity.activity_type
-                              )}
-                            </span>
-
-                            <span className="activity-date">
-                              {formatDateTime(
-                                activity.created_at
-                              )}
-                            </span>
-
-                          </div>
-
-                          <p className="activity-details">
-                            {activity.details ||
-                              "Activity recorded"}
-                          </p>
-
-                          {activity.user_name && (
-                            <span className="activity-user">
-                              by {activity.user_name}
-                            </span>
-                          )}
-
-                        </div>
-
-                      </div>
-                    )
-                  )
-                )}
-
-              </div>
-
-            </section>
-
-            {/* LAST UPDATED */}
-
-            <div className="last-updated">
-
-              <span className="last-updated-dot"></span>
-
-              Last updated{" "}
-              {formatDateTime(
-                deal.last_updated
-              )}
-
-            </div>
-
-          </aside>
-
-        </div>
-
-      </main>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import axios from "axios";
 
 import "../styles/auth/auth.css";
 import "../styles/auth/register.css";
@@ -39,15 +39,14 @@ function Register() {
     }
     setLoading(true);
     try {
-      const response = await api.post(
-        "/register",
+      const response = await axios.post(
+        "http://localhost:1000/api/register",
         {
           name: form.name,
           email: form.email,
           password: form.password,
         }
       );
-
 
       console.log("Register response:", response.data);
       // Only navigate after successful backend response

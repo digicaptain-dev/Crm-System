@@ -4,8 +4,7 @@ import {
   useMemo,
   useState,
 } from "react";
-
-import api from "../services/api";
+import axios from "axios";
 
 import PipelineHeader from "../components/pipeline/PipelineHeader";
 import PipelineToolbar from "../components/pipeline/PipelineToolbar";
@@ -18,6 +17,8 @@ import AddStageModal from "../components/pipeline/AddStageModal";
 import EditStageModal from "../components/pipeline/EditStageModal";
 
 import "../styles/pipeline/pipeline.css";
+
+const API_URL = "http://localhost:1000/api";
 
 function Pipeline() {
   const [pipelines, setPipelines] = useState([]);
@@ -69,86 +70,18 @@ function Pipeline() {
 
         setError("");
 
-        // Concurrently fetch pipelines and deals
-        const [pipelinesRes, dealsRes] = await Promise.allSettled([
-          api.get("/pipelines"),
-          api.get("/deals?limit=500"),
-        ]);
+        const response = await axios.get(
+          `${API_URL}/pipelines`
+        );
 
-        let rawPipelines = [];
-        if (pipelinesRes.status === "fulfilled" && pipelinesRes.value?.data) {
-          const resData = pipelinesRes.value.data;
-          rawPipelines = Array.isArray(resData)
-            ? resData
-            : resData?.pipelines || resData?.data || [];
-        }
+        const data = Array.isArray(response.data)
+          ? response.data
+          : response.data?.pipelines || [];
 
-        let rawDeals = [];
-        if (dealsRes.status === "fulfilled" && dealsRes.value?.data) {
-          const dData = dealsRes.value.data;
-          rawDeals = Array.isArray(dData)
-            ? dData
-            : dData?.deals || dData?.data || [];
-        }
-
-        // Default stages template for fallback
-        const defaultStageTemplates = [
-          { stage_id: 1, stage_name: "Qualified", stage_order: 1, description: "Qualified" },
-          { stage_id: 2, stage_name: "Content Made", stage_order: 2, description: "Content Made" },
-          { stage_id: 3, stage_name: "Demo Scheduled", stage_order: 3, description: "Demo Scheduled" },
-          { stage_id: 4, stage_name: "Proposal Made", stage_order: 4, description: "Proposal Made" },
-          { stage_id: 5, stage_name: "Negotiations Started", stage_order: 5, description: "Negotiations Started" },
-        ];
-
-        // Enrich fetched pipelines with stages and deals — real data only. A
-        // failed or empty fetch surfaces as a real error/empty state below,
-        // never as substitute demo data: this is a live CRM and a person
-        // reading a "deal" here has to be able to trust it is a real one.
-        const enrichedPipelines = rawPipelines.map((pipe) => {
-          const pipeDeals = rawDeals.filter(
-            (deal) => String(deal.pipeline_id) === String(pipe.pipeline_id)
-          );
-
-          const stages =
-            Array.isArray(pipe.stages) && pipe.stages.length > 0
-              ? pipe.stages
-              : defaultStageTemplates.map((tmpl) => ({
-                  ...tmpl,
-                  pipeline_id: pipe.pipeline_id,
-                }));
-
-          const enrichedStages = stages.map((stage) => {
-            const existingDeals = Array.isArray(stage.deals)
-              ? stage.deals
-              : [];
-
-            if (existingDeals.length > 0) {
-              return { ...stage, deals: existingDeals };
-            }
-
-            const matchingDeals = pipeDeals.filter(
-              (deal) =>
-                String(deal.deal_stage) === String(stage.stage_id) ||
-                String(deal.deal_stage || "").toLowerCase() ===
-                  String(stage.stage_name || "").toLowerCase()
-            );
-
-            return {
-              ...stage,
-              deals: matchingDeals,
-            };
-          });
-
-          return {
-            ...pipe,
-            stages: enrichedStages,
-          };
-        });
-
-        setPipelines(enrichedPipelines);
+        setPipelines(data);
 
         setSelectedPipelineId((currentId) => {
-          const exists = enrichedPipelines.some(
+          const exists = data.some(
             (pipeline) =>
               String(pipeline.pipeline_id) ===
               String(currentId)
@@ -158,23 +91,16 @@ function Pipeline() {
             return currentId;
           }
 
-          return enrichedPipelines.length > 0
-            ? enrichedPipelines[0].pipeline_id
+          return data.length > 0
+            ? data[0].pipeline_id
             : "";
         });
-
-        if (pipelinesRes.status === "rejected" && enrichedPipelines.length === 0) {
-          const err = pipelinesRes.reason;
-          console.error("Fetch pipelines rejected:", err);
-          setError(
-            err.response?.data?.error ||
-              err.response?.data?.message ||
-              err.message ||
-              "Failed to load pipelines."
-          );
-        }
       } catch (err) {
-        console.error("Fetch pipelines error:", err);
+        console.error(
+          "Fetch pipelines error:",
+          err
+        );
+
         setError(
           err.response?.data?.error ||
             err.response?.data?.message ||
@@ -198,12 +124,10 @@ function Pipeline() {
   ===================================================== */
 
   const selectedPipeline = useMemo(() => {
-    return (
-      pipelines.find(
-        (pipeline) =>
-          String(pipeline.pipeline_id) ===
-          String(selectedPipelineId)
-      ) || pipelines[0] || null
+    return pipelines.find(
+      (pipeline) =>
+        String(pipeline.pipeline_id) ===
+        String(selectedPipelineId)
     );
   }, [
     pipelines,
@@ -332,12 +256,14 @@ function Pipeline() {
      CREATE PIPELINE
   ===================================================== */
 
-  const handleCreatePipeline = async (pipeline) => {
+  const handleCreatePipeline = async (
+    pipeline
+  ) => {
     try {
       setError("");
 
-      const response = await api.post(
-        "/pipelines",
+      const response = await axios.post(
+        `${API_URL}/pipelines`,
         pipeline
       );
 
@@ -347,28 +273,26 @@ function Pipeline() {
       await fetchPipelines();
 
       if (createdPipelineId) {
-        setSelectedPipelineId(createdPipelineId);
+        setSelectedPipelineId(
+          createdPipelineId
+        );
       }
 
       setShowCreateModal(false);
     } catch (err) {
-      console.warn("Create pipeline API error, creating locally:", err);
-      const newPipelineId = `pipeline-${Date.now()}`;
-      const newPipelineObj = {
-        pipeline_id: newPipelineId,
-        pipeline_name: pipeline.pipeline_name,
-        description: pipeline.description || "",
-        stages: [
-          { stage_id: 1, stage_name: "Qualified", stage_order: 1, description: "Qualified", deals: [] },
-          { stage_id: 2, stage_name: "Content Made", stage_order: 2, description: "Content Made", deals: [] },
-          { stage_id: 3, stage_name: "Demo Scheduled", stage_order: 3, description: "Demo Scheduled", deals: [] },
-          { stage_id: 4, stage_name: "Proposal Made", stage_order: 4, description: "Proposal Made", deals: [] },
-          { stage_id: 5, stage_name: "Negotiations Started", stage_order: 5, description: "Negotiations Started", deals: [] },
-        ],
-      };
-      setPipelines((prev) => [newPipelineObj, ...prev]);
-      setSelectedPipelineId(newPipelineId);
-      setShowCreateModal(false);
+      console.error(
+        "Create pipeline error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to create pipeline."
+      );
+
+      throw err;
     }
   };
 
@@ -376,7 +300,9 @@ function Pipeline() {
      UPDATE PIPELINE
   ===================================================== */
 
-  const handleUpdatePipeline = async (pipeline) => {
+  const handleUpdatePipeline = async (
+    pipeline
+  ) => {
     if (!selectedPipelineId) {
       return;
     }
@@ -384,8 +310,8 @@ function Pipeline() {
     try {
       setError("");
 
-      await api.put(
-        `/pipelines/${selectedPipelineId}`,
+      await axios.put(
+        `${API_URL}/pipelines/${selectedPipelineId}`,
         pipeline
       );
 
@@ -393,15 +319,19 @@ function Pipeline() {
 
       setShowEditModal(false);
     } catch (err) {
-      console.warn("Update pipeline API error, updating locally:", err);
-      setPipelines((prev) =>
-        prev.map((p) =>
-          p.pipeline_id === selectedPipelineId
-            ? { ...p, pipeline_name: pipeline.pipeline_name, description: pipeline.description }
-            : p
-        )
+      console.error(
+        "Update pipeline error:",
+        err
       );
-      setShowEditModal(false);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to update pipeline."
+      );
+
+      throw err;
     }
   };
 
@@ -425,24 +355,23 @@ function Pipeline() {
     try {
       setError("");
 
-      await api.delete(
-        `/pipelines/${selectedPipeline.pipeline_id}`
+      await axios.delete(
+        `${API_URL}/pipelines/${selectedPipeline.pipeline_id}`
       );
 
       await fetchPipelines();
     } catch (err) {
-      console.warn("Delete pipeline API error, deleting locally:", err);
-      setPipelines((prev) => {
-        const remaining = prev.filter(
-          (p) => p.pipeline_id !== selectedPipeline.pipeline_id
-        );
-        if (remaining.length > 0) {
-          setSelectedPipelineId(remaining[0].pipeline_id);
-        } else {
-          setSelectedPipelineId("");
-        }
-        return remaining;
-      });
+      console.error(
+        "Delete pipeline error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to delete pipeline."
+      );
     }
   };
 
@@ -460,42 +389,28 @@ function Pipeline() {
     try {
       setError("");
 
-      const payload = {
-        stage_name: stage.stage_name.trim(),
-        description: stage.description?.trim() || "",
-        ...(stage.stage_order !== undefined
-          ? { stage_order: Number(stage.stage_order) }
-          : {}),
-      };
-
-      const response = await api.post(
-        `/pipelines/${selectedPipelineId}/stages`,
-        payload
+      await axios.post(
+        `${API_URL}/pipelines/${selectedPipelineId}/stages`,
+        stage
       );
 
       await fetchPipelines();
+
       setShowAddStageModal(false);
-      return response.data;
     } catch (err) {
-      console.warn("Create stage API error, updating locally:", err);
-      setPipelines((prev) =>
-        prev.map((p) => {
-          if (p.pipeline_id !== selectedPipelineId) return p;
-          const currentStages = p.stages || [];
-          const newStage = {
-            stage_id: currentStages.length + 1,
-            stage_name: stage.stage_name.trim(),
-            stage_order: currentStages.length + 1,
-            description: stage.description?.trim() || "",
-            deals: [],
-          };
-          return {
-            ...p,
-            stages: [...currentStages, newStage],
-          };
-        })
+      console.error(
+        "Create stage error:",
+        err
       );
-      setShowAddStageModal(false);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to create stage."
+      );
+
+      throw err;
     }
   };
 
@@ -512,7 +427,9 @@ function Pipeline() {
      EDIT STAGE
   ===================================================== */
 
-  const handleEditStage = async (stageData) => {
+  const handleEditStage = async (
+    stageData
+  ) => {
     if (
       !selectedPipelineId ||
       !selectedStage?.stage_id
@@ -523,11 +440,13 @@ function Pipeline() {
     try {
       setError("");
 
-      await api.put(
-        `/pipelines/${selectedPipelineId}/stages/${selectedStage.stage_id}`,
+      await axios.put(
+        `${API_URL}/pipelines/${selectedPipelineId}/stages/${selectedStage.stage_id}`,
         {
-          stage_name: stageData.stage_name,
-          description: stageData.description || "",
+          stage_name:
+            stageData.stage_name,
+          description:
+            stageData.description || "",
         }
       );
 
@@ -536,22 +455,19 @@ function Pipeline() {
       setShowEditStageModal(false);
       setSelectedStage(null);
     } catch (err) {
-      console.warn("Edit stage API error, updating locally:", err);
-      setPipelines((prev) =>
-        prev.map((p) => {
-          if (p.pipeline_id !== selectedPipelineId) return p;
-          return {
-            ...p,
-            stages: (p.stages || []).map((st) =>
-              st.stage_id === selectedStage.stage_id
-                ? { ...st, stage_name: stageData.stage_name, description: stageData.description || "" }
-                : st
-            ),
-          };
-        })
+      console.error(
+        "Edit stage error:",
+        err
       );
-      setShowEditStageModal(false);
-      setSelectedStage(null);
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to update stage."
+      );
+
+      throw err;
     }
   };
 
@@ -559,7 +475,9 @@ function Pipeline() {
      DELETE STAGE
   ===================================================== */
 
-  const handleDeleteStage = async (stage) => {
+  const handleDeleteStage = async (
+    stage
+  ) => {
     if (
       !selectedPipelineId ||
       !stage?.stage_id
@@ -578,21 +496,22 @@ function Pipeline() {
     try {
       setError("");
 
-      await api.delete(
-        `/pipelines/${selectedPipelineId}/stages/${stage.stage_id}`
+      await axios.delete(
+        `${API_URL}/pipelines/${selectedPipelineId}/stages/${stage.stage_id}`
       );
 
       await fetchPipelines();
     } catch (err) {
-      console.warn("Delete stage API error, updating locally:", err);
-      setPipelines((prev) =>
-        prev.map((p) => {
-          if (p.pipeline_id !== selectedPipelineId) return p;
-          return {
-            ...p,
-            stages: (p.stages || []).filter((st) => st.stage_id !== stage.stage_id),
-          };
-        })
+      console.error(
+        "Delete stage error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to delete stage."
       );
     }
   };
@@ -601,7 +520,9 @@ function Pipeline() {
      REORDER STAGES
   ===================================================== */
 
-  const handleReorderStages = async (orderedStages) => {
+  const handleReorderStages = async (
+    orderedStages
+  ) => {
     if (
       !selectedPipelineId ||
       !Array.isArray(orderedStages)
@@ -612,13 +533,15 @@ function Pipeline() {
     try {
       setError("");
 
-      await api.put(
-        `/pipelines/${selectedPipelineId}/stages/reorder`,
+      await axios.put(
+        `${API_URL}/pipelines/${selectedPipelineId}/stages/reorder`,
         {
           stages: orderedStages.map(
             (stage, index) => ({
-              stage_id: stage.stage_id,
-              stage_order: index + 1,
+              stage_id:
+                stage.stage_id,
+              stage_order:
+                index + 1,
             })
           ),
         }
@@ -626,16 +549,19 @@ function Pipeline() {
 
       await fetchPipelines();
     } catch (err) {
-      console.warn("Reorder stages API error, updating locally:", err);
-      setPipelines((prev) =>
-        prev.map((p) => {
-          if (p.pipeline_id !== selectedPipelineId) return p;
-          return {
-            ...p,
-            stages: orderedStages,
-          };
-        })
+      console.error(
+        "Reorder stages error:",
+        err
       );
+
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to reorder stages."
+      );
+
+      throw err;
     }
   };
 
@@ -710,7 +636,6 @@ function Pipeline() {
           {pipelines.length > 0 && (
             <>
               <span className="pipeline-summary-dot" />
-
               <span>
                 {pipelines.length}{" "}
                 {pipelines.length === 1
@@ -938,7 +863,6 @@ function Pipeline() {
               setShowEditStageModal(
                 false
               );
-
               setSelectedStage(null);
             }}
             onUpdate={handleEditStage}

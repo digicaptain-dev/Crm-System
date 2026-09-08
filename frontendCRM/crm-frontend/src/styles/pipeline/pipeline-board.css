@@ -1,812 +1,62 @@
 /* =========================================================
-   PIPELINE BOARD
+   BOARD
    ========================================================= */
 
 .pipeline-board-wrapper {
   width: 100%;
-  max-width: 100%;
   min-width: 0;
-
-  box-sizing: border-box;
-
-  /*
-   * IMPORTANT:
-   * This is the actual horizontal scroll container.
-   */
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  padding: 0 0 12px;
-
-  background: transparent;
-
-  /*
-   * Firefox
-   */
-  scrollbar-width: auto;
-  scrollbar-color: #64748b #e2e8f0;
-
-  /*
-   * Prevent browser from trying to scroll
-   * the entire page horizontally.
-   */
-  overscroll-behavior-x: contain;
 }
 
-
-/* =========================================================
-   HORIZONTAL SCROLLBAR
-   ========================================================= */
-
-.pipeline-board-wrapper::-webkit-scrollbar {
-  width: 8px;
-  height: 12px;
-}
-
-.pipeline-board-wrapper::-webkit-scrollbar-track {
-  background: #e2e8f0;
-  border-radius: 10px;
-}
-
-.pipeline-board-wrapper::-webkit-scrollbar-thumb {
-  background: #64748b;
-  border-radius: 10px;
-
-  border: 2px solid #e2e8f0;
-}
-
-.pipeline-board-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-
-/* =========================================================
-   BOARD TRACK
-   ========================================================= */
+/* BOARD */
 
 .pipeline-board {
+  width: 100%;
+
+  min-height: 430px;
+
   display: flex;
-
-  flex-direction: row;
-  flex-wrap: nowrap;
-
   align-items: stretch;
 
-  gap: 16px;
+  gap: 12px;
 
-  /*
-   * IMPORTANT:
-   * Board becomes as wide as all columns combined.
-   *
-   * The WRAPPER scrolls this content.
-   */
-  width: max-content;
+  overflow-x: auto;
 
-  min-width: 100%;
-
-  max-width: none;
-
-  padding: 4px 4px 12px;
-
-  box-sizing: border-box;
-
-  /*
-   * Do not put horizontal scrolling here.
-   */
-  overflow: visible;
+  padding: 2px 2px 12px;
 }
 
+/* BOARD SCROLLBAR */
 
-/* =========================================================
-   PIPELINE COLUMN
-   ========================================================= */
-
-.pipeline-column {
-  position: relative;
-
-  flex: 0 0 280px;
-
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
-
-  min-height: 560px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  box-sizing: border-box;
-
-  background: #ffffff;
-
-  border: 1px solid #e3e7ee;
-  border-radius: 12px;
-
-  box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.035);
-
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+.pipeline-board::-webkit-scrollbar {
+  height: 7px;
 }
 
-.pipeline-column:hover {
-  border-color: #d7deea;
-
-  box-shadow:
-    0 5px 16px rgba(15, 23, 42, 0.055);
-}
-
-
-/* =========================================================
-   DRAG ACTIVE COLUMN
-   ========================================================= */
-
-.pipeline-column-drag-active {
-  border-color: #93c5fd;
-
-  background: #f8fbff;
-}
-
-.pipeline-column-stage-dragging {
-  opacity: 0.55;
-
-  transform: rotate(1deg);
-}
-
-
-/* =========================================================
-   STAGE HEADER
-   ========================================================= */
-
-.pipeline-column-header {
-  width: 100%;
-
-  padding: 14px 14px 12px;
-
-  flex-shrink: 0;
-
-  border-bottom: 1px solid #edf0f5;
-
-  background: #ffffff;
-
-  border-radius:
-    12px 12px 0 0;
-}
-
-.pipeline-stage-header-row {
-  width: 100%;
-  min-width: 0;
-
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-}
-
-
-/* =========================================================
-   DRAG HANDLE
-   ========================================================= */
-
-.pipeline-stage-drag-handle,
-.pipeline-stage-drag-placeholder {
-  width: 18px;
-  height: 22px;
-
-  flex: 0 0 18px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: grab;
-}
-
-.pipeline-stage-drag-handle:active {
-  cursor: grabbing;
-}
-
-.pipeline-stage-drag-placeholder {
-  cursor: default;
-}
-
-.pipeline-drag-dots {
-  width: 12px;
-  height: 18px;
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(2, 3px);
-
-  grid-template-rows:
-    repeat(3, 3px);
-
-  gap: 3px;
-
-  align-content: center;
-  justify-content: center;
-}
-
-.pipeline-drag-dots span {
-  width: 3px;
-  height: 3px;
-
-  display: block;
-
-  border-radius: 50%;
-
-  background: #a8b1bf;
-}
-
-
-/* =========================================================
-   STAGE TITLE
-   ========================================================= */
-
-.pipeline-column-title {
-  min-width: 0;
-
-  flex: 1;
-
-  margin: 0;
-
-  overflow: hidden;
-
-  color: #172033;
-
-  font-size: 13px;
-  line-height: 1.35;
-
-  font-weight: 700;
-
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   STAGE COUNT
-   ========================================================= */
-
-.pipeline-stage-count {
-  min-width: 24px;
-  height: 22px;
-
-  padding: 0 6px;
-
-  flex-shrink: 0;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 999px;
-
-  background: #f1f5f9;
-  color: #64748b;
-
-  font-size: 10px;
-  font-weight: 700;
-}
-
-
-/* =========================================================
-   STAGE ACTIONS
-   ========================================================= */
-
-.pipeline-stage-actions {
-  display: flex;
-  align-items: center;
-
-  gap: 2px;
-
-  flex-shrink: 0;
-}
-
-.pipeline-stage-action-btn {
-  width: 26px;
-  height: 26px;
-
-  padding: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: none;
-  border-radius: 6px;
-
+.pipeline-board::-webkit-scrollbar-track {
   background: transparent;
-  color: #94a3b8;
-
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
 }
 
-.pipeline-stage-action-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.pipeline-stage-action-btn:hover {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.pipeline-stage-delete-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-
-/* =========================================================
-   STAGE VALUE
-   ========================================================= */
-
-.pipeline-column-meta {
-  margin-top: 7px;
-
-  padding-left: 26px;
-
-  color: #2563eb;
-
-  font-size: 12px;
-  font-weight: 700;
-}
-
-
-/* =========================================================
-   COLUMN BODY
-   ========================================================= */
-
-.pipeline-column-body {
-  min-width: 0;
-
-  flex: 1;
-
-  min-height: 460px;
-
-  padding: 12px;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 10px;
-
-  background: #f8fafc;
-
-  border-radius:
-    0 0 12px 12px;
-}
-
-
-/* =========================================================
-   EMPTY STAGE
-   ========================================================= */
-
-.pipeline-stage-empty {
-  min-height: 330px;
-
-  padding: 30px 16px;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-
-  border: 1px dashed #d7dee9;
+.pipeline-board::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
   border-radius: 10px;
-
-  background: #ffffff;
 }
 
-.pipeline-stage-empty-icon {
-  width: 42px;
-  height: 42px;
-
-  margin-bottom: 12px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 10px;
-
-  background: #f1f5f9;
-  color: #94a3b8;
+.pipeline-board::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
-
-.pipeline-stage-empty-icon svg {
-  width: 21px;
-  height: 21px;
-}
-
-.pipeline-stage-empty-text {
-  max-width: 180px;
-
-  margin-bottom: 14px;
-
-  color: #94a3b8;
-
-  font-size: 11px;
-  line-height: 1.5;
-
-  font-weight: 500;
-}
-
-
-/* =========================================================
-   ADD DEAL BUTTON
-   ========================================================= */
-
-.pipeline-add-deal-btn {
-  min-height: 34px;
-
-  padding: 0 12px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 6px;
-
-  border: 1px dashed #cbd5e1;
-  border-radius: 7px;
-
-  background: #ffffff;
-  color: #64748b;
-
-  font-size: 11px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.pipeline-add-deal-btn span {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.pipeline-add-deal-btn:hover {
-  border-color: #93c5fd;
-
-  background: #eff6ff;
-
-  color: #2563eb;
-}
-
-.pipeline-add-deal-btn-bottom {
-  width: 100%;
-
-  margin-top: auto;
-}
-
-
-/* =========================================================
-   ADD STAGE COLUMN
-   ========================================================= */
-
-.pipeline-add-stage-column {
-  position: relative;
-
-  flex: 0 0 280px;
-
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
-
-  min-height: 560px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  box-sizing: border-box;
-
-  border: 1px dashed #cbd5e1;
-  border-radius: 12px;
-
-  background: #f8fafc;
-}
-
-
-/* =========================================================
-   ADD STAGE HEADER
-   ========================================================= */
-
-.pipeline-add-stage-header {
-  width: 100%;
-
-  min-height: 58px;
-
-  padding: 14px;
-
-  display: flex;
-  align-items: center;
-
-  border-bottom: 1px dashed #dce2ea;
-
-  background: #ffffff;
-
-  border-radius:
-    12px 12px 0 0;
-}
-
-.pipeline-add-stage-title-row {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-}
-
-.pipeline-add-stage-title {
-  color: #64748b;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
-
-/* =========================================================
-   ADD STAGE CONTENT
-   ========================================================= */
-
-.pipeline-add-stage-content {
-  flex: 1;
-
-  width: 100%;
-
-  min-height: 480px;
-
-  padding: 30px 22px;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 10px;
-
-  border: none;
-
-  background: transparent;
-
-  color: #64748b;
-
-  text-align: center;
-
-  cursor: pointer;
-
-  font-family: inherit;
-}
-
-.pipeline-add-stage-content:hover {
-  background: #f1f5f9;
-}
-
-.pipeline-add-stage-icon {
-  width: 48px;
-  height: 48px;
-
-  margin-bottom: 4px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: 1px solid #dbe3ed;
-  border-radius: 12px;
-
-  background: #ffffff;
-  color: #64748b;
-}
-
-.pipeline-add-stage-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.pipeline-add-stage-content strong {
-  color: #475569;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.pipeline-add-stage-content > span:not(
-  .pipeline-add-stage-icon
-):not(
-  .pipeline-add-stage-action
-) {
-  max-width: 190px;
-
-  color: #94a3b8;
-
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.pipeline-add-stage-action {
-  min-height: 34px;
-
-  margin-top: 5px;
-
-  padding: 0 13px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 5px;
-
-  border: 1px solid #dbe3ed;
-  border-radius: 7px;
-
-  background: #ffffff;
-  color: #64748b;
-
-  font-size: 11px;
-  font-weight: 650;
-
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.pipeline-add-stage-action > span {
-  font-size: 15px;
-}
-
-.pipeline-add-stage-content:hover
-.pipeline-add-stage-action {
-  border-color: #93c5fd;
-
-  background: #eff6ff;
-
-  color: #2563eb;
-}
-
-
-/* =========================================================
-   BOARD EMPTY
-   ========================================================= */
-
-.pipeline-board-empty {
-  width: 100%;
-
-  min-height: 300px;
-
-  padding: 50px 24px;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-
-  border: 1px solid #e3e7ee;
-  border-radius: 12px;
-
-  background: #ffffff;
-}
-
-.pipeline-board-empty-icon {
-  width: 48px;
-  height: 48px;
-
-  margin-bottom: 14px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 12px;
-
-  background: #eff6ff;
-  color: #2563eb;
-
-  font-size: 25px;
-}
-
-.pipeline-board-empty h3 {
-  margin: 0;
-
-  color: #172033;
-
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.pipeline-board-empty p {
-  max-width: 380px;
-
-  margin: 7px 0 18px;
-
-  color: #94a3b8;
-
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-
-/* =========================================================
-   EMPTY BOARD ADD STAGE
-   ========================================================= */
-
-.pipeline-add-stage-empty-btn {
-  min-height: 38px;
-
-  padding: 0 15px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 6px;
-
-  border: 1px solid #2563eb;
-  border-radius: 8px;
-
-  background: #2563eb;
-  color: #ffffff;
-
-  font-size: 12px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease,
-    transform 0.15s ease;
-}
-
-.pipeline-add-stage-empty-btn:hover {
-  background: #1d4ed8;
-}
-
-.pipeline-add-stage-empty-btn:active {
-  transform: translateY(1px);
-}
-
 
 /* =========================================================
    BOARD ERROR
    ========================================================= */
 
 .pipeline-board-error {
-  width: 100%;
-
-  min-height: 42px;
+  min-height: 40px;
 
   margin-bottom: 10px;
 
-  padding: 8px 10px;
+  padding: 9px 11px;
 
   display: flex;
   align-items: center;
+  justify-content: space-between;
 
   gap: 10px;
 
@@ -814,37 +64,24 @@
   border-radius: 8px;
 
   background: #fff7f7;
-}
-
-.pipeline-board-error span {
-  min-width: 0;
-
-  flex: 1;
 
   color: #b91c1c;
 
   font-size: 11px;
-
-  word-break: break-word;
 }
 
 .pipeline-board-error button {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
 
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: none;
-  border-radius: 6px;
+  border: 0;
+  border-radius: 5px;
 
   background: transparent;
-  color: #991b1b;
 
-  font-size: 18px;
+  color: #b91c1c;
+
+  font-size: 17px;
 
   cursor: pointer;
 }
@@ -853,72 +90,91 @@
   background: #fee2e2;
 }
 
-
 /* =========================================================
    REORDER STATUS
    ========================================================= */
 
 .pipeline-reorder-status {
-  width: max-content;
+  width: fit-content;
 
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 
-  padding: 6px 10px;
+  padding: 7px 10px;
 
-  border: 1px solid #bfdbfe;
-  border-radius: 6px;
+  border: 1px solid #dbeafe;
+  border-radius: 7px;
 
   background: #eff6ff;
+
   color: #2563eb;
 
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 700;
 }
-
 
 /* =========================================================
-   LIST VIEW
+   EMPTY
    ========================================================= */
 
-.pipeline-list-wrapper {
-  overflow-x: auto;
-  overflow-y: hidden;
+.pipeline-board-empty {
+  min-height: 300px;
+
+  padding: 50px 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 1px solid #e3e7ee;
+  border-radius: 12px;
+
+  box-shadow:
+    0 2px 7px rgba(15, 23, 42, 0.025);
 }
 
-.pipeline-list-header {
-  width: 100%;
-  min-width: 700px;
-
-  margin-bottom: 12px;
+.pipeline-board-empty-icon {
+  width: 50px;
+  height: 50px;
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 
-  gap: 15px;
+  border-radius: 12px;
+
+  background: #eff6ff;
+
+  color: #2563eb;
+
+  font-size: 26px;
 }
 
-.pipeline-list-header h3 {
-  margin: 0;
+.pipeline-board-empty h3 {
+  margin: 13px 0 5px;
 
-  color: #172033;
+  color: #263247;
 
   font-size: 15px;
   font-weight: 700;
 }
 
-.pipeline-list-header span {
-  display: block;
+.pipeline-board-empty p {
+  margin: 0 0 15px;
 
-  margin-top: 3px;
-
-  color: #94a3b8;
+  color: #8993a5;
 
   font-size: 11px;
 }
 
-.pipeline-list-add-stage-btn {
-  min-height: 36px;
+/* ADD STAGE EMPTY */
+
+.pipeline-add-stage-empty-btn {
+  height: 35px;
 
   padding: 0 13px;
 
@@ -928,13 +184,77 @@
 
   gap: 6px;
 
-  flex-shrink: 0;
-
-  border: 1px solid #2563eb;
+  border: 1px solid #dbe2eb;
   border-radius: 7px;
 
-  background: #2563eb;
-  color: #ffffff;
+  background: #ffffff;
+
+  color: #526074;
+
+  font-size: 11px;
+  font-weight: 650;
+
+  cursor: pointer;
+}
+
+.pipeline-add-stage-empty-btn:hover {
+  border-color: #93b4ed;
+  color: #2563eb;
+  background: #f8fbff;
+}
+
+/* =========================================================
+   LIST VIEW
+   ========================================================= */
+
+.pipeline-list-header {
+  min-height: 60px;
+
+  padding: 13px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  background: #ffffff;
+
+  border: 1px solid #e3e7ee;
+  border-radius: 11px 11px 0 0;
+}
+
+.pipeline-list-header h3 {
+  margin: 0 0 3px;
+
+  color: #263247;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pipeline-list-header span {
+  color: #8993a5;
+
+  font-size: 10px;
+}
+
+.pipeline-list-add-stage-btn {
+  height: 34px;
+
+  padding: 0 12px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  border: 1px solid #dbe2eb;
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: #526074;
 
   font-size: 11px;
   font-weight: 650;
@@ -943,65 +263,50 @@
 }
 
 .pipeline-list-add-stage-btn:hover {
-  background: #1d4ed8;
+  border-color: #93b4ed;
+  color: #2563eb;
+  background: #f8fbff;
 }
 
-.pipeline-list-add-stage-btn span {
-  margin: 0;
-
-  color: #ffffff;
-
-  font-size: 16px;
-}
-
-
-/* =========================================================
-   LIST CONTAINER
-   ========================================================= */
+/* TABLE */
 
 .pipeline-list-container {
   width: 100%;
 
-  min-width: 850px;
-
-  overflow: visible;
-
-  border: 1px solid #e3e7ee;
-  border-radius: 10px;
+  overflow-x: auto;
 
   background: #ffffff;
+
+  border: 1px solid #e3e7ee;
+  border-top: 0;
+
+  border-radius: 0 0 11px 11px;
 }
-
-
-/* =========================================================
-   LIST TABLE
-   ========================================================= */
 
 .pipeline-list-table {
   width: 100%;
 
+  min-width: 850px;
+
   border-collapse: collapse;
-
-  font-size: 12px;
-}
-
-.pipeline-list-table thead {
-  background: #f8fafc;
 }
 
 .pipeline-list-table th {
-  padding: 11px 13px;
-
-  border-bottom: 1px solid #e3e7ee;
-
-  color: #64748b;
-
-  font-size: 10px;
-  font-weight: 700;
+  padding: 10px 13px;
 
   text-align: left;
 
-  white-space: nowrap;
+  border-bottom: 1px solid #e7ebf0;
+
+  background: #f8fafc;
+
+  color: #8993a5;
+
+  font-size: 9px;
+  font-weight: 750;
+
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
 }
 
 .pipeline-list-table td {
@@ -1009,137 +314,90 @@
 
   border-bottom: 1px solid #eef1f5;
 
-  color: #475569;
+  color: #596579;
 
-  white-space: nowrap;
+  font-size: 10px;
 }
 
 .pipeline-list-table tbody tr {
   cursor: pointer;
 
   transition:
-    background 0.12s ease;
+    background 0.15s ease;
 }
 
 .pipeline-list-table tbody tr:hover {
-  background: #f8fafc;
+  background: #f8fbff;
 }
 
 .pipeline-list-table tbody tr:last-child td {
-  border-bottom: none;
+  border-bottom: 0;
 }
 
 .pipeline-list-table td strong {
-  color: #172033;
+  color: #263247;
 
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-
-/* =========================================================
-   LIST STAGE
-   ========================================================= */
+/* STAGE */
 
 .pipeline-list-stage {
   display: inline-flex;
 
-  padding: 4px 8px;
+  padding: 4px 7px;
 
-  border-radius: 999px;
+  border-radius: 5px;
 
-  background: #eff6ff;
+  background: #eef4ff;
+
   color: #2563eb;
 
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 650;
 }
 
-
-/* =========================================================
-   LIST STATUS
-   ========================================================= */
+/* STATUS */
 
 .pipeline-list-status {
   display: inline-flex;
 
-  padding: 4px 8px;
+  padding: 4px 7px;
 
-  border-radius: 999px;
+  border-radius: 5px;
 
   background: #f1f5f9;
+
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 650;
 }
 
 .pipeline-list-status.open {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.pipeline-list-status.closed {
-  background: #f1f5f9;
-  color: #475569;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .pipeline-list-status.won {
-  background: #ecfdf5;
-  color: #047857;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .pipeline-list-status.lost {
-  background: #fef2f2;
+  background: #fee2e2;
   color: #dc2626;
 }
 
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 900px) {
-  .pipeline-column,
-  .pipeline-add-stage-column {
-    flex-basis: 260px;
-
-    width: 260px;
-    min-width: 260px;
-    max-width: 260px;
-  }
-
-  .pipeline-board {
-    gap: 14px;
-  }
-}
-
+/* MOBILE */
 
 @media (max-width: 600px) {
-  .pipeline-board-wrapper {
-    padding-bottom: 10px;
-  }
-
   .pipeline-board {
-    gap: 12px;
-
-    padding-left: 2px;
-    padding-right: 2px;
+    gap: 9px;
   }
 
-  .pipeline-column,
-  .pipeline-add-stage-column {
-    flex-basis: 250px;
-
-    width: 250px;
-    min-width: 250px;
-    max-width: 250px;
-  }
-
-  .pipeline-column-body {
-    padding: 10px;
-  }
-
-  .pipeline-column-header {
-    padding: 12px;
+  .pipeline-list-header {
+    padding: 11px 12px;
   }
 }
