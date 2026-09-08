@@ -29,10 +29,13 @@ const authenticateToken = (req, res, next) => {
             });
         }
 
+        const jwtSecret = process.env.JWT_SECRET || "crm_super_secure_jwt_secret_key_2026";
+
         jwt.verify(
             token,
-            process.env.JWT_SECRET,
+            jwtSecret,
             (err, decoded) => {
+
 
                 if (err) {
                     console.error(

@@ -11,8 +11,8 @@ function Sidebar() {
     console.error("Failed to read logged-in user:", error);
   }
 
-  const isUser = user?.role?.toLowerCase() === "user";
-  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isUser = user?.role === "user";
+  const isAdmin = user?.role === "admin";
 
   return (
     <aside className="app-sidebar">
@@ -117,6 +117,17 @@ function Sidebar() {
             >
               <span className="sidebar-icon">♙</span>
               <span>Users</span>
+            </NavLink>
+
+            {/* Leads */}
+            <NavLink
+              to="/leads"
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? "active" : ""}`
+              }
+            >
+              <span className="sidebar-icon">◈</span>
+              <span>Leads</span>
             </NavLink>
           </>
         )}
