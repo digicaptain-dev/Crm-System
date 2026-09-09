@@ -237,11 +237,22 @@ router.post('/login', [
 
         console.log("9. JWT created");
 
+        let orgCompany = user.company_name;
+        if (user.role !== "admin") {
+            const [adminRows] = await db.query(
+                `SELECT company_name FROM users WHERE role = 'admin' AND company_name IS NOT NULL AND company_name != '' LIMIT 1`
+            );
+            if (adminRows.length > 0 && adminRows[0].company_name) {
+                orgCompany = adminRows[0].company_name;
+            }
+        }
+
         const safeUser = {
             user_id: user.user_id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
+            company_name: orgCompany || "My Company"
         };
 
         console.log("10. Sending login response");

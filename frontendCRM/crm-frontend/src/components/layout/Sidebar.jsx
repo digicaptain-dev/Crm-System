@@ -1,35 +1,51 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import ProfileSettingsModal from "./ProfileSettingsModal";
 import "../../styles/layout/sidebar.css";
 
 function Sidebar() {
-  // Get logged-in user
-  let user = null;
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalTab, setModalTab] = useState("profile");
 
-  try {
-    user = JSON.parse(localStorage.getItem("user"));
-  } catch (error) {
-    console.error("Failed to read logged-in user:", error);
-  }
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  });
 
-  const isUser = user?.role === "user";
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      try {
+        setUser(JSON.parse(localStorage.getItem("user") || "null"));
+      } catch {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("userUpdated", handleUserUpdated);
+    window.addEventListener("storage", handleUserUpdated);
+    return () => {
+      window.removeEventListener("userUpdated", handleUserUpdated);
+      window.removeEventListener("storage", handleUserUpdated);
+    };
+  }, []);
+
   const isAdmin = user?.role === "admin";
+  const userInitial = (user?.name || "U").charAt(0).toUpperCase();
+  const userName = user?.name || "User";
+  const companyName = user?.company_name || "My Company";
 
   return (
     <aside className="app-sidebar">
-
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">
-          CRM
-        </div>
-
+        <div className="sidebar-logo-mark">CRM</div>
         <span>CRM System</span>
       </div>
 
       <nav className="sidebar-navigation">
-
-        <div className="sidebar-section-title">
-          MAIN
-        </div>
+        <div className="sidebar-section-title">MAIN</div>
 
         {/* Dashboard */}
         <NavLink
@@ -104,9 +120,7 @@ function Sidebar() {
            ================================= */}
         {isAdmin && (
           <>
-            <div className="sidebar-section-title">
-              MANAGEMENT
-            </div>
+            <div className="sidebar-section-title">MANAGEMENT</div>
 
             {/* Users */}
             <NavLink
@@ -118,42 +132,49 @@ function Sidebar() {
               <span className="sidebar-icon">♙</span>
               <span>Users</span>
             </NavLink>
-
-            {/* Leads */}
-            <NavLink
-              to="/leads"
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? "active" : ""}`
-              }
-            >
-              <span className="sidebar-icon">◈</span>
-              <span>Leads</span>
-            </NavLink>
           </>
         )}
-
       </nav>
 
+      {/* Bottom Profile / Settings Card */}
       <div className="sidebar-bottom">
-        <div className="sidebar-company">
+        <div
+          className="sidebar-company interactive"
+          onClick={() => {
+            setModalTab("profile");
+            setShowProfileModal(true);
+          }}
+          title="Click to view & edit Profile / Settings"
+        >
+          <div className="company-avatar">{userInitial}</div>
 
-          <div className="company-avatar">
-            C
+          <div className="company-details">
+            <div className="company-name">{userName}</div>
+            <div className="company-role">{companyName}</div>
           </div>
 
-          <div>
-            <div className="company-name">
-              My Company
-            </div>
-
-            <div className="company-role">
-              {isAdmin ? "Company Admin" : "User"}
-            </div>
-          </div>
-
+          <button
+            type="button"
+            className="sidebar-settings-quick-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setModalTab("security");
+              setShowProfileModal(true);
+            }}
+            title="Security Settings"
+          >
+            ⚙
+          </button>
         </div>
       </div>
 
+      {/* Profile & Settings Modal */}
+      <ProfileSettingsModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        initialTab={modalTab}
+        onUserUpdated={(updated) => setUser(updated)}
+      />
     </aside>
   );
 }

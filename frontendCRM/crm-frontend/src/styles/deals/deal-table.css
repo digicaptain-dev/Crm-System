@@ -1,211 +1,247 @@
+/* =========================================================
+   DEAL TABLE STYLES (Fixed Height Scroll & Sticky Header)
+   ========================================================= */
+
 .deal-table-wrapper {
   width: 100%;
-
-  background: #ffffff;
-
-  border: 1px solid var(--border);
-  border-radius: 6px;
-
+  max-height: 520px;
+  overflow-y: auto;
   overflow-x: auto;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.deal-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.deal-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.deal-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.deal-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .deal-table {
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13.5px;
+}
 
-  border-collapse: collapse;
-
-  font-size: 13px;
+.deal-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .deal-table th {
-  padding: 12px;
-
-  background: #f8f8f8;
-
-  border-bottom: 1px solid var(--border);
-
-  text-align: left;
-
-  font-weight: 600;
-
+  background: #f8fafc;
+  color: var(--text-secondary, #64748b);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 14px 16px;
+  border-bottom: 1.5px solid var(--border, #e2e8f0);
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .deal-table td {
-  padding: 12px;
-
-  border-bottom: 1px solid #eee;
-
-  white-space: nowrap;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+  vertical-align: middle;
+  background: #ffffff;
 }
 
-.deal-table tbody tr {
-  cursor: pointer;
-
-  transition:
-    background 0.15s ease;
+.deal-table tr:hover td {
+  background: #f8fafc;
 }
 
-.deal-table tbody tr:hover {
-  background: #fafafa;
+.deal-table tr.deal-row-selected td {
+  background: #eff6ff;
 }
 
-/* =====================================================
-   DEAL NAME
-===================================================== */
-
-.deal-table-name {
-  font-weight: 600;
+.deal-table tr:last-child td {
+  border-bottom: none;
 }
 
-/* =====================================================
-   CHECKBOX
-===================================================== */
-
-.deal-checkbox-column {
-  width: 42px;
-
+/* CHECKBOX COLUMN */
+.deal-checkbox-cell {
+  width: 36px;
   text-align: center;
 }
 
-.deal-table input[type="checkbox"] {
+.deal-checkbox-cell input[type="checkbox"] {
   width: 16px;
   height: 16px;
-
   cursor: pointer;
-
-  accent-color: #4f46e5;
+  accent-color: var(--primary, #2563eb);
 }
 
-/* =====================================================
-   SELECTED ROW
-===================================================== */
-
-.deal-table tbody tr.deal-row-selected {
-  background: #f5f7ff;
+/* DEAL TITLE CELL */
+.deal-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.deal-table tbody tr.deal-row-selected:hover {
-  background: #eef2ff;
-}
-
-/* =====================================================
-   PRIORITY
-===================================================== */
-
-.table-priority {
-  font-size: 10px;
-
-  font-weight: 700;
-
-  text-transform: uppercase;
-}
-
-.table-priority.high {
-  color: var(--priority-high);
-}
-
-.table-priority.medium {
-  color: var(--priority-medium);
-}
-
-.table-priority.low {
-  color: var(--priority-low);
-}
-
-/* =====================================================
-   ASSIGNED USER
-===================================================== */
-
-.assigned-user {
-  display: inline-block;
-
-  max-width: 150px;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
+.deal-title-link {
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  text-decoration: none;
+  font-size: 13.5px;
+  max-width: 240px;
   white-space: nowrap;
-
-  color: #374151;
-
-  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s ease;
 }
 
-/* =====================================================
-   STATUS
-===================================================== */
+.deal-title-link:hover {
+  color: var(--primary, #2563eb);
+  text-decoration: underline;
+}
 
-.table-status {
+/* ORG BADGE */
+.deal-org-badge {
   display: inline-flex;
   align-items: center;
-
-  padding: 4px 9px;
-
-  border-radius: 999px;
-
-  font-size: 12px;
-
-  font-weight: 600;
-
-  white-space: nowrap;
-}
-
-.table-status.open {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.table-status.closed-won {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.table-status.closed-lost {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.table-status.removed {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-/* =====================================================
-   ACTION
-===================================================== */
-
-.table-action {
-  padding: 6px 11px;
-
-  border: 1px solid #d1d5db;
-
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--surface-hover, #f1f5f9);
   border-radius: 6px;
-
-  background: #ffffff;
-
-  color: #374151;
-
   font-size: 12px;
-
-  font-weight: 500;
-
-  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.table-action:hover {
-  background: #f9fafb;
-
-  border-color: #9ca3af;
+.deal-org-badge svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
-/* =====================================================
-   MOBILE
-===================================================== */
+/* VALUE PILL */
+.deal-value-pill {
+  display: inline-flex;
+  padding: 3px 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #15803d;
+}
 
-@media (max-width: 768px) {
-  .deal-table {
-    min-width: 1100px;
-  }
+/* STAGE PILL */
+.deal-stage-pill {
+  display: inline-flex;
+  padding: 3px 8px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* PRIORITY PILL */
+.deal-priority-pill {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.priority-high { background: #fef2f2; color: #b91c1c; }
+.priority-medium { background: #fffbeb; color: #b45309; }
+.priority-low { background: #f1f5f9; color: #475569; }
+
+/* STATUS BADGE */
+.deal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.status-open { background: #eff6ff; color: #1d4ed8; }
+.status-won, .status-closed-won { background: #ecfdf5; color: #047857; }
+.status-lost, .status-closed-lost { background: #fef2f2; color: #b91c1c; }
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* OWNER PILL */
+.deal-owner-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.owner-tiny-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ACTION BUTTON */
+.btn-table-view-deal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-table-view-deal:hover {
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+  border-color: var(--primary, #2563eb);
 }

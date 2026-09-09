@@ -1,62 +1,171 @@
+/* =========================================================
+   COMPANY TABLE STYLES (Fixed Height Scroll & Sticky Header)
+   ========================================================= */
+
 .company-table-wrapper {
+  width: 100%;
+  max-height: 520px;
+  overflow-y: auto;
   overflow-x: auto;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.company-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.company-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.company-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.company-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .company-table {
   width: 100%;
-  min-width: 850px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.company-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .company-table th {
-  padding: 10px 12px;
-  background: #fafbfc;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
-  text-align: left;
-  font-size: 9px;
-  font-weight: 600;
+  background: #f8fafc;
+  color: var(--text-secondary, #64748b);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid var(--border, #e2e8f0);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .company-table td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
-  font-size: 10px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+  vertical-align: middle;
+  background: #ffffff;
 }
 
-.company-table tbody tr:last-child td {
-  border-bottom: 0;
+.company-table tr:hover td {
+  background: #f8fafc;
 }
 
-.company-table tbody tr:hover {
-  background: #fafbfc;
+.company-table tr:last-child td {
+  border-bottom: none;
 }
 
-.company-table-user {
+/* COMPANY BRAND CELL */
+.company-brand-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 500;
+  gap: 12px;
 }
 
-.company-table-action {
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  font-family: inherit;
-  font-size: 9px;
-  cursor: pointer;
+.company-logo-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.25);
 }
 
-.company-table-action.delete {
-  color: #dc2626;
+.company-brand-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.company-table-action.delete:hover {
-  background: #fef2f2;
+.company-name-text {
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  font-size: 13.5px;
+}
+
+.company-contact-sub {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+/* DEALS COUNT BADGE */
+.company-deals-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary, #2563eb);
+}
+
+/* VALUE PILL */
+.company-value-pill {
+  display: inline-flex;
+  padding: 3px 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #15803d;
+}
+
+/* STATUS BADGE */
+.company-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.company-status-badge.status-active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.company-status-badge.status-client {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.company-status-badge.status-inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }

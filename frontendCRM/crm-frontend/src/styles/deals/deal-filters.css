@@ -1,232 +1,141 @@
-.deal-filters {
+/* =========================================================
+   DEAL FILTERS TOOLBAR STYLES
+   ========================================================= */
+
+.deal-filters-toolbar {
   display: flex;
   align-items: center;
-
-  gap: 12px;
-
+  justify-content: space-between;
+  gap: 14px;
   padding: 16px 20px;
-
-  margin-bottom: 16px;
-
   background: #ffffff;
-
-  border: 1px solid #e5e7eb;
-
-  border-radius: 10px;
-
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04);
-
+  border-bottom: 1px solid var(--border, #e2e8f0);
   flex-wrap: wrap;
 }
 
-/* =====================================================
-   SEARCH
-===================================================== */
+.deal-filter-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
 
 .deal-filter-search {
   position: relative;
-
+  min-width: 240px;
+  max-width: 340px;
   flex: 1;
-
-  min-width: 280px;
-  max-width: 430px;
 }
 
-.deal-filter-search input {
-  width: 100%;
-  height: 40px;
-
-  padding: 0 40px;
-
-  box-sizing: border-box;
-
-  border: 1px solid #d1d5db;
-
-  border-radius: 8px;
-
-  background: #ffffff;
-
-  color: #111827;
-
-  font-size: 14px;
-
-  outline: none;
-
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.deal-filter-search input::placeholder {
-  color: #9ca3af;
-}
-
-.deal-filter-search input:focus {
-  border-color: #6366f1;
-
-  box-shadow:
-    0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* =====================================================
-   SEARCH ICON
-===================================================== */
-
-.deal-search-icon {
+.deal-filter-search svg {
   position: absolute;
-
-  left: 13px;
+  left: 12px;
   top: 50%;
-
   transform: translateY(-50%);
-
-  font-size: 14px;
-
+  width: 15px;
+  height: 15px;
+  stroke: var(--text-tertiary, #94a3b8);
   pointer-events: none;
 }
 
-/* =====================================================
-   SEARCH CLEAR
-===================================================== */
-
-.deal-search-clear {
-  position: absolute;
-
-  right: 8px;
-  top: 50%;
-
-  width: 26px;
-  height: 26px;
-
-  transform: translateY(-50%);
-
-  border: none;
-
-  border-radius: 6px;
-
-  background: transparent;
-
-  color: #6b7280;
-
-  font-size: 18px;
-
-  line-height: 1;
-
-  cursor: pointer;
-}
-
-.deal-search-clear:hover {
-  background: #f3f4f6;
-
-  color: #111827;
-}
-
-/* =====================================================
-   SELECT
-===================================================== */
-
-.deal-filters select {
-  height: 40px;
-
-  min-width: 145px;
-
-  padding: 0 34px 0 12px;
-
-  border: 1px solid #d1d5db;
-
-  border-radius: 8px;
-
-  background: #ffffff;
-
-  color: #374151;
-
-  font-size: 14px;
-
+.deal-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius, 8px);
+  font-size: 13px;
+  color: var(--text-primary, #0f172a);
+  background: #f8fafc;
   outline: none;
-
-  cursor: pointer;
-
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.deal-filters select:hover {
-  border-color: #9ca3af;
-}
-
-.deal-filters select:focus {
-  border-color: #6366f1;
-
-  box-shadow:
-    0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* =====================================================
-   RESET
-===================================================== */
-
-.filter-reset-button {
-  height: 40px;
-
-  padding: 0 16px;
-
-  border: 1px solid #d1d5db;
-
-  border-radius: 8px;
-
+.deal-search-input:focus {
   background: #ffffff;
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
 
-  color: #374151;
-
-  font-size: 14px;
-
-  font-weight: 500;
-
+.deal-select-filter {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius, 8px);
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  outline: none;
   cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
-.filter-reset-button:hover {
-  background: #f9fafb;
-
-  border-color: #9ca3af;
-
-  color: #111827;
+.deal-select-filter:focus {
+  border-color: var(--primary, #2563eb);
 }
 
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media (max-width: 900px) {
-  .deal-filter-search {
-    width: 100%;
-
-    max-width: none;
-
-    flex-basis: 100%;
-  }
-
-  .deal-filters select {
-    flex: 1;
-
-    min-width: 140px;
-  }
+.deal-btn-reset-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-@media (max-width: 600px) {
-  .deal-filters {
-    padding: 12px;
-  }
+.deal-btn-reset-filters:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
 
-  .deal-filters select,
-  .filter-reset-button {
-    width: 100%;
-  }
+/* RIGHT GROUP: VIEW SWITCHER */
+.deal-filter-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deals-view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.view-btn.active {
+  background: #ffffff;
+  color: var(--primary, #2563eb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }

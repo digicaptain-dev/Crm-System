@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-
 import "../../styles/activities/activity-calendar.css";
 
 function ActivityCalendar({
@@ -11,453 +10,250 @@ function ActivityCalendar({
     ? new Date(`${selectedDate}T00:00:00`)
     : new Date();
 
-  const [currentMonth, setCurrentMonth] =
-    useState(selected.getMonth());
-
-  const [currentYear, setCurrentYear] =
-    useState(selected.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(selected.getMonth());
+  const [currentYear, setCurrentYear] = useState(selected.getFullYear());
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   ];
 
-  const daysOfWeek = [
-    "Sun",
-    "Mon",
-    "Tue",
-    "Wed",
-    "Thu",
-    "Fri",
-    "Sat",
-  ];
+  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // =====================================================
-  // FORMAT DATE
-  // =====================================================
-
-  const formatDate = (
-    year,
-    month,
-    day
-  ) => {
-    const date = new Date(
-      year,
-      month,
-      day
-    );
-
-    return `${date.getFullYear()}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}-${String(
-      date.getDate()
+  const formatDate = (year, month, day) => {
+    const d = new Date(year, month, day);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
     ).padStart(2, "0")}`;
   };
 
-  // =====================================================
-  // GET ACTIVITY DATE
-  // =====================================================
+  const today = new Date();
+  const todayFormatted = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
 
-  const getActivityDate = (activity) => {
-    if (!activity.created_at) {
-      return null;
+  // Fast map of date to activity count
+  const activityMap = useMemo(() => {
+    const map = {};
+    for (const act of activities) {
+      if (!act.created_at) continue;
+      const d = new Date(act.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+      map[key] = (map[key] || 0) + 1;
     }
+    return map;
+  }, [activities]);
 
-    const date = new Date(
-      activity.created_at
-    );
-
-    return formatDate(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-  };
-
-  // =====================================================
-  // CALENDAR DAYS
-  // =====================================================
-
+  // Generate 42 calendar grid days
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(
-      currentYear,
-      currentMonth,
-      1
-    ).getDay();
-
-    const daysInMonth = new Date(
-      currentYear,
-      currentMonth + 1,
-      0
-    ).getDate();
-
-    const previousMonthDays = new Date(
-      currentYear,
-      currentMonth,
-      0
-    ).getDate();
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const previousMonthDays = new Date(currentYear, currentMonth, 0).getDate();
 
     const days = [];
 
-    // Previous month
-    for (
-      let i = firstDay - 1;
-      i >= 0;
-      i--
-    ) {
-      const date = new Date(
-        currentYear,
-        currentMonth - 1,
-        previousMonthDays - i
-      );
-
+    // Previous month filler
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - 1, previousMonthDays - i);
+      const dateStr = formatDate(date.getFullYear(), date.getMonth(), date.getDate());
       days.push({
         day: date.getDate(),
         month: date.getMonth(),
         year: date.getFullYear(),
+        dateStr,
         outside: true,
       });
     }
 
-    // Current month
-    for (
-      let day = 1;
-      day <= daysInMonth;
-      day++
-    ) {
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = formatDate(currentYear, currentMonth, day);
       days.push({
         day,
         month: currentMonth,
         year: currentYear,
+        dateStr,
         outside: false,
       });
     }
 
-    // Next month
+    // Next month filler
     let nextDay = 1;
-
     while (days.length < 42) {
-      const date = new Date(
-        currentYear,
-        currentMonth + 1,
-        nextDay++
-      );
-
+      const date = new Date(currentYear, currentMonth + 1, nextDay++);
+      const dateStr = formatDate(date.getFullYear(), date.getMonth(), date.getDate());
       days.push({
         day: date.getDate(),
         month: date.getMonth(),
         year: date.getFullYear(),
+        dateStr,
         outside: true,
       });
     }
 
     return days;
-  }, [
-    currentMonth,
-    currentYear,
-  ]);
-
-  // =====================================================
-  // ACTIVITY COUNT
-  // =====================================================
-
-  const getActivityCount = (date) => {
-    return activities.filter(
-      (activity) =>
-        getActivityDate(activity) === date
-    ).length;
-  };
-
-  // =====================================================
-  // DATE CLICK
-  // =====================================================
+  }, [currentMonth, currentYear]);
 
   const handleDateClick = (day) => {
-    const date = formatDate(
-      day.year,
-      day.month,
-      day.day
-    );
-
-    onDateSelect(date);
-
+    onDateSelect(day.dateStr);
     if (day.outside) {
       setCurrentMonth(day.month);
       setCurrentYear(day.year);
     }
   };
 
-  // =====================================================
-  // PREVIOUS MONTH
-  // =====================================================
-
   const goPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
-      setCurrentYear(
-        (year) => year - 1
-      );
+      setCurrentYear((y) => y - 1);
     } else {
-      setCurrentMonth(
-        (month) => month - 1
-      );
+      setCurrentMonth((m) => m - 1);
     }
   };
-
-  // =====================================================
-  // NEXT MONTH
-  // =====================================================
 
   const goNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0);
-      setCurrentYear(
-        (year) => year + 1
-      );
+      setCurrentYear((y) => y + 1);
     } else {
-      setCurrentMonth(
-        (month) => month + 1
-      );
+      setCurrentMonth((m) => m + 1);
     }
   };
 
-  // =====================================================
-  // TODAY
-  // =====================================================
-
   const goToday = () => {
-    const today = new Date();
-
-    const todayDate = formatDate(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-
-    setCurrentMonth(
-      today.getMonth()
-    );
-
-    setCurrentYear(
-      today.getFullYear()
-    );
-
-    onDateSelect(todayDate);
-  };
-
-  // =====================================================
-  // MONTH CHANGE
-  // =====================================================
-
-  const handleMonthChange = (e) => {
-    setCurrentMonth(
-      Number(e.target.value)
-    );
-  };
-
-  // =====================================================
-  // YEAR CHANGE
-  // =====================================================
-
-  const handleYearChange = (e) => {
-    setCurrentYear(
-      Number(e.target.value)
-    );
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+    onDateSelect(todayFormatted);
   };
 
   const years = [];
-
-  for (
-    let year = currentYear - 5;
-    year <= currentYear + 5;
-    year++
-  ) {
-    years.push(year);
+  for (let y = currentYear - 3; y <= currentYear + 3; y++) {
+    years.push(y);
   }
 
   return (
     <div className="activity-calendar">
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <div className="calendar-header">
-
-        <div className="calendar-title">
-
+      {/* Top Header */}
+      <div className="calendar-top-bar">
+        <div className="calendar-month-heading">
           <h2>
-            {monthNames[currentMonth]}{" "}
-            {currentYear}
+            {monthNames[currentMonth]} {currentYear}
           </h2>
-
-          <p>
-            Select a date to view activities
-          </p>
-
         </div>
 
-        <div className="calendar-actions">
-
+        <div className="calendar-controls-group">
           <button
             type="button"
-            className="calendar-nav-button"
-            onClick={goPreviousMonth}
-          >
-            ‹
-          </button>
-
-          <button
-            type="button"
-            className="calendar-today-button"
+            className="calendar-today-btn"
             onClick={goToday}
+            title="Go to Today"
           >
             Today
           </button>
-
           <button
             type="button"
-            className="calendar-nav-button"
-            onClick={goNextMonth}
+            className="calendar-nav-btn"
+            onClick={goPreviousMonth}
+            title="Previous Month"
           >
-            ›
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
-
+          <button
+            type="button"
+            className="calendar-nav-btn"
+            onClick={goNextMonth}
+            title="Next Month"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
-
       </div>
 
-      {/* =================================================
-          SELECTORS
-      ================================================= */}
-
-      <div className="calendar-selectors">
-
+      {/* Selectors for fast jump */}
+      <div className="calendar-selects-row">
         <select
+          className="calendar-select"
           value={currentMonth}
-          onChange={handleMonthChange}
+          onChange={(e) => setCurrentMonth(Number(e.target.value))}
         >
-          {monthNames.map(
-            (month, index) => (
-              <option
-                key={month}
-                value={index}
-              >
-                {month}
-              </option>
-            )
-          )}
-        </select>
-
-        <select
-          value={currentYear}
-          onChange={handleYearChange}
-        >
-          {years.map((year) => (
-            <option
-              key={year}
-              value={year}
-            >
-              {year}
+          {monthNames.map((name, idx) => (
+            <option key={name} value={idx}>
+              {name}
             </option>
           ))}
         </select>
 
+        <select
+          className="calendar-select"
+          value={currentYear}
+          onChange={(e) => setCurrentYear(Number(e.target.value))}
+        >
+          {years.map((yr) => (
+            <option key={yr} value={yr}>
+              {yr}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* =================================================
-          WEEKDAYS
-      ================================================= */}
-
-      <div className="calendar-weekdays">
-
+      {/* Weekday headers */}
+      <div className="calendar-weekdays-grid">
         {daysOfWeek.map((day) => (
-          <div
-            key={day}
-            className="calendar-weekday"
-          >
+          <div className="calendar-weekday-cell" key={day}>
             {day}
           </div>
         ))}
-
       </div>
 
-      {/* =================================================
-          CALENDAR GRID
-      ================================================= */}
+      {/* 42 Days grid */}
+      <div className="calendar-days-grid">
+        {calendarDays.map((cell) => {
+          const isSelected = selectedDate === cell.dateStr;
+          const isToday = todayFormatted === cell.dateStr;
+          const count = activityMap[cell.dateStr] || 0;
 
-      <div className="calendar-grid">
+          return (
+            <div
+              key={cell.dateStr}
+              className={`calendar-day-cell ${cell.outside ? "outside-month" : ""} ${
+                isSelected ? "is-selected" : ""
+              } ${isToday ? "is-today" : ""}`}
+              onClick={() => handleDateClick(cell)}
+              title={`${cell.dateStr}: ${count} activities`}
+            >
+              <span className="day-number-text">{cell.day}</span>
 
-        {calendarDays.map(
-          (day, index) => {
-
-            const date = formatDate(
-              day.year,
-              day.month,
-              day.day
-            );
-
-            const activityCount =
-              getActivityCount(date);
-
-            const isSelected =
-              date === selectedDate;
-
-            const today =
-              formatDate(
-                new Date().getFullYear(),
-                new Date().getMonth(),
-                new Date().getDate()
-              ) === date;
-
-            return (
-              <button
-                type="button"
-                key={`${date}-${index}`}
-                className={[
-                  "calendar-day",
-                  day.outside
-                    ? "outside-month"
-                    : "",
-                  isSelected
-                    ? "selected"
-                    : "",
-                  today
-                    ? "today"
-                    : "",
-                ].join(" ")}
-                onClick={() =>
-                  handleDateClick(day)
-                }
-              >
-
-                <span className="day-number">
-                  {day.day}
-                </span>
-
-                {activityCount > 0 && (
-                  <span className="activity-indicator">
-                    {activityCount}
+              {count > 0 && (
+                <div className="calendar-day-indicators">
+                  <span className={`activity-count-badge ${count > 3 ? "has-many" : ""}`}>
+                    {count}
                   </span>
-                )}
-
-              </button>
-            );
-          }
-        )}
-
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
+      {/* Legend */}
+      <div className="calendar-legend-bar">
+        <div className="legend-item">
+          <span className="legend-dot today" />
+          <span>Today</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-dot active" />
+          <span>Selected Date</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-dot event" />
+          <span>Has Activities</span>
+        </div>
+      </div>
     </div>
   );
 }

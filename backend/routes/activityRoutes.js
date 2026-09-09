@@ -137,7 +137,11 @@ router.post(
         const allowedTypes = [
             "comment",
             "stage change",
-            "task"
+            "task",
+            "call",
+            "meeting",
+            "message",
+            "negotiation"
         ];
 
         if (!allowedTypes.includes(activity_type)) {
@@ -200,10 +204,13 @@ router.post(
                 `
                 SELECT 
                     a.*,
-                    u.name AS user_name
+                    u.name AS user_name,
+                    d.deal_name
                 FROM activities a
                 LEFT JOIN users u
                     ON a.user_id = u.user_id
+                LEFT JOIN deals d
+                    ON a.deal_id = d.deal_id
                 WHERE a.id = ?
                 `,
                 [result.insertId]
@@ -231,5 +238,31 @@ router.post(
     }
 );
 
+// =====================================================
+// DELETE ACTIVITY
+// =====================================================
+router.delete("/activities/:id", authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.query("DELETE FROM activities WHERE id = ?", [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Activity not found"
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Activity deleted successfully"
+        });
+    } catch (error) {
+        console.error("DELETE ACTIVITY ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete activity",
+            error: error.message
+        });
+    }
+});
 
 module.exports = router;

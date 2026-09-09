@@ -9,9 +9,17 @@ import "../../styles/deals/assign-deal-modal.css";
 
 function AssignDealModal({
   selectedDealIds = [],
+  dealIds = [],
   onClose,
   onAssigned,
 }) {
+  const dealsToAssign =
+    Array.isArray(selectedDealIds) && selectedDealIds.length > 0
+      ? selectedDealIds
+      : Array.isArray(dealIds)
+      ? dealIds
+      : [];
+
   const [users, setUsers] =
     useState([]);
 
@@ -131,9 +139,9 @@ function AssignDealModal({
 
       if (
         !Array.isArray(
-          selectedDealIds
+          dealsToAssign
         ) ||
-        selectedDealIds.length ===
+        dealsToAssign.length ===
           0
       ) {
         alert(
@@ -150,7 +158,7 @@ function AssignDealModal({
             "/deals/assign",
             {
               deal_ids:
-                selectedDealIds,
+                dealsToAssign,
               user_id:
                 selectedUser,
             }
@@ -237,9 +245,9 @@ function AssignDealModal({
 
             <p>
               {
-                selectedDealIds.length
+                dealsToAssign.length
               }{" "}
-              {selectedDealIds.length ===
+              {dealsToAssign.length ===
               1
                 ? "deal"
                 : "deals"}{" "}
@@ -275,11 +283,11 @@ function AssignDealModal({
 
             <strong>
               {
-                selectedDealIds.length
+                dealsToAssign.length
               }
             </strong>{" "}
 
-            {selectedDealIds.length ===
+            {dealsToAssign.length ===
             1
               ? "deal"
               : "deals"}{" "}

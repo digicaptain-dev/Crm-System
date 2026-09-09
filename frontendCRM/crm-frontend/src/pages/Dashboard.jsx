@@ -3,14 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 import api from "../services/api";
 
-import DealCard from "../components/deals/DealCard";
-import DealTable from "../components/deals/DealTable";
-import CreateDeal from "../components/deals/CreateDeal";
-import Modal from "../components/common/Modal";
-
 import "../styles/dashboard/dashboard.css";
 
-// Dynamic stage color palette
+// Stage color palette
 const STAGE_THEMES = [
   { accent: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", text: "#1d4ed8", border: "#bfdbfe" },
   { accent: "#8b5cf6", bg: "rgba(139, 92, 246, 0.08)", text: "#6d28d9", border: "#ddd6fe" },
@@ -24,304 +19,322 @@ function Dashboard() {
   const navigate = useNavigate();
 
   // =====================================================
+  // USER SESSION & ROLE
+  // =====================================================
+
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("user"));
+  } catch (err) {
+    console.error("Failed to read user from localStorage:", err);
+  }
+  const isAdmin = currentUser?.role === "admin";
+  const currentUserId = currentUser?.user_id || currentUser?.id;
+  const currentUserName = currentUser?.name || "User";
+
+  // =====================================================
   // STATE
   // =====================================================
 
   const [pipelines, setPipelines] = useState([]);
-  const [selectedPipelineId, setSelectedPipelineId] = useState("");
+  const [selectedPipelineId, setSelectedPipelineId] = useState("all");
   const [deals, setDeals] = useState([]);
-  const [view, setView] = useState("kanban"); // "kanban" | "table"
-  const [search, setSearch] = useState("");
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [createStageId, setCreateStageId] = useState("");
+  const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const [dragOverStageId, setDragOverStageId] = useState(null);
+  const [timeFilter, setTimeFilter] = useState("all"); // "all" | "30days" | "thisYear"
 
   // =====================================================
-  // FETCH PIPELINES
+  // FETCH DATA
   // =====================================================
 
   const fetchPipelines = useCallback(async () => {
     try {
       const response = await api.get("/pipelines");
-      const pipelineData = Array.isArray(response.data)
+      const data = Array.isArray(response.data)
         ? response.data
         : response.data?.pipelines || [];
-
-      setPipelines(pipelineData);
-
-      if (pipelineData.length > 0) {
-        setSelectedPipelineId((currentId) => {
-          const exists = pipelineData.some(
-            (p) => String(p.pipeline_id) === String(currentId)
-          );
-          return exists ? currentId : pipelineData[0].pipeline_id;
-        });
-      }
-      return pipelineData;
+      setPipelines(data);
+      return data;
     } catch (err) {
-      console.error("Dashboard pipeline error:", err);
-      throw err;
+      console.error("Fetch pipelines error:", err);
+      return [];
     }
   }, []);
-
-  // =====================================================
-  // FETCH DEALS
-  // =====================================================
 
   const fetchDeals = useCallback(async () => {
     try {
-      // Request larger limit to have full pipeline data on board
       const response = await api.get("/deals?limit=1000&page=1");
-      const dealData = Array.isArray(response.data)
+      const data = Array.isArray(response.data)
         ? response.data
         : response.data?.deals || [];
-
-      setDeals(dealData);
-      return dealData;
+      setDeals(data);
+      return data;
     } catch (err) {
-      console.error("Dashboard deals error:", err);
-      throw err;
+      console.error("Fetch deals error:", err);
+      return [];
     }
   }, []);
 
-  // =====================================================
-  // INITIAL LOAD
-  // =====================================================
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) return [];
+    try {
+      const response = await api.get("/users");
+      const data = response.data?.users || (Array.isArray(response.data) ? response.data : []);
+      setUsers(data);
+      return data;
+    } catch (err) {
+      console.error("Fetch users error:", err);
+      return [];
+    }
+  }, [isAdmin]);
 
+  // Initial Load
   useEffect(() => {
     const loadDashboard = async () => {
       try {
         setLoading(true);
         setError("");
-        await Promise.all([fetchPipelines(), fetchDeals()]);
+        await Promise.all([fetchPipelines(), fetchDeals(), fetchUsers()]);
       } catch (err) {
-        setError(
-          err.response?.data?.message ||
-          err.response?.data?.error ||
-          err.message ||
-          "Failed to load dashboard"
-        );
+        setError("Failed to load analytics dashboard.");
       } finally {
         setLoading(false);
       }
     };
-
     loadDashboard();
-  }, [fetchPipelines, fetchDeals]);
+  }, [fetchPipelines, fetchDeals, fetchUsers]);
 
-  // =====================================================
-  // REFRESH DASHBOARD
-  // =====================================================
-
+  // Refresh
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
       setError("");
-      await Promise.all([fetchPipelines(), fetchDeals()]);
+      await Promise.all([fetchPipelines(), fetchDeals(), fetchUsers()]);
     } catch (err) {
-      console.error("Dashboard refresh error:", err);
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        "Failed to refresh dashboard"
-      );
+      setError("Failed to refresh dashboard.");
     } finally {
       setRefreshing(false);
     }
   };
 
   // =====================================================
-  // SELECTED PIPELINE & STAGES
+  // FILTERED DATA BY PIPELINE
   // =====================================================
 
-  const selectedPipeline = useMemo(() => {
-    return (
-      pipelines.find(
-        (p) => String(p.pipeline_id) === String(selectedPipelineId)
-      ) || pipelines[0] || null
-    );
-  }, [pipelines, selectedPipelineId]);
+  const scopedDeals = useMemo(() => {
+    let list = deals;
 
-  // Sorted stages for selected pipeline
-  const pipelineStages = useMemo(() => {
-    if (!selectedPipeline?.stages) return [];
-    return [...selectedPipeline.stages].sort(
-      (a, b) => (a.stage_order || 0) - (b.stage_order || 0)
-    );
-  }, [selectedPipeline]);
+    // Filter by pipeline if not "all"
+    if (selectedPipelineId !== "all") {
+      list = list.filter(
+        (d) => String(d.pipeline_id) === String(selectedPipelineId)
+      );
+    }
 
-  // =====================================================
-  // PIPELINE DEALS
-  // =====================================================
-
-  const pipelineDeals = useMemo(() => {
-    if (!selectedPipelineId) return deals;
-
-    return deals.filter(
-      (deal) => String(deal.pipeline_id) === String(selectedPipelineId)
-    );
+    return list;
   }, [deals, selectedPipelineId]);
 
   // =====================================================
-  // SEARCH FILTER
-  // =====================================================
-
-  const filteredDeals = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return pipelineDeals;
-
-    return pipelineDeals.filter((deal) => {
-      return (
-        (deal.deal_name || "").toLowerCase().includes(query) ||
-        (deal.deal_organization || "").toLowerCase().includes(query) ||
-        (deal.customer_email || "").toLowerCase().includes(query) ||
-        (deal.deal_owner || "").toLowerCase().includes(query) ||
-        (deal.deal_status || "").toLowerCase().includes(query) ||
-        (deal.deal_priority || "").toLowerCase().includes(query)
-      );
-    });
-  }, [pipelineDeals, search]);
-
-  // =====================================================
-  // SUMMARY METRICS
+  // KPI CALCULATIONS (ADMIN & USER)
   // =====================================================
 
   const stats = useMemo(() => {
-    const total = pipelineDeals.length;
-    const openDeals = pipelineDeals.filter(
+    const totalDeals = scopedDeals.length;
+    const openDeals = scopedDeals.filter(
       (d) => !d.deal_status || d.deal_status.toLowerCase() === "open"
     );
-    const wonDeals = pipelineDeals.filter(
+    const wonDeals = scopedDeals.filter(
       (d) => d.deal_status && d.deal_status.toLowerCase() === "won"
     );
-    const lostDeals = pipelineDeals.filter(
+    const lostDeals = scopedDeals.filter(
       (d) => d.deal_status && d.deal_status.toLowerCase() === "lost"
     );
 
-    const totalValue = pipelineDeals.reduce(
-      (sum, d) => sum + Number(d.deal_value || 0),
+    const totalPipelineValue = scopedDeals.reduce(
+      (acc, d) => acc + Number(d.deal_value || 0),
       0
     );
 
-    const openValue = openDeals.reduce(
-      (sum, d) => sum + Number(d.deal_value || 0),
+    const openPipelineValue = openDeals.reduce(
+      (acc, d) => acc + Number(d.deal_value || 0),
       0
     );
 
-    const wonValue = wonDeals.reduce(
-      (sum, d) => sum + Number(d.deal_value || 0),
+    const wonPipelineValue = wonDeals.reduce(
+      (acc, d) => acc + Number(d.deal_value || 0),
       0
     );
 
-    const winRate = total > 0 ? Math.round((wonDeals.length / total) * 100) : 0;
-    const avgDeal = total > 0 ? Math.round(totalValue / total) : 0;
+    const winRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
+    const avgDealValue = totalDeals > 0 ? Math.round(totalPipelineValue / totalDeals) : 0;
+
+    // Priority Counts
+    const highPriority = scopedDeals.filter(
+      (d) => (d.deal_priority || "").toLowerCase() === "high"
+    ).length;
+    const mediumPriority = scopedDeals.filter(
+      (d) => (d.deal_priority || "").toLowerCase() === "medium"
+    ).length;
+    const lowPriority = scopedDeals.filter(
+      (d) => (d.deal_priority || "").toLowerCase() === "low"
+    ).length;
+
+    // Assigned vs Unassigned
+    const unassignedCount = scopedDeals.filter((d) => !d.assign_to).length;
+    const assignedCount = totalDeals - unassignedCount;
 
     return {
-      total,
+      totalDeals,
       openCount: openDeals.length,
-      openValue,
+      openPipelineValue,
       wonCount: wonDeals.length,
-      wonValue,
+      wonPipelineValue,
       lostCount: lostDeals.length,
-      totalValue,
-      avgDeal,
+      totalPipelineValue,
+      avgDealValue,
       winRate,
+      highPriority,
+      mediumPriority,
+      lowPriority,
+      unassignedCount,
+      assignedCount,
+      totalUsers: users.length,
     };
-  }, [pipelineDeals]);
+  }, [scopedDeals, users]);
 
   // =====================================================
-  // DEAL DRAG & DROP (KANBAN)
+  // USER ASSIGNMENT BREAKDOWN (ADMIN VIEW)
   // =====================================================
 
-  const handleDragStart = (e, deal) => {
-    e.dataTransfer.setData("text/plain", String(deal.deal_id));
-    e.dataTransfer.effectAllowed = "move";
-  };
+  const userAssignments = useMemo(() => {
+    if (!isAdmin) return [];
 
-  const handleDragOver = (e, stageId) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragOverStageId !== stageId) {
-      setDragOverStageId(stageId);
-    }
-  };
-
-  const handleDragLeave = (e, stageId) => {
-    if (dragOverStageId === stageId) {
-      setDragOverStageId(null);
-    }
-  };
-
-  const handleDrop = async (e, targetStageId) => {
-    e.preventDefault();
-    setDragOverStageId(null);
-
-    const dealId = e.dataTransfer.getData("text/plain");
-    if (!dealId) return;
-
-    const currentDeal = deals.find((d) => String(d.deal_id) === String(dealId));
-    if (!currentDeal || String(currentDeal.deal_stage) === String(targetStageId)) {
-      return;
-    }
-
-    // Optimistic UI update
-    setDeals((prevDeals) =>
-      prevDeals.map((d) =>
-        String(d.deal_id) === String(dealId)
-          ? { ...d, deal_stage: targetStageId }
-          : d
-      )
-    );
-
-    try {
-      await api.put(`/deal/${dealId}`, {
-        deal_stage: Number(targetStageId),
-      });
-    } catch (err) {
-      console.error("Failed to update deal stage:", err);
-      // Revert on failure
-      fetchDeals();
-      setError("Failed to move deal stage. Changes reverted.");
-    }
-  };
-
-  // =====================================================
-  // ACTIONS
-  // =====================================================
-
-  const handleDealClick = (deal) => {
-    if (deal?.deal_id) {
-      navigate(`/deal/${deal.deal_id}`);
-    }
-  };
-
-  const openCreateModal = (stageId = "") => {
-    setCreateStageId(stageId);
-    setShowCreate(true);
-  };
-
-  const handleCreateDeal = async (dealData) => {
-    try {
-      await api.post("/deal", dealData);
-      await fetchDeals();
-      await fetchPipelines();
-      setShowCreate(false);
-    } catch (err) {
-      console.error("Deal creation error:", err);
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Failed to create deal."
+    // Map each user with their deals
+    const list = users.map((u) => {
+      const userDeals = deals.filter(
+        (d) => String(d.assign_to) === String(u.user_id)
       );
+
+      const openDeals = userDeals.filter(
+        (d) => !d.deal_status || d.deal_status.toLowerCase() === "open"
+      );
+      const wonDeals = userDeals.filter(
+        (d) => d.deal_status && d.deal_status.toLowerCase() === "won"
+      );
+
+      const totalValue = userDeals.reduce(
+        (acc, d) => acc + Number(d.deal_value || 0),
+        0
+      );
+
+      const percentage = deals.length > 0 ? Math.round((userDeals.length / deals.length) * 100) : 0;
+
+      return {
+        userId: u.user_id,
+        name: u.name || "Unnamed User",
+        email: u.email || "-",
+        role: u.role || "user",
+        dealCount: userDeals.length,
+        openCount: openDeals.length,
+        wonCount: wonDeals.length,
+        totalValue,
+        percentage,
+      };
+    });
+
+    // Add unassigned bucket if there are unassigned deals
+    const unassignedDeals = deals.filter((d) => !d.assign_to);
+    if (unassignedDeals.length > 0) {
+      const unassignedValue = unassignedDeals.reduce(
+        (acc, d) => acc + Number(d.deal_value || 0),
+        0
+      );
+      list.push({
+        userId: "unassigned",
+        name: "Unassigned Deals",
+        email: "Pending Assignment",
+        role: "unassigned",
+        dealCount: unassignedDeals.length,
+        openCount: unassignedDeals.filter((d) => !d.deal_status || d.deal_status.toLowerCase() === "open").length,
+        wonCount: unassignedDeals.filter((d) => d.deal_status && d.deal_status.toLowerCase() === "won").length,
+        totalValue: unassignedValue,
+        percentage: deals.length > 0 ? Math.round((unassignedDeals.length / deals.length) * 100) : 0,
+      });
     }
-  };
+
+    // Sort by total deals descending
+    return list.sort((a, b) => b.dealCount - a.dealCount);
+  }, [isAdmin, users, deals]);
+
+  // =====================================================
+  // STAGE BREAKDOWN GRAPH DATA
+  // =====================================================
+
+  const stageBreakdown = useMemo(() => {
+    // Gather all stages across pipelines or current pipeline
+    const stagesList = [];
+
+    pipelines.forEach((p) => {
+      if (selectedPipelineId !== "all" && String(p.pipeline_id) !== String(selectedPipelineId)) {
+        return;
+      }
+      (p.stages || []).forEach((st) => {
+        stagesList.push({
+          stageId: st.stage_id,
+          stageName: st.stage_name,
+          stageOrder: st.stage_order || 0,
+        });
+      });
+    });
+
+    // Deduplicate stages
+    const uniqueStages = [];
+    const seen = new Set();
+    stagesList.sort((a, b) => a.stageOrder - b.stageOrder).forEach((st) => {
+      if (!seen.has(st.stageId)) {
+        seen.add(st.stageId);
+        uniqueStages.push(st);
+      }
+    });
+
+    const maxDeals = scopedDeals.length || 1;
+
+    return uniqueStages.map((st, idx) => {
+      const stageDeals = scopedDeals.filter(
+        (d) => String(d.deal_stage) === String(st.stageId)
+      );
+
+      const stageValue = stageDeals.reduce(
+        (sum, d) => sum + Number(d.deal_value || 0),
+        0
+      );
+
+      const pct = Math.round((stageDeals.length / maxDeals) * 100);
+      const theme = STAGE_THEMES[idx % STAGE_THEMES.length];
+
+      return {
+        ...st,
+        count: stageDeals.length,
+        value: stageValue,
+        percentage: pct,
+        theme,
+      };
+    });
+  }, [pipelines, scopedDeals, selectedPipelineId]);
+
+  // =====================================================
+  // TOP / RECENT DEALS
+  // =====================================================
+
+  const recentDeals = useMemo(() => {
+    return [...scopedDeals]
+      .sort((a, b) => Number(b.deal_value || 0) - Number(a.deal_value || 0))
+      .slice(0, 6);
+  }, [scopedDeals]);
 
   // =====================================================
   // LOADING STATE
@@ -332,8 +345,8 @@ function Dashboard() {
       <div className="dashboard-container">
         <div className="dashboard-loading-state">
           <div className="dashboard-spinner" />
-          <h3>Loading your CRM Dashboard...</h3>
-          <p>Fetching pipelines, active deals, and sales metrics.</p>
+          <h3>Loading CRM Analytics & Stats...</h3>
+          <p>Analyzing team performance, deals distribution, and pipeline health.</p>
         </div>
       </div>
     );
@@ -346,115 +359,75 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       {/* =================================================
-          TOP HERO / TOOLBAR
+          TOP HERO / WELCOME CARD
       ================================================= */}
-      <div className="dashboard-header-card">
-        <div className="dashboard-title-area">
-          <div className="dashboard-badge-pill">
-            <span className="live-dot" /> Live Pipeline Overview
+      <div className="analytics-hero-card">
+        <div className="hero-left">
+          <div className="user-role-badge">
+            <span className="live-dot" />
+            {isAdmin ? "Admin Overview & Intelligence" : "My Sales Performance"}
           </div>
-          <h1 className="dashboard-title">Deals Dashboard</h1>
-          <p className="dashboard-subtitle">
-            Track revenue, prioritize high-value leads, and advance deals through your pipeline stages.
+          <h1 className="hero-title">
+            Welcome back, {currentUserName} 👋
+          </h1>
+          <p className="hero-subtitle">
+            {isAdmin
+              ? "Comprehensive analytics of your entire sales organization, team deal assignments, and revenue streams."
+              : "Here is the performance overview and stage progression of your assigned deals."}
           </p>
         </div>
 
-        <div className="dashboard-header-actions">
-          {/* Pipeline Selector */}
-          <div className="pipeline-selector-pill">
+        <div className="hero-right-actions">
+          {/* Pipeline filter */}
+          <div className="analytics-select-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <select
+              value={selectedPipelineId}
+              onChange={(e) => setSelectedPipelineId(e.target.value)}
+              className="analytics-dropdown"
+            >
+              <option value="all">All Pipelines</option>
+              {pipelines.map((p) => (
+                <option key={p.pipeline_id} value={p.pipeline_id}>
+                  {p.pipeline_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            className={`btn-secondary ${refreshing ? "is-refreshing" : ""}`}
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
             <svg
-              className="selector-icon"
+              className={`refresh-icon ${refreshing ? "spin-animation" : ""}`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
             >
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
             </svg>
-            <span className="selector-label">Pipeline:</span>
-            <select
-              id="pipeline-select"
-              className="pipeline-select-input"
-              value={selectedPipelineId}
-              onChange={(e) => setSelectedPipelineId(e.target.value)}
-            >
-              {pipelines.length === 0 ? (
-                <option value="">No pipelines</option>
-              ) : (
-                pipelines.map((pipeline) => (
-                  <option
-                    key={pipeline.pipeline_id}
-                    value={pipeline.pipeline_id}
-                  >
-                    {pipeline.pipeline_name}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
+            Refresh
+          </button>
 
-          {/* Action Buttons */}
-          <div className="action-button-group">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => navigate("/deals")}
-              title="View deal records in full database"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-              </svg>
-              View All Deals
-            </button>
-
-            <button
-              type="button"
-              className={`btn-secondary ${refreshing ? "is-refreshing" : ""}`}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              title="Refresh deals data"
-            >
-              <svg
-                className={`refresh-icon ${refreshing ? "spin-animation" : ""}`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-              </svg>
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => navigate("/deals")}
-              title="Import deals from CSV"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              Upload Deals
-            </button>
-
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => openCreateModal()}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              + Add Deal
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate("/deals")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+            </svg>
+            View All Deals
+          </button>
         </div>
       </div>
 
@@ -475,7 +448,6 @@ function Dashboard() {
             type="button"
             className="alert-close"
             onClick={() => setError("")}
-            aria-label="Dismiss error"
           >
             ×
           </button>
@@ -483,345 +455,541 @@ function Dashboard() {
       )}
 
       {/* =================================================
-          KPI STATS CARDS (5 Cards Grid)
+          PRIMARY STATS / KPI GRID
       ================================================= */}
-      <div className="kpi-grid">
-        {/* 1. Active Pipeline */}
-        <div className="kpi-card card-pipeline">
-          <div className="kpi-top">
-            <span className="kpi-label">Current Pipeline</span>
-            <div className="kpi-icon-pill icon-indigo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-            </div>
-          </div>
-          <div className="kpi-value-title">
-            {selectedPipeline?.pipeline_name || "No Pipeline"}
-          </div>
-          <div className="kpi-meta">
-            <span className="kpi-sub-badge">
-              {pipelineStages.length} Active Stages
+      <div className="analytics-kpi-grid">
+        {/* 1. Total Deals */}
+        <div className="stat-box card-blue">
+          <div className="stat-top">
+            <span className="stat-label">
+              {isAdmin ? "Total Deals Managed" : "My Assigned Deals"}
             </span>
-          </div>
-        </div>
-
-        {/* 2. Total Deals */}
-        <div className="kpi-card card-total">
-          <div className="kpi-top">
-            <span className="kpi-label">Total Deals</span>
-            <div className="kpi-icon-pill icon-blue">
+            <div className="stat-icon-wrap icon-blue">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
               </svg>
             </div>
           </div>
-          <div className="kpi-value">{stats.total}</div>
-          <div className="kpi-meta">
-            <span className="kpi-sub-text">In this sales pipeline</span>
-          </div>
-        </div>
-
-        {/* 3. Open Deals */}
-        <div className="kpi-card card-open">
-          <div className="kpi-top">
-            <span className="kpi-label">Open Deals</span>
-            <div className="kpi-icon-pill icon-amber">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-          </div>
-          <div className="kpi-value">{stats.openCount}</div>
-          <div className="kpi-meta">
-            <span className="kpi-sub-text">
-              Value: ${stats.openValue.toLocaleString()}
+          <div className="stat-number">{stats.totalDeals}</div>
+          <div className="stat-sub-row">
+            <span className="stat-pill pill-blue">
+              {stats.openCount} Open Active
+            </span>
+            <span className="stat-muted">
+              {stats.lostCount} Lost
             </span>
           </div>
         </div>
 
-        {/* 4. Won Deals */}
-        <div className="kpi-card card-won">
-          <div className="kpi-top">
-            <span className="kpi-label">Won Deals</span>
-            <div className="kpi-icon-pill icon-emerald">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            </div>
-          </div>
-          <div className="kpi-value">{stats.wonCount}</div>
-          <div className="kpi-meta">
-            <span className="kpi-sub-pill win-rate-pill">
-              {stats.winRate}% Win Rate
+        {/* 2. Total Pipeline Value */}
+        <div className="stat-box card-indigo">
+          <div className="stat-top">
+            <span className="stat-label">
+              {isAdmin ? "Total Pipeline Value" : "My Total Pipeline"}
             </span>
-          </div>
-        </div>
-
-        {/* 5. Pipeline Value */}
-        <div className="kpi-card card-value">
-          <div className="kpi-top">
-            <span className="kpi-label">Pipeline Value</span>
-            <div className="kpi-icon-pill icon-violet">
+            <div className="stat-icon-wrap icon-indigo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="1" x2="12" y2="23" />
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
             </div>
           </div>
-          <div className="kpi-value value-highlight">
-            ${stats.totalValue.toLocaleString()}
+          <div className="stat-number">
+            ${stats.totalPipelineValue.toLocaleString()}
           </div>
-          <div className="kpi-meta">
-            <span className="kpi-sub-text">
-              Avg: ${stats.avgDeal.toLocaleString()} / deal
+          <div className="stat-sub-row">
+            <span className="stat-pill pill-indigo">
+              Open: ${stats.openPipelineValue.toLocaleString()}
             </span>
+          </div>
+        </div>
+
+        {/* 3. Won Revenue & Win Rate */}
+        <div className="stat-box card-emerald">
+          <div className="stat-top">
+            <span className="stat-label">Won Revenue</span>
+            <div className="stat-icon-wrap icon-emerald">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+          </div>
+          <div className="stat-number text-emerald">
+            ${stats.wonPipelineValue.toLocaleString()}
+          </div>
+          <div className="stat-sub-row">
+            <span className="stat-pill pill-emerald">
+              {stats.wonCount} Deals Won ({stats.winRate}% Win Rate)
+            </span>
+          </div>
+        </div>
+
+        {/* 4. Admin: Total Team / User: High Priority */}
+        {isAdmin ? (
+          <div className="stat-box card-violet">
+            <div className="stat-top">
+              <span className="stat-label">Team & Reps</span>
+              <div className="stat-icon-wrap icon-violet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+            </div>
+            <div className="stat-number">{stats.totalUsers}</div>
+            <div className="stat-sub-row">
+              <span className="stat-pill pill-violet">
+                {stats.assignedCount} Deals Assigned
+              </span>
+              {stats.unassignedCount > 0 && (
+                <span className="stat-pill pill-amber">
+                  {stats.unassignedCount} Unassigned
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="stat-box card-amber">
+            <div className="stat-top">
+              <span className="stat-label">High Priority Deals</span>
+              <div className="stat-icon-wrap icon-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </div>
+            </div>
+            <div className="stat-number text-amber">{stats.highPriority}</div>
+            <div className="stat-sub-row">
+              <span className="stat-pill pill-amber">Needs Attention</span>
+            </div>
+          </div>
+        )}
+
+        {/* 5. Average Deal Size */}
+        <div className="stat-box card-slate">
+          <div className="stat-top">
+            <span className="stat-label">Average Deal Size</span>
+            <div className="stat-icon-wrap icon-slate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 20V10" />
+                <path d="M12 20V4" />
+                <path d="M6 20v-6" />
+              </svg>
+            </div>
+          </div>
+          <div className="stat-number">
+            ${stats.avgDealValue.toLocaleString()}
+          </div>
+          <div className="stat-sub-row">
+            <span className="stat-muted">Calculated per opportunity</span>
           </div>
         </div>
       </div>
 
       {/* =================================================
-          FILTER BAR & VIEW TOGGLE
+          ANALYTICS GRAPHS & SECTION ROW
       ================================================= */}
-      <div className="dashboard-filter-bar">
-        <div className="search-box-wrapper">
-          <svg
-            className="search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search deals by name, company, contact or owner..."
-          />
-          {search && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              onClick={() => setSearch("")}
-              aria-label="Clear search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        <div className="filter-bar-right">
-          <div className="deals-counter-pill">
-            <span>
-              Showing <strong>{filteredDeals.length}</strong> of{" "}
-              <strong>{pipelineDeals.length}</strong> deals
+      <div className="analytics-charts-grid">
+        {/* Graph 1: Pipeline Stage Conversion / Distribution Bar Chart */}
+        <div className="chart-panel-card">
+          <div className="chart-header">
+            <div className="chart-header-left">
+              <h3 className="chart-title">Pipeline Stage Distribution & Value</h3>
+              <p className="chart-subtitle">
+                Deals count and accumulated pipeline value across each stage
+              </p>
+            </div>
+            <span className="chart-badge">
+              {stageBreakdown.length} Stages
             </span>
           </div>
 
-          <div className="view-switcher-pill">
-            <button
-              type="button"
-              className={`switcher-btn ${view === "kanban" ? "active" : ""}`}
-              onClick={() => setView("kanban")}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="5" height="18" rx="1" />
-                <rect x="10" y="3" width="5" height="12" rx="1" />
-                <rect x="17" y="3" width="5" height="15" rx="1" />
-              </svg>
-              Kanban
-            </button>
-
-            <button
-              type="button"
-              className={`switcher-btn ${view === "table" ? "active" : ""}`}
-              onClick={() => setView("table")}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-              Table
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* =================================================
-          MAIN CONTENT AREA (KANBAN OR TABLE)
-      ================================================= */}
-      {!selectedPipeline ? (
-        <div className="dashboard-empty-card">
-          <div className="empty-icon-circle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="21" x2="9" y2="9" />
-            </svg>
-          </div>
-          <h3>No Pipelines Found</h3>
-          <p>
-            Create or configure your sales pipeline first to start organizing and managing your deals.
-          </p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate("/pipeline")}
-          >
-            Go to Pipeline Settings
-          </button>
-        </div>
-      ) : view === "kanban" ? (
-        /* =================================================
-           KANBAN BOARD
-        ================================================= */
-        <div className="kanban-board-container">
-          <div className="kanban-columns-track">
-            {pipelineStages.map((stage, index) => {
-              const stageTheme = STAGE_THEMES[index % STAGE_THEMES.length];
-              const stageDeals = filteredDeals.filter(
-                (deal) => String(deal.deal_stage) === String(stage.stage_id)
-              );
-
-              const stageTotalValue = stageDeals.reduce(
-                (sum, d) => sum + Number(d.deal_value || 0),
-                0
-              );
-
-              const isDragOver = String(dragOverStageId) === String(stage.stage_id);
-
-              return (
-                <div
-                  className={`kanban-column ${isDragOver ? "drag-over-active" : ""}`}
-                  key={stage.stage_id}
-                  onDragOver={(e) => handleDragOver(e, stage.stage_id)}
-                  onDragLeave={(e) => handleDragLeave(e, stage.stage_id)}
-                  onDrop={(e) => handleDrop(e, stage.stage_id)}
-                >
-                  {/* Column Header */}
-                  <div
-                    className="kanban-column-header"
-                    style={{ borderTopColor: stageTheme.accent }}
-                  >
-                    <div className="column-title-row">
-                      <div className="column-name-group">
-                        <span
-                          className="stage-color-dot"
-                          style={{ backgroundColor: stageTheme.accent }}
-                        />
-                        <h4 className="stage-title" title={stage.stage_name}>
-                          {stage.stage_name}
-                        </h4>
-                      </div>
-
-                      <div className="column-header-actions">
-                        <span className="stage-deal-count-badge">
-                          {stageDeals.length}
-                        </span>
-                        <button
-                          type="button"
-                          className="stage-add-quick-btn"
-                          onClick={() => openCreateModal(stage.stage_id)}
-                          title={`Add deal to ${stage.stage_name}`}
-                        >
-                          +
-                        </button>
-                      </div>
+          <div className="stage-bars-container">
+            {stageBreakdown.length === 0 ? (
+              <div className="chart-empty-state">
+                <p>No stage data found for this pipeline.</p>
+              </div>
+            ) : (
+              stageBreakdown.map((st) => (
+                <div key={st.stageId} className="stage-bar-item">
+                  <div className="stage-bar-label-row">
+                    <div className="stage-name-wrap">
+                      <span
+                        className="stage-dot"
+                        style={{ backgroundColor: st.theme.accent }}
+                      />
+                      <span className="stage-name-text">{st.stageName}</span>
                     </div>
 
-                    <div className="column-sub-row">
-                      <span className="stage-value-chip">
-                        ${stageTotalValue.toLocaleString()}
+                    <div className="stage-stats-wrap">
+                      <span className="stage-deal-count">
+                        <strong>{st.count}</strong> {st.count === 1 ? "deal" : "deals"}
                       </span>
-                      {stageDeals.length > 0 && (
-                        <span className="stage-deal-plural">
-                          {stageDeals.length === 1 ? "1 deal" : `${stageDeals.length} deals`}
-                        </span>
-                      )}
+                      <span className="stage-dollar-val">
+                        ${st.value.toLocaleString()}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Deals List */}
-                  <div className="kanban-cards-list">
-                    {stageDeals.length === 0 ? (
-                      <div
-                        className="kanban-empty-dropzone"
-                        onClick={() => openCreateModal(stage.stage_id)}
-                      >
-                        <div className="empty-dropzone-icon">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                          </svg>
-                        </div>
-                        <span className="empty-dropzone-text">No deals in this stage</span>
-                        <span className="empty-dropzone-sub">
-                          Click + to add or drag deal here
-                        </span>
-                      </div>
-                    ) : (
-                      stageDeals.map((deal) => (
-                        <DealCard
-                          key={deal.deal_id}
-                          deal={deal}
-                          onClick={handleDealClick}
-                          onDragStart={handleDragStart}
-                        />
-                      ))
-                    )}
+                  {/* Visual Progress Bar */}
+                  <div className="stage-progress-track">
+                    <div
+                      className="stage-progress-fill"
+                      style={{
+                        width: `${Math.max(st.percentage, st.count > 0 ? 6 : 0)}%`,
+                        backgroundColor: st.theme.accent,
+                      }}
+                    />
                   </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         </div>
-      ) : (
-        /* =================================================
-           TABLE VIEW
-        ================================================= */
-        <div className="dashboard-table-view-wrapper">
-          <DealTable
-            deals={filteredDeals}
-            onDealClick={handleDealClick}
-          />
+
+        {/* Graph 2: Deal Priority & Health Breakdown */}
+        <div className="chart-panel-card">
+          <div className="chart-header">
+            <div className="chart-header-left">
+              <h3 className="chart-title">Deal Priority & Pipeline Health</h3>
+              <p className="chart-subtitle">Opportunities categorized by urgency & stage</p>
+            </div>
+          </div>
+
+          <div className="priority-health-content">
+            {/* Priority Progress Bars */}
+            <div className="priority-bars-group">
+              {/* High Priority */}
+              <div className="priority-item">
+                <div className="priority-item-header">
+                  <span className="priority-badge-label priority-high">
+                    ● High Priority
+                  </span>
+                  <span className="priority-count-val">
+                    {stats.highPriority} deals (
+                    {stats.totalDeals > 0
+                      ? Math.round((stats.highPriority / stats.totalDeals) * 100)
+                      : 0}
+                    %)
+                  </span>
+                </div>
+                <div className="priority-track">
+                  <div
+                    className="priority-fill fill-high"
+                    style={{
+                      width: `${stats.totalDeals > 0 ? (stats.highPriority / stats.totalDeals) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Medium Priority */}
+              <div className="priority-item">
+                <div className="priority-item-header">
+                  <span className="priority-badge-label priority-medium">
+                    ● Medium Priority
+                  </span>
+                  <span className="priority-count-val">
+                    {stats.mediumPriority} deals (
+                    {stats.totalDeals > 0
+                      ? Math.round((stats.mediumPriority / stats.totalDeals) * 100)
+                      : 0}
+                    %)
+                  </span>
+                </div>
+                <div className="priority-track">
+                  <div
+                    className="priority-fill fill-medium"
+                    style={{
+                      width: `${stats.totalDeals > 0 ? (stats.mediumPriority / stats.totalDeals) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Low Priority */}
+              <div className="priority-item">
+                <div className="priority-item-header">
+                  <span className="priority-badge-label priority-low">
+                    ● Low Priority
+                  </span>
+                  <span className="priority-count-val">
+                    {stats.lowPriority} deals (
+                    {stats.totalDeals > 0
+                      ? Math.round((stats.lowPriority / stats.totalDeals) * 100)
+                      : 0}
+                    %)
+                  </span>
+                </div>
+                <div className="priority-track">
+                  <div
+                    className="priority-fill fill-low"
+                    style={{
+                      width: `${stats.totalDeals > 0 ? (stats.lowPriority / stats.totalDeals) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Health Snapshot Cards */}
+            <div className="health-snapshot-grid">
+              <div className="health-pill-card open-health">
+                <span className="health-label">Open Active</span>
+                <strong>{stats.openCount} Deals</strong>
+                <span className="health-sub">
+                  ${stats.openPipelineValue.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="health-pill-card won-health">
+                <span className="health-label">Closed Won</span>
+                <strong>{stats.wonCount} Deals</strong>
+                <span className="health-sub">
+                  ${stats.wonPipelineValue.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="health-pill-card lost-health">
+                <span className="health-label">Closed Lost</span>
+                <strong>{stats.lostCount} Deals</strong>
+                <span className="health-sub">Requires Follow-up</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =================================================
+          ADMIN EXCLUSIVE: TEAM DEAL ASSIGNMENTS (KISKO KITNA ASSIGNED H)
+      ================================================= */}
+      {isAdmin && (
+        <div className="analytics-section-card">
+          <div className="section-header-row">
+            <div>
+              <h3 className="section-title">Team Workload & Deal Distribution</h3>
+              <p className="section-subtitle">
+                Overview of assigned deals, active volume, and total pipeline value per sales rep / user.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => navigate("/users")}
+            >
+              Manage Users
+            </button>
+          </div>
+
+          <div className="team-distribution-table-wrapper">
+            <table className="analytics-table">
+              <thead>
+                <tr>
+                  <th>Team Member</th>
+                  <th>Role</th>
+                  <th>Assigned Deals</th>
+                  <th>Active / Open</th>
+                  <th>Won Deals</th>
+                  <th>Total Pipeline Value</th>
+                  <th>Workload Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userAssignments.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="table-empty-cell">
+                      No team members or deal assignments found.
+                    </td>
+                  </tr>
+                ) : (
+                  userAssignments.map((u) => {
+                    const isUnassignedBucket = u.userId === "unassigned";
+
+                    return (
+                      <tr key={u.userId} className={isUnassignedBucket ? "unassigned-row" : ""}>
+                        {/* Member */}
+                        <td>
+                          <div className="member-info-cell">
+                            <div className={`member-avatar ${isUnassignedBucket ? "avatar-unassigned" : ""}`}>
+                              {isUnassignedBucket ? "⚠️" : (u.name.charAt(0).toUpperCase() || "U")}
+                            </div>
+                            <div className="member-text">
+                              <strong>{u.name}</strong>
+                              <small>{u.email}</small>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Role */}
+                        <td>
+                          <span className={`role-pill role-${u.role}`}>
+                            {u.role}
+                          </span>
+                        </td>
+
+                        {/* Assigned Deals Count */}
+                        <td>
+                          <span className="deal-count-badge">
+                            <strong>{u.dealCount}</strong> deals
+                          </span>
+                        </td>
+
+                        {/* Open Deals */}
+                        <td>
+                          <span className="status-pill status-open">
+                            {u.openCount} Open
+                          </span>
+                        </td>
+
+                        {/* Won Deals */}
+                        <td>
+                          <span className="status-pill status-won">
+                            {u.wonCount} Won
+                          </span>
+                        </td>
+
+                        {/* Total Pipeline Value */}
+                        <td className="value-cell">
+                          <strong>${u.totalValue.toLocaleString()}</strong>
+                        </td>
+
+                        {/* Workload Share */}
+                        <td>
+                          <div className="workload-bar-wrap">
+                            <div className="workload-track">
+                              <div
+                                className={`workload-fill ${isUnassignedBucket ? "fill-unassigned" : ""}`}
+                                style={{ width: `${Math.max(u.percentage, u.dealCount > 0 ? 5 : 0)}%` }}
+                              />
+                            </div>
+                            <span className="workload-pct">{u.percentage}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* =================================================
-          CREATE DEAL MODAL
+          TOP OPPORTUNITIES / RECENT DEALS TABLE
       ================================================= */}
-      {showCreate && (
-        <Modal
-          title="Create New Deal"
-          onClose={() => setShowCreate(false)}
-        >
-          <CreateDeal
-            onClose={() => setShowCreate(false)}
-            onCreate={handleCreateDeal}
-            pipelines={pipelines}
-            initialPipelineId={selectedPipelineId}
-            initialStageId={createStageId}
-          />
-        </Modal>
-      )}
+      <div className="analytics-section-card">
+        <div className="section-header-row">
+          <div>
+            <h3 className="section-title">
+              {isAdmin ? "Highest Value Deals in Pipeline" : "My Top Opportunities"}
+            </h3>
+            <p className="section-subtitle">
+              High-impact revenue opportunities requiring team focus and follow-up.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => navigate("/deals")}
+          >
+            View Full List →
+          </button>
+        </div>
+
+        <div className="team-distribution-table-wrapper">
+          <table className="analytics-table">
+            <thead>
+              <tr>
+                <th>Deal Name</th>
+                <th>Organization</th>
+                <th>Value</th>
+                <th>Assigned Rep</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentDeals.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="table-empty-cell">
+                    No deals available in this pipeline.
+                  </td>
+                </tr>
+              ) : (
+                recentDeals.map((deal) => {
+                  const priority = (deal.deal_priority || "Medium").toLowerCase();
+                  const status = (deal.deal_status || "Open").toLowerCase();
+                  const assignedName = deal.assigned_user_name || deal.deal_owner || "Unassigned";
+
+                  return (
+                    <tr
+                      key={deal.deal_id}
+                      className="clickable-row"
+                      onClick={() => navigate(`/deal/${deal.deal_id}`)}
+                    >
+                      {/* Deal Name */}
+                      <td className="deal-name-cell">
+                        <strong>{deal.deal_name || "Untitled Deal"}</strong>
+                      </td>
+
+                      {/* Organization */}
+                      <td>{deal.deal_organization || "-"}</td>
+
+                      {/* Value */}
+                      <td className="value-cell">
+                        <strong>
+                          ${Number(deal.deal_value || 0).toLocaleString()}
+                        </strong>
+                      </td>
+
+                      {/* Assigned Rep */}
+                      <td>
+                        <span className="assigned-rep-pill">
+                          {assignedName}
+                        </span>
+                      </td>
+
+                      {/* Priority */}
+                      <td>
+                        <span className={`table-priority-pill priority-${priority}`}>
+                          {deal.deal_priority || "Medium"}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td>
+                        <span className={`table-status-pill status-${status}`}>
+                          {deal.deal_status || "Open"}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      <td>
+                        <button
+                          type="button"
+                          className="table-view-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/deal/${deal.deal_id}`);
+                          }}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

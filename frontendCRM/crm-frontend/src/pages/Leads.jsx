@@ -56,14 +56,19 @@ const statuses = [
 
 function Leads() {
   const [leads, setLeads] = useState(initialLeads);
-
   const [activeStatus, setActiveStatus] = useState("All");
-
   const [search, setSearch] = useState("");
-
   const [view, setView] = useState("cards");
-
   const [showCreate, setShowCreate] = useState(false);
+
+  // Current user permissions
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("user"));
+  } catch (err) {
+    console.error("Failed to read user from localStorage:", err);
+  }
+  const canAddLead = currentUser?.role === "admin" || currentUser?.role === "coworker";
 
   const filteredLeads = useMemo(() => {
     const searchValue = search.toLowerCase().trim();
@@ -118,14 +123,16 @@ function Leads() {
           </p>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={() =>
-            setShowCreate(true)
-          }
-        >
-          + Add Lead
-        </button>
+        {canAddLead && (
+          <button
+            className="primary-button"
+            onClick={() =>
+              setShowCreate(true)
+            }
+          >
+            + Add Lead
+          </button>
+        )}
 
       </div>
 
@@ -330,7 +337,7 @@ function Leads() {
           CREATE LEAD MODAL
       ===================================== */}
 
-      {showCreate && (
+      {canAddLead && showCreate && (
         <Modal
           title="Create Lead"
           onClose={() =>

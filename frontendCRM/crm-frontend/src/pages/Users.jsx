@@ -63,6 +63,8 @@ function Users() {
 
   const [showModal, setShowModal] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState(null);
 
   const [form, setForm] = useState(emptyForm);
@@ -219,141 +221,99 @@ function Users() {
   // ===================================================
 
   const openCreateModal = () => {
-
     setSelectedUser(null);
-
+    setShowPassword(false);
     setForm({
       name: "",
       email: "",
       password: "",
       role: "user",
     });
-
     setError("");
-
     setShowModal(true);
-
   };
-
 
   // ===================================================
   // OPEN EDIT MODAL
   // ===================================================
 
   const openEditModal = (user) => {
-
     setSelectedUser(user);
-
+    setShowPassword(false);
     setForm({
       name: user.name || "",
       email: user.email || "",
       password: "",
       role: user.role || "user",
     });
-
     setError("");
-
     setShowModal(true);
-
   };
-
 
   // ===================================================
   // CLOSE MODAL
   // ===================================================
 
   const closeModal = () => {
-
     if (saving) {
       return;
     }
-
     setShowModal(false);
-
+    setShowPassword(false);
     setSelectedUser(null);
-
     setForm(emptyForm);
-
   };
-
 
   // ===================================================
   // HANDLE INPUT
   // ===================================================
 
   const handleChange = (e) => {
-
-    const {
-      name,
-      value
-    } = e.target;
-
+    const { name, value } = e.target;
     setForm((current) => ({
       ...current,
       [name]: value,
     }));
-
   };
-
 
   // ===================================================
   // CREATE / UPDATE USER
   // ===================================================
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
     try {
-
       setSaving(true);
-
       setError("");
-
 
       // =================================================
       // UPDATE
       // =================================================
-
       if (selectedUser) {
+        console.log("Updating user:", selectedUser.user_id);
+        const updatePayload = {
+          name: form.name,
+          email: form.email,
+          role: form.role,
+        };
+        if (form.password && form.password.trim().length >= 6) {
+          updatePayload.password = form.password.trim();
+        }
 
-        console.log(
-          "Updating user:",
-          selectedUser.user_id
-        );
-
-        await api.put(
-          `/users/${selectedUser.user_id}`,
-          {
-            name: form.name,
-            email: form.email,
-            role: form.role,
-          }
-        );
-
+        await api.put(`/users/${selectedUser.user_id}`, updatePayload);
       }
-
       // =================================================
       // CREATE
       // =================================================
-
       else {
-
-        console.log(
-          "Creating user:",
-          form
-        );
-
-        await api.post(
-          "/users",
-          {
-            name: form.name,
-            email: form.email,
-            password: form.password,
-            role: form.role,
-          }
-        );
-
+        console.log("Creating user:", form);
+        await api.post("/users", {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: form.role,
+        });
       }
 
 
@@ -908,37 +868,68 @@ function Users() {
             </div>
 
 
-            {/* PASSWORD ONLY CREATE */}
+            {/* PASSWORD */}
+            <div className="form-group">
+              <label>
+                {selectedUser ? "New Password (Optional)" : "Password"}
+              </label>
 
-            {!selectedUser && (
-
-              <div className="form-group">
-
-                <label>
-                  Password
-                </label>
-
+              <div className="password-input-wrapper">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Enter password"
+                  placeholder={
+                    selectedUser
+                      ? "Leave blank to keep existing password"
+                      : "Enter password (min 6 chars)"
+                  }
                   minLength={6}
-                  required
+                  required={!selectedUser}
                 />
 
+                <button
+                  type="button"
+                  className="btn-toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  tabIndex="-1"
+                >
+                  {showPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="18"
+                      height="18"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="23" x2="23" y2="1" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="18"
+                      height="18"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
+                </button>
               </div>
-
-            )}
+            </div>
 
 
             {/* ROLE */}
-
             <div className="form-group">
-
               <label>
-                Role
+                Role & Permissions
               </label>
 
               <select
@@ -946,17 +937,34 @@ function Users() {
                 value={form.role}
                 onChange={handleChange}
               >
-
                 <option value="user">
-                  Employee
+                  Employee (View & manage assigned deals)
                 </option>
-
                 <option value="coworker">
-                  Manager
+                  Manager (Manage pipeline, deals & team)
                 </option>
-
+                <option value="admin">
+                  Admin / Owner (Full system access)
+                </option>
               </select>
 
+              <div className="role-helper-box">
+                {form.role === "admin" && (
+                  <div className="role-desc admin">
+                    👑 <strong>Admin / Owner:</strong> Full system control. Can add/edit/delete users, assign deals, customize pipelines, bulk import/delete, and manage workspace.
+                  </div>
+                )}
+                {form.role === "coworker" && (
+                  <div className="role-desc coworker">
+                    💼 <strong>Manager:</strong> Pipeline leadership. Can create & manage deals, track pipeline stages, assign tasks, and monitor sales activity.
+                  </div>
+                )}
+                {form.role === "user" && (
+                  <div className="role-desc user">
+                    👤 <strong>Employee:</strong> Individual sales rep. Can view & update assigned deals, schedule meetings/calls, add notes, and advance stages.
+                  </div>
+                )}
+              </div>
             </div>
 
 

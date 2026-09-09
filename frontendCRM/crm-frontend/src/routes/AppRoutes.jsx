@@ -10,6 +10,8 @@ import Register from "../pages/Register";
 
 import Dashboard from "../pages/Dashboard";
 import Activities from "../pages/Activities";
+import Contacts from "../pages/Contacts";
+import Companies from "../pages/Companies";
 import Users from "../pages/Users";
 import DealDetails from "../pages/DealDetails";
 import LeadDetails from "../pages/LeadDetails";
@@ -67,14 +69,35 @@ function AppRoutes() {
                         />
 
                         <Route
+                            path="/deals/:id"
+                            element={<DealDetails />}
+                        />
+
+                        <Route
                             path="/activities"
                             element={<Activities />}
+                        />
+
+                        <Route
+                            path="/contacts"
+                            element={<Contacts />}
+                        />
+
+                        <Route
+                            path="/companies"
+                            element={<Companies />}
                         />
 
                         <Route
                             path="/pipelines"
                             element={<Pipeline />}
                         />
+
+                        <Route
+                            path="/pipeline"
+                            element={<Navigate to="/pipelines" replace />}
+                        />
+
 
 
                         {/* =========================

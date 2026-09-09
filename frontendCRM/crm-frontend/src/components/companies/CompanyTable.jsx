@@ -1,82 +1,120 @@
 import "../../styles/companies/company-table.css";
 
-function CompanyTable({
-  companies,
-  onDelete,
-}) {
+function CompanyTable({ companies = [] }) {
+  const formatCurrency = (val) => {
+    if (!val || isNaN(val)) return "$0";
+    return `$${Number(val).toLocaleString()}`;
+  };
+
+  const getStatusClass = (status) => {
+    const s = String(status || "Active").toLowerCase();
+    return `status-${s}`;
+  };
+
   return (
     <div className="company-table-wrapper">
-
       <table className="company-table">
-
         <thead>
           <tr>
-            <th>Company</th>
+            <th>Company / Organization</th>
+            <th>Primary Contact</th>
+            <th>Deals Count</th>
+            <th>Total Pipeline Value</th>
             <th>Email</th>
             <th>Phone</th>
-            <th>Industry</th>
-            <th>Owner</th>
+            <th>Location / City</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th>Assigned User</th>
           </tr>
         </thead>
 
         <tbody>
+          {companies.map((company) => {
+            const rawStatus = company.status || "Active";
+            const statusClass = getStatusClass(rawStatus);
+            const initial = (company.name || "C").charAt(0).toUpperCase();
 
-          {companies.map((company) => (
-            <tr key={company.id}>
-
-              <td>
-                <div className="company-table-user">
-
-                  <div className="company-logo small">
-                    {company.name
-                      .charAt(0)
-                      .toUpperCase()}
+            return (
+              <tr key={company.id || company.name}>
+                {/* Company Name & Avatar */}
+                <td>
+                  <div className="company-brand-cell">
+                    <div className="company-logo-avatar">{initial}</div>
+                    <div className="company-brand-info">
+                      <span className="company-name-text">{company.name}</span>
+                    </div>
                   </div>
+                </td>
 
-                  <span>
-                    {company.name}
+                {/* Primary Contact */}
+                <td>
+                  <span style={{ fontWeight: 600, color: "#334155" }}>
+                    {company.primary_contact || "—"}
                   </span>
+                </td>
 
-                </div>
-              </td>
+                {/* Deals Count */}
+                <td>
+                  <span className="company-deals-badge">
+                    💼 {company.deals_count || 1} {Number(company.deals_count) === 1 ? "Deal" : "Deals"}
+                  </span>
+                </td>
 
-              <td>{company.email}</td>
+                {/* Total Value */}
+                <td>
+                  <span className="company-value-pill">
+                    {formatCurrency(company.total_value)}
+                  </span>
+                </td>
 
-              <td>{company.phone}</td>
+                {/* Email */}
+                <td>
+                  {company.email ? (
+                    <a href={`mailto:${company.email}`} style={{ color: "#2563eb", textDecoration: "none", fontSize: "13px" }}>
+                      {company.email}
+                    </a>
+                  ) : (
+                    <span style={{ color: "#94a3b8" }}>—</span>
+                  )}
+                </td>
 
-              <td>{company.industry}</td>
+                {/* Phone */}
+                <td>
+                  {company.phone ? (
+                    <a href={`tel:${company.phone}`} style={{ color: "#475569", textDecoration: "none", fontSize: "13px" }}>
+                      {company.phone}
+                    </a>
+                  ) : (
+                    <span style={{ color: "#94a3b8" }}>—</span>
+                  )}
+                </td>
 
-              <td>{company.owner}</td>
+                {/* Address */}
+                <td>
+                  <span style={{ color: "#64748b", fontSize: "12.5px" }}>
+                    {company.address || "—"}
+                  </span>
+                </td>
 
-              <td>
-                <span
-                  className={`company-status ${company.status.toLowerCase()}`}
-                >
-                  <span className="company-status-dot" />
-                  {company.status}
-                </span>
-              </td>
+                {/* Status */}
+                <td>
+                  <span className={`company-status-badge ${statusClass}`}>
+                    <span className="status-dot" />
+                    {rawStatus}
+                  </span>
+                </td>
 
-              <td>
-                <button
-                  className="company-table-action delete"
-                  onClick={() =>
-                    onDelete(company.id)
-                  }
-                >
-                  Delete
-                </button>
-              </td>
-
-            </tr>
-          ))}
-
+                {/* Owner */}
+                <td>
+                  <span style={{ fontWeight: 600, color: "#334155" }}>
+                    {company.owner_name || company.owner || "Suyash"}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
-
       </table>
-
     </div>
   );
 }

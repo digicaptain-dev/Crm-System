@@ -23,6 +23,8 @@ const schedulesRoutes = require('./routes/scheduleRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const contactRoutes = require('./routes/contactRoutes');
+const companyRoutes = require('./routes/companyRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -114,7 +116,7 @@ app.use('/api/deals/upload', uploadRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/deals', conversationRoutes);
 app.use('/api/img/conv', imageRoutes);
-app.use('/api', activityRoutes);
+app.use('/api', activityRoutes, contactRoutes, companyRoutes);
 
 // Start HTTP Server
 server.listen(PORT, () => {

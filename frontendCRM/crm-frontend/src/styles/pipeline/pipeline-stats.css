@@ -1,132 +1,145 @@
-.pipeline-stats {
-  width: 100%;
+/* =========================================================
+   PIPELINE KPI STATS STYLES
+   ========================================================= */
 
+.pipeline-kpi-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(5, minmax(0, 1fr));
-
-  gap: 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  width: 100%;
 }
 
-.pipeline-stat-card {
-  min-height: 88px;
+.pipeline-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 14px);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
 
-  padding: 14px 15px;
+.pipeline-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+  border-color: var(--border-strong, #cbd5e1);
+}
 
+.kpi-card-header {
   display: flex;
   align-items: center;
-
-  gap: 11px;
-
-  background: #ffffff;
-
-  border: 1px solid #e3e7ee;
-  border-radius: 11px;
-
-  box-shadow:
-    0 2px 7px rgba(15, 23, 42, 0.025);
-
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+  justify-content: space-between;
 }
 
-.pipeline-stat-card:hover {
-  transform: translateY(-1px);
-
-  border-color: #d7dee8;
-
-  box-shadow:
-    0 6px 16px rgba(15, 23, 42, 0.055);
+.kpi-card-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.pipeline-stat-icon {
-  width: 37px;
-  height: 37px;
-
-  flex: 0 0 37px;
-
+.kpi-icon-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  border-radius: 9px;
+.kpi-icon-pill svg {
+  width: 16px;
+  height: 16px;
+}
 
+.icon-blue {
   background: #eff6ff;
   color: #2563eb;
-
-  font-size: 16px;
-  font-weight: 750;
 }
+.icon-blue svg { stroke: #2563eb; }
 
-.pipeline-stat-content {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
+.icon-violet {
+  background: #f5f3ff;
+  color: #7c3aed;
 }
+.icon-violet svg { stroke: #7c3aed; }
 
-.pipeline-stat-label {
-  color: #8993a5;
-
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1.2;
+.icon-amber {
+  background: #fffbeb;
+  color: #d97706;
 }
+.icon-amber svg { stroke: #d97706; }
 
-.pipeline-stat-value {
-  color: #1c2738;
+.icon-emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+.icon-emerald svg { stroke: #059669; }
 
-  font-size: 18px;
+.icon-rose {
+  background: #fff1f2;
+  color: #e11d48;
+}
+.icon-rose svg { stroke: #e11d48; }
+
+.kpi-card-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.5px;
   line-height: 1;
+}
 
-  font-weight: 750;
+.highlight-violet {
+  color: #6d28d9;
+}
 
+.kpi-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.kpi-sub-text {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
   white-space: nowrap;
-
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-@media (max-width: 1100px) {
-  .pipeline-stats {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
+.kpi-badge-win {
+  display: inline-flex;
+  padding: 2px 7px;
+  background: #ecfdf5;
+  color: #047857;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+  .pipeline-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 650px) {
-  .pipeline-stats {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-
-    gap: 8px;
-  }
-
-  .pipeline-stat-card {
-    min-height: 78px;
-
-    padding: 11px;
-  }
-
-  .pipeline-stat-icon {
-    width: 33px;
-    height: 33px;
-
-    flex-basis: 33px;
-  }
-
-  .pipeline-stat-value {
-    font-size: 16px;
+@media (max-width: 768px) {
+  .pipeline-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 380px) {
-  .pipeline-stats {
+@media (max-width: 480px) {
+  .pipeline-kpi-grid {
     grid-template-columns: 1fr;
   }
 }

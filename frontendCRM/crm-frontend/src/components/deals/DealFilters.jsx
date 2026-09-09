@@ -9,222 +9,136 @@ function DealFilters({
   setPriority,
   pipeline,
   setPipeline,
-  pipelines,
+  pipelines = [],
   assignedUser,
   setAssignedUser,
-  users,
+  users = [],
   onReset,
-
-  // Permission
   isAdmin = false,
+  view = "table",
+  setView,
 }) {
-  const hasActiveFilters =
-    search ||
-    status ||
-    priority ||
-    pipeline ||
-    assignedUser;
+  const hasActiveFilters = Boolean(search || status || priority || pipeline || assignedUser);
 
   return (
-    <div className="deal-filters">
+    <div className="deal-filters-toolbar">
+      <div className="deal-filter-left-group">
+        {/* Search */}
+        <div className="deal-filter-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            className="deal-search-input"
+            placeholder="Search deals, company, contacts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-      {/* =================================================
-          SEARCH
-      ================================================= */}
+        {/* Status Dropdown */}
+        <select
+          className="deal-select-filter"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">All Statuses</option>
+          <option value="Open">● Open</option>
+          <option value="Closed Won">✓ Closed Won</option>
+          <option value="Closed Lost">✕ Closed Lost</option>
+        </select>
 
-      <div className="deal-filter-search">
+        {/* Priority Dropdown */}
+        <select
+          className="deal-select-filter"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        >
+          <option value="">All Priorities</option>
+          <option value="High">High Priority</option>
+          <option value="Medium">Medium Priority</option>
+          <option value="Low">Low Priority</option>
+        </select>
 
-        <span className="deal-search-icon">
-          🔍
-        </span>
+        {/* Pipeline Selector (if multiple exist) */}
+        {pipelines.length > 1 && (
+          <select
+            className="deal-select-filter"
+            value={pipeline}
+            onChange={(e) => setPipeline(e.target.value)}
+          >
+            <option value="">All Pipelines</option>
+            {pipelines.map((p) => (
+              <option key={p.pipeline_id} value={p.pipeline_id}>
+                {p.pipeline_name}
+              </option>
+            ))}
+          </select>
+        )}
 
-        <input
-          type="text"
-          placeholder="Search deals, organization, email..."
-          value={search}
-          onChange={(e) =>
-            setSearch(
-              e.target.value
-            )
-          }
-        />
+        {/* Assigned User Filter (Admin Only) */}
+        {isAdmin && users.length > 0 && (
+          <select
+            className="deal-select-filter"
+            value={assignedUser}
+            onChange={(e) => setAssignedUser(e.target.value)}
+          >
+            <option value="">All Assignees</option>
+            {users.map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {u.name || u.email}
+              </option>
+            ))}
+          </select>
+        )}
 
-        {search && (
+        {/* Reset Button */}
+        {hasActiveFilters && (
           <button
             type="button"
-            className="deal-search-clear"
-            onClick={() =>
-              setSearch("")
-            }
-            aria-label="Clear search"
+            className="deal-btn-reset-filters"
+            onClick={onReset}
+            title="Clear all filters"
           >
-            ×
+            <span>✕ Clear Filters</span>
           </button>
         )}
-
       </div>
 
-      {/* =================================================
-          STATUS
-      ================================================= */}
-
-      <select
-        value={status}
-        onChange={(e) =>
-          setStatus(
-            e.target.value
-          )
-        }
-        aria-label="Filter by status"
-      >
-
-        <option value="">
-          All Status
-        </option>
-
-        <option value="Open">
-          Open
-        </option>
-
-        <option value="Closed Won">
-          Closed Won
-        </option>
-
-        <option value="Closed Lost">
-          Closed Lost
-        </option>
-
-        <option value="Removed">
-          Removed
-        </option>
-
-      </select>
-
-      {/* =================================================
-          PRIORITY
-      ================================================= */}
-
-      <select
-        value={priority}
-        onChange={(e) =>
-          setPriority(
-            e.target.value
-          )
-        }
-        aria-label="Filter by priority"
-      >
-
-        <option value="">
-          All Priority
-        </option>
-
-        <option value="High">
-          High
-        </option>
-
-        <option value="Medium">
-          Medium
-        </option>
-
-        <option value="Low">
-          Low
-        </option>
-
-      </select>
-
-      {/* =================================================
-          PIPELINE
-      ================================================= */}
-
-      <select
-        value={pipeline}
-        onChange={(e) =>
-          setPipeline(
-            e.target.value
-          )
-        }
-        aria-label="Filter by pipeline"
-      >
-
-        <option value="">
-          All Pipelines
-        </option>
-
-        {pipelines.map(
-          (item) => (
-            <option
-              key={
-                item.pipeline_id
-              }
-              value={
-                item.pipeline_id
-              }
+      {/* Right Group: View Mode Switcher */}
+      {setView && (
+        <div className="deal-filter-right-group">
+          <div className="deals-view-toggle">
+            <button
+              type="button"
+              className={`view-btn ${view === "table" ? "active" : ""}`}
+              onClick={() => setView("table")}
             >
-              {
-                item.pipeline_name
-              }
-            </option>
-          )
-        )}
-
-      </select>
-
-      {/* =================================================
-          ASSIGNED USER
-          ADMIN ONLY
-      ================================================= */}
-
-      {isAdmin && (
-        <select
-          value={assignedUser}
-          onChange={(e) =>
-            setAssignedUser(
-              e.target.value
-            )
-          }
-          aria-label="Filter by assigned user"
-        >
-
-          <option value="">
-            All Assigned Users
-          </option>
-
-          <option value="unassigned">
-            Unassigned
-          </option>
-
-          {users.map(
-            (user) => (
-              <option
-                key={
-                  user.user_id
-                }
-                value={
-                  user.user_id
-                }
-              >
-                {user.name}
-              </option>
-            )
-          )}
-
-        </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+              <span>Table</span>
+            </button>
+            <button
+              type="button"
+              className={`view-btn ${view === "cards" ? "active" : ""}`}
+              onClick={() => setView("cards")}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              <span>Cards</span>
+            </button>
+          </div>
+        </div>
       )}
-
-      {/* =================================================
-          RESET
-      ================================================= */}
-
-      {hasActiveFilters && (
-        <button
-          type="button"
-          className="filter-reset-button"
-          onClick={onReset}
-        >
-          Reset
-        </button>
-      )}
-
     </div>
   );
 }

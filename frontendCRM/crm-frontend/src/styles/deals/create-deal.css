@@ -1,0 +1,132 @@
+/* =========================================================
+   CREATE DEAL MODAL FORM STYLES
+   ========================================================= */
+
+.create-deal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-deal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.create-deal-grid .form-group-full {
+  grid-column: span 2;
+}
+
+.create-deal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-deal-form label {
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.create-deal-form label span.required-star {
+  color: #ef4444;
+}
+
+.create-deal-form input,
+.create-deal-form select,
+.create-deal-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.create-deal-form input:focus,
+.create-deal-form select:focus,
+.create-deal-form textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.create-deal-form input::placeholder,
+.create-deal-form textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.create-deal-form select:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.create-deal-form textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.create-deal-form .form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.create-deal-form .form-actions .secondary-button {
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.create-deal-form .form-actions .secondary-button:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.create-deal-form .form-actions .primary-button {
+  padding: 9px 22px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+}
+
+.create-deal-form .form-actions .primary-button:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 520px) {
+  .create-deal-grid {
+    grid-template-columns: 1fr;
+  }
+  .create-deal-grid .form-group-full {
+    grid-column: span 1;
+  }
+}

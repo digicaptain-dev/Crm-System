@@ -3,6 +3,7 @@ const db = require('../db');
 const authenticateToken = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 
 const router = express.Router();
@@ -127,6 +128,14 @@ router.post(
 
 
             // ---------------------------------------------
+            // Fetch Organization / Admin company name
+            // ---------------------------------------------
+            const [adminRows] = await db.query(
+                `SELECT company_name FROM users WHERE role = 'admin' AND company_name IS NOT NULL LIMIT 1`
+            );
+            const orgCompanyName = adminRows.length > 0 && adminRows[0].company_name ? adminRows[0].company_name : "My Company";
+
+            // ---------------------------------------------
             // Insert user
             // ---------------------------------------------
 
@@ -137,15 +146,17 @@ router.post(
                     name,
                     email,
                     password,
-                    role
+                    role,
+                    company_name
                 )
-                VALUES (?, ?, ?, ?, ?)`,
+                VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     user_id,
                     cleanName,
                     cleanEmail,
                     hashedPassword,
-                    role
+                    role,
+                    orgCompanyName
                 ]
             );
 
@@ -572,46 +583,61 @@ router.delete(
 
             const targetUser = users[0];
 
-
             // ---------------------------------------------
-            // Never allow admin deletion
+            // Prevent Self-Deletion (Cannot delete own logged-in account)
             // ---------------------------------------------
-
-            if (targetUser.role === "admin") {
-
+            if (targetUser.user_id === req.user.user_id) {
                 return res.status(403).json({
                     success: false,
-                    message: "Company Owner cannot be deleted"
+                    message: "You cannot delete your own logged-in account"
                 });
             }
-
 
             // ---------------------------------------------
             // Manager restrictions
             // ---------------------------------------------
-
-            if (
-                req.user.role === "coworker" &&
-                targetUser.role === "coworker"
-            ) {
-
-                return res.status(403).json({
-                    success: false,
-                    message: "Manager cannot delete another Manager"
-                });
+            if (req.user.role === "coworker") {
+                if (targetUser.role === "admin") {
+                    return res.status(403).json({
+                        success: false,
+                        message: "Manager cannot delete Company Owner/Admin"
+                    });
+                }
+                if (targetUser.role === "coworker") {
+                    return res.status(403).json({
+                        success: false,
+                        message: "Manager cannot delete another Manager"
+                    });
+                }
             }
 
+            // ---------------------------------------------
+            // Clean up associations before deleting user
+            // ---------------------------------------------
+            try {
+                // Unassign deals assigned to this user
+                await db.query(`UPDATE deals SET assign_to = NULL WHERE assign_to = ?`, [id]);
+            } catch (e) {
+                console.warn("Could not unassign deals:", e.message);
+            }
+
+            try {
+                // Nullify or clean user_id in activities
+                await db.query(`UPDATE activities SET user_id = NULL WHERE user_id = ?`, [id]);
+            } catch (e) {
+                try {
+                    await db.query(`DELETE FROM activities WHERE user_id = ?`, [id]);
+                } catch (e2) {}
+            }
 
             // ---------------------------------------------
-            // Delete
+            // Delete User
             // ---------------------------------------------
-
             await db.query(
                 `DELETE FROM users
                  WHERE user_id = ?`,
                 [id]
             );
-
 
             return res.status(200).json({
                 success: true,
@@ -709,6 +735,225 @@ router.get('/deals/:id/activity', (req, res) => {
         }
         res.status(200).json(results);
     });
+});
+
+// =====================================================
+// GET LOGGED-IN USER PROFILE (/users/me)
+// =====================================================
+router.get("/users/me", authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const [users] = await db.query(
+            `SELECT user_id, name, email, role, company_name, created_at
+             FROM users
+             WHERE user_id = ?`,
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const user = users[0];
+
+        // If not admin, always use the Admin's configured company name
+        if (user.role !== "admin") {
+            const [adminRows] = await db.query(
+                `SELECT company_name FROM users WHERE role = 'admin' AND company_name IS NOT NULL AND company_name != '' LIMIT 1`
+            );
+            if (adminRows.length > 0 && adminRows[0].company_name) {
+                user.company_name = adminRows[0].company_name;
+            }
+        }
+
+        return res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error("GET PROFILE ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error fetching profile" });
+    }
+});
+
+// =====================================================
+// UPDATE LOGGED-IN USER PROFILE (/users/me/profile)
+// =====================================================
+router.put("/users/me/profile", authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const userRole = req.user.role;
+        const { name, email, company_name } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, message: "Name is required" });
+        }
+        if (!email || !email.trim()) {
+            return res.status(400).json({ success: false, message: "Email is required" });
+        }
+
+        const cleanName = name.trim();
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanCompany = company_name !== undefined ? company_name.trim() : null;
+
+        // Check duplicate email with another user
+        const [existing] = await db.query(
+            `SELECT user_id FROM users WHERE email = ? AND user_id != ?`,
+            [cleanEmail, userId]
+        );
+
+        if (existing.length > 0) {
+            return res.status(409).json({ success: false, message: "Email is already in use by another user" });
+        }
+
+        // Only Admin can update company name across the organization
+        if (userRole === "admin" && cleanCompany !== null) {
+            await db.query(
+                `UPDATE users SET name = ?, email = ?, company_name = ? WHERE user_id = ?`,
+                [cleanName, cleanEmail, cleanCompany, userId]
+            );
+            // Sync all other users' company_name to match admin's company name
+            await db.query(
+                `UPDATE users SET company_name = ? WHERE role != 'admin'`,
+                [cleanCompany]
+            );
+        } else {
+            // Non-admin can only update name and email
+            await db.query(
+                `UPDATE users SET name = ?, email = ? WHERE user_id = ?`,
+                [cleanName, cleanEmail, userId]
+            );
+        }
+
+        const [updatedRows] = await db.query(
+            `SELECT user_id, name, email, role, company_name, created_at FROM users WHERE user_id = ?`,
+            [userId]
+        );
+
+        const updatedUser = updatedRows[0];
+
+        // Ensure non-admin has the admin's company name
+        if (updatedUser.role !== "admin") {
+            const [adminRows] = await db.query(
+                `SELECT company_name FROM users WHERE role = 'admin' AND company_name IS NOT NULL LIMIT 1`
+            );
+            if (adminRows.length > 0 && adminRows[0].company_name) {
+                updatedUser.company_name = adminRows[0].company_name;
+            }
+        }
+
+        // Generate updated JWT token
+        const token = jwt.sign(
+            {
+                user_id: updatedUser.user_id,
+                email: updatedUser.email,
+                role: updatedUser.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "48h" }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: updatedUser,
+            token
+        });
+    } catch (error) {
+        console.error("UPDATE PROFILE ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error updating profile" });
+    }
+});
+
+// =====================================================
+// UPDATE WORKSPACE / COMPANY NAME (/users/me/workspace)
+// =====================================================
+router.put("/users/me/workspace", authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const userRole = req.user.role;
+        const { company_name } = req.body;
+
+        // Strictly verify that only Admin can update company name
+        if (userRole !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Only Organization Admin can change the company name."
+            });
+        }
+
+        if (!company_name || !company_name.trim()) {
+            return res.status(400).json({ success: false, message: "Company name is required" });
+        }
+
+        const cleanCompany = company_name.trim();
+
+        // Update admin's company name and propagate to all members & managers
+        await db.query(
+            `UPDATE users SET company_name = ?`,
+            [cleanCompany]
+        );
+
+        const [updatedRows] = await db.query(
+            `SELECT user_id, name, email, role, company_name, created_at FROM users WHERE user_id = ?`,
+            [userId]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Company name updated for all organization members successfully",
+            user: updatedRows[0]
+        });
+    } catch (error) {
+        console.error("UPDATE WORKSPACE ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error updating company name" });
+    }
+});
+
+// =====================================================
+// CHANGE PASSWORD (/users/me/password)
+// =====================================================
+router.put("/users/me/password", authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: "Both current and new passwords are required" });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: "New password must be at least 6 characters" });
+        }
+
+        const [users] = await db.query(
+            `SELECT * FROM users WHERE user_id = ?`,
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "Current password is incorrect" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await db.query(
+            `UPDATE users SET password = ? WHERE user_id = ?`,
+            [hashedPassword, userId]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully"
+        });
+    } catch (error) {
+        console.error("CHANGE PASSWORD ERROR:", error);
+        return res.status(500).json({ success: false, message: "Server error changing password" });
+    }
 });
 
 module.exports = router;

@@ -1,67 +1,50 @@
+/* =========================================================
+   CREATE CONTACT FORM MODAL STYLES
+   ========================================================= */
+
 .create-contact-form {
   display: flex;
   flex-direction: column;
-
-  gap: 14px;
+  gap: 16px;
 }
 
 .create-contact-form .form-group {
   display: flex;
   flex-direction: column;
-
-  gap: 5px;
+  gap: 6px;
 }
 
 .create-contact-form label {
-  color: var(--text-primary);
-
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
 }
 
 .create-contact-form input,
 .create-contact-form select {
   width: 100%;
-
-  box-sizing: border-box;
-
-  padding: 9px 10px;
-
-  border: 1px solid var(--border);
-
-  border-radius: 5px;
-
-  background: #ffffff;
-
-  color: var(--text-primary);
-
+  padding: 10px 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius, 10px);
   font-family: inherit;
-
-  font-size: 11px;
-
+  font-size: 13.5px;
+  color: var(--text-primary, #0f172a);
+  background: #ffffff;
   outline: none;
+  transition: all 0.15s ease;
 }
 
 .create-contact-form input:focus,
 .create-contact-form select:focus {
-  border-color: var(--primary);
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .create-contact-form .form-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-
-  gap: 8px;
-
-  margin-top: 4px;
-}
-
-@media (max-width: 450px) {
-  .create-contact-form .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .create-contact-form .form-actions button {
-    width: 100%;
-  }
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #e2e8f0);
 }

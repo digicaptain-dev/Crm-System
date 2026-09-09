@@ -21,46 +21,93 @@ const authorizeRole = require("../middleware/authorizeRole");
 router.get("/deals", authenticateToken, async (req, res) => {
     try {
         const { user_id, role } = req.user;
+        const { search = "", status = "", priority = "", pipeline_id = "", assign_to = "" } = req.query;
 
-        // Query params se page aur limit read karein (default: page=1, limit=10)
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 15));
         const offset = (page - 1) * limit;
 
-        let baseQuery = "";
-        let countQuery = "";
+        let whereClauses = [];
         let params = [];
 
-        if (role === "admin") {
-            baseQuery = `
-                FROM deals
-                LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
-                LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
-            `;
-            countQuery = `SELECT COUNT(*) AS total FROM deals`;
-        } else {
-            baseQuery = `
-                FROM deals
-                LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
-                LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
-                WHERE deals.assign_to = ?
-            `;
-            countQuery = `SELECT COUNT(*) AS total FROM deals WHERE assign_to = ?`;
-            params = [user_id];
+        if (role !== "admin") {
+            whereClauses.push("deals.assign_to = ?");
+            params.push(user_id);
+        } else if (assign_to && assign_to !== "all") {
+            whereClauses.push("deals.assign_to = ?");
+            params.push(assign_to);
         }
 
-        // 1. Total records count
-        const [countResult] = await db.query(countQuery, params);
-        const totalDeals = countResult[0].total;
-        const totalPages = Math.ceil(totalDeals / limit);
+        if (search.trim()) {
+            whereClauses.push(`(
+                deals.deal_name LIKE ? OR
+                deals.deal_organization LIKE ? OR
+                deals.customer_email LIKE ? OR
+                deals.customer_number LIKE ? OR
+                deals.contact_person LIKE ?
+            )`);
+            const searchWildcard = `%${search.trim()}%`;
+            params.push(searchWildcard, searchWildcard, searchWildcard, searchWildcard, searchWildcard);
+        }
 
-        // 2. Paginated Data fetch (LIMIT aur OFFSET add karke)
+        if (status && status !== "all") {
+            if (status.toLowerCase() === "open") {
+                whereClauses.push("deals.deal_status = 'Open'");
+            } else if (status.toLowerCase() === "won" || status.toLowerCase() === "closed won") {
+                whereClauses.push("deals.deal_status IN ('Closed Won', 'Won')");
+            } else if (status.toLowerCase() === "lost" || status.toLowerCase() === "closed lost") {
+                whereClauses.push("deals.deal_status IN ('Closed Lost', 'Lost')");
+            } else {
+                whereClauses.push("deals.deal_status = ?");
+                params.push(status);
+            }
+        }
+
+        if (priority && priority !== "all") {
+            whereClauses.push("deals.deal_priority = ?");
+            params.push(priority);
+        }
+
+        if (pipeline_id && pipeline_id !== "all") {
+            whereClauses.push("deals.pipeline_id = ?");
+            params.push(pipeline_id);
+        }
+
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+        // 1. Total records count
+        const countSql = `SELECT COUNT(*) AS total FROM deals ${whereSql}`;
+        const [countResult] = await db.query(countSql, params);
+        const totalDeals = countResult[0]?.total || 0;
+        const totalPages = Math.ceil(totalDeals / limit) || 1;
+
+        // 2. Global KPIs summary
+        const [metricsResult] = await db.query(`
+            SELECT 
+                COUNT(*) AS totalAll,
+                COALESCE(SUM(deal_value), 0) AS totalPipelineValue,
+                SUM(CASE WHEN deal_status = 'Open' THEN 1 ELSE 0 END) AS openDeals,
+                SUM(CASE WHEN deal_status IN ('Closed Won', 'Won') THEN deal_value ELSE 0 END) AS wonValue
+            FROM deals
+        `);
+
+        const globalMetrics = {
+            totalDeals: metricsResult[0]?.totalAll || 0,
+            totalPipelineValue: metricsResult[0]?.totalPipelineValue || 0,
+            openDeals: metricsResult[0]?.openDeals || 0,
+            wonValue: metricsResult[0]?.wonValue || 0
+        };
+
+        // 3. Paginated Data fetch
         const selectSql = `
             SELECT 
                 deals.*,
                 assigned_user.name AS assigned_user_name,
                 owner_user.name AS owner_name
-            ${baseQuery}
+            FROM deals
+            LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
+            LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
+            ${whereSql}
             ORDER BY deals.creation_date DESC
             LIMIT ? OFFSET ?
         `;
@@ -71,6 +118,7 @@ router.get("/deals", authenticateToken, async (req, res) => {
         return res.status(200).json({
             success: true,
             deals: results,
+            metrics: globalMetrics,
             pagination: {
                 totalDeals,
                 totalPages,
@@ -83,7 +131,8 @@ router.get("/deals", authenticateToken, async (req, res) => {
         console.error("Fetch deals error:", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to fetch deals"
+            message: "Failed to fetch deals",
+            error: error.message
         });
     }
 });
@@ -639,88 +688,76 @@ router.put(
 
 
 /* =====================================================
-   DELETE DEAL
+   DELETE DEAL (Single & Bulk)
    ===================================================== */
 
 router.delete(
-    "/deal",
+    "/deal/:id?",
     authenticateToken,
     async (req, res) => {
+        const { user_id, role } = req.user;
+        const dealIdParam = req.params.id;
+        const { deal_id, deal_ids } = req.body || {};
 
-        const {
-            user_id,
-            role
-        } = req.user;
+        let targetIds = [];
+        if (dealIdParam) {
+            targetIds = [dealIdParam];
+        } else if (Array.isArray(deal_ids) && deal_ids.length > 0) {
+            targetIds = deal_ids;
+        } else if (deal_id) {
+            targetIds = [deal_id];
+        }
 
-        const { deal_id } = req.body;
+        if (targetIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No deal ID(s) provided"
+            });
+        }
 
         try {
+            // Delete associated records first to prevent FK constraint failures
+            try {
+                await db.query(`DELETE FROM activities WHERE deal_id IN (?)`, [targetIds]);
+            } catch (e) { /* ignore if table/col doesn't exist */ }
+            try {
+                await db.query(`DELETE FROM schedules WHERE deal_id IN (?)`, [targetIds]);
+            } catch (e) { /* ignore if table/col doesn't exist */ }
+            try {
+                await db.query(`DELETE FROM comments WHERE deal_id IN (?)`, [targetIds]);
+            } catch (e) { /* ignore if table/col doesn't exist */ }
 
-            if (!deal_id) {
-
-                return res.status(400).json({
-                    success: false,
-                    message: "deal_id is required"
-                });
-            }
-
-            /*
-             * Check access
-             */
             let sql;
             let params;
 
             if (role === "admin") {
-
-                sql = `
-                    DELETE FROM deals
-                    WHERE deal_id = ?
-                `;
-
-                params = [deal_id];
-
+                sql = `DELETE FROM deals WHERE deal_id IN (?)`;
+                params = [targetIds];
             } else {
-
-                sql = `
-                    DELETE FROM deals
-                    WHERE deal_id = ?
-                    AND assign_to = ?
-                `;
-
-                params = [
-                    deal_id,
-                    user_id
-                ];
+                sql = `DELETE FROM deals WHERE deal_id IN (?) AND assign_to = ?`;
+                params = [targetIds, user_id];
             }
 
-            const [result] = await db.query(
-                sql,
-                params
-            );
+            const [result] = await db.query(sql, params);
 
             if (result.affectedRows === 0) {
-
                 return res.status(404).json({
                     success: false,
-                    message: "Deal not found or access denied"
+                    message: "No matching deals found or access denied"
                 });
             }
 
             return res.status(200).json({
                 success: true,
-                message: "Deal deleted successfully"
+                message: `${result.affectedRows} deal(s) deleted successfully`,
+                deletedCount: result.affectedRows
             });
-
         } catch (error) {
-
-            console.error(
-                "Delete deal error:",
-                error
-            );
-
+            console.error("Delete deal error:", error);
             return res.status(500).json({
                 success: false,
-                message: "Failed to delete deal"
+                message: "Failed to delete deal",
+                error: error.message
             });
         }
     }

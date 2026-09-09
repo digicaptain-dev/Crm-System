@@ -1,83 +1,251 @@
+/* =========================================================
+   CONTACT TABLE STYLES (Fixed Height Scroll & Sticky Header)
+   ========================================================= */
+
 .contact-table-wrapper {
+  width: 100%;
+  max-height: 520px;
+  overflow-y: auto;
   overflow-x: auto;
+  position: relative;
+  scroll-behavior: smooth;
+}
 
-  background: #ffffff;
+.contact-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-  border: 1px solid var(--border);
+.contact-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
 
-  border-radius: 7px;
+.contact-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.contact-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .contact-table {
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13.5px;
+}
 
-  min-width: 850px;
-
-  border-collapse: collapse;
+.contact-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .contact-table th {
-  padding: 10px 12px;
-
-  background: #fafbfc;
-
-  border-bottom: 1px solid var(--border);
-
-  color: var(--text-secondary);
-
-  text-align: left;
-
-  font-size: 9px;
-  font-weight: 600;
+  background: #f8fafc;
+  color: var(--text-secondary, #64748b);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid var(--border, #e2e8f0);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .contact-table td {
-  padding: 11px 12px;
-
-  border-bottom: 1px solid var(--border);
-
-  color: var(--text-primary);
-
-  font-size: 10px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+  vertical-align: middle;
+  background: #ffffff;
 }
 
-.contact-table tbody tr:last-child td {
-  border-bottom: 0;
+.contact-table tr:hover td {
+  background: #f8fafc;
 }
 
-.contact-table tbody tr:hover {
-  background: #fafbfc;
+.contact-table tr:last-child td {
+  border-bottom: none;
 }
 
-.contact-table-user {
+/* CONTACT USER CELL */
+.contact-user-cell {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
 
-  gap: 8px;
+.contact-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.25);
+}
 
+.contact-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contact-primary-name {
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  font-size: 13.5px;
+}
+
+.contact-deal-link {
+  font-size: 12px;
+  color: var(--primary, #2563eb);
+  text-decoration: none;
   font-weight: 500;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.contact-table-action {
-  padding: 5px 8px;
-
-  border: 0;
-
-  border-radius: 4px;
-
-  background: transparent;
-
-  font-family: inherit;
-
-  font-size: 9px;
-
-  cursor: pointer;
+.contact-deal-link:hover {
+  text-decoration: underline;
 }
 
-.contact-table-action.delete {
-  color: #dc2626;
+/* COMPANY BADGE */
+.contact-company-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--surface-hover, #f1f5f9);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.contact-table-action.delete:hover {
+.contact-company-badge svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* CONTACT DETAILS (EMAIL / PHONE) */
+.contact-link-email,
+.contact-link-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #64748b);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.contact-link-email svg,
+.contact-link-phone svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-tertiary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.contact-link-email:hover,
+.contact-link-phone:hover {
+  color: var(--primary, #2563eb);
+}
+
+/* VALUE PILL */
+.contact-value-pill {
+  display: inline-flex;
+  padding: 3px 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 750;
+  color: #15803d;
+}
+
+/* STATUS PILL */
+.contact-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.contact-status-badge.status-open {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.contact-status-badge.status-won,
+.contact-status-badge.status-closed-won {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.contact-status-badge.status-lost,
+.contact-status-badge.status-closed-lost {
   background: #fef2f2;
+  color: #b91c1c;
+}
+
+.status-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ACTIONS */
+.contact-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-row-deal {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-row-deal svg {
+  width: 12px;
+  height: 12px;
+}
+
+.btn-row-deal:hover {
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+  border-color: var(--primary, #2563eb);
 }

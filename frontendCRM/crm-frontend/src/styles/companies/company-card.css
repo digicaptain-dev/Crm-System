@@ -1,114 +1,120 @@
+/* =========================================================
+   COMPANY CARD STYLES (Grid View)
+   ========================================================= */
+
 .company-card {
-  padding: 15px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 14px);
+  padding: 20px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.company-card-header {
+.company-card:hover {
+  border-color: var(--border-strong, #cbd5e1);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.company-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.company-profile-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
 }
 
-.company-logo {
+.company-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 7px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
 }
 
-.company-logo.small {
-  width: 28px;
-  height: 28px;
-  font-size: 10px;
-}
-
-.company-name {
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.company-industry {
-  margin-top: 3px;
-  color: var(--text-secondary);
-  font-size: 9px;
-}
-
-.company-card-info {
+.company-card-names {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  margin-bottom: 15px;
+  gap: 3px;
 }
 
-.company-card-info > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.company-card-name {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text-primary, #0f172a);
+  margin: 0;
+  line-height: 1.25;
 }
 
-.company-card-info span {
-  color: var(--text-secondary);
-  font-size: 9px;
-}
-
-.company-card-info strong {
-  color: var(--text-primary);
-  font-size: 10px;
+.company-card-contact {
+  font-size: 12.5px;
+  color: var(--text-secondary, #64748b);
   font-weight: 500;
 }
 
+/* CARD DETAILS BODY */
+.company-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: var(--radius, 10px);
+  border: 1px solid #f1f5f9;
+}
+
+.company-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.company-card-row svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-tertiary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.company-card-row a,
+.company-card-row span {
+  color: var(--text-primary, #0f172a);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-card-row a:hover {
+  color: var(--primary, #2563eb);
+  text-decoration: underline;
+}
+
+/* CARD FOOTER */
 .company-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 11px;
-  border-top: 1px solid var(--border);
-}
-
-.company-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 9px;
-  font-weight: 500;
-}
-
-.company-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #9ca3af;
-}
-
-.company-status.active {
-  color: #15803d;
-}
-
-.company-status.active .company-status-dot {
-  background: #22c55e;
-}
-
-.company-status.inactive {
-  color: #6b7280;
-}
-
-.company-delete-button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #dc2626;
-  font-family: inherit;
-  font-size: 9px;
-  cursor: pointer;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #e2e8f0);
 }

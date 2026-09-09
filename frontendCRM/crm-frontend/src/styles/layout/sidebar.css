@@ -212,41 +212,81 @@
 .sidebar-company {
   display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+}
 
-  gap: 9px;
+.sidebar-company.interactive {
+  cursor: pointer;
+  border: 1px solid transparent;
+}
 
-  padding: 8px;
+.sidebar-company.interactive:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
 }
 
 .company-avatar {
-  width: 32px;
-  height: 32px;
-
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+}
 
-  border-radius: 50%;
-
-  background: #eef4ff;
-
-  color: var(--primary);
-
-  font-size: 12px;
-  font-weight: 600;
+.company-details {
+  flex: 1;
+  min-width: 0;
 }
 
 .company-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .company-role {
-  margin-top: 2px;
+  margin-top: 1px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
 
-  color: #888;
+.sidebar-settings-quick-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
 
-  font-size: 10px;
+.sidebar-company.interactive:hover .sidebar-settings-quick-btn {
+  color: #334155;
+}
+
+.sidebar-settings-quick-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(30deg);
 }
 
 @media (max-width: 768px) {

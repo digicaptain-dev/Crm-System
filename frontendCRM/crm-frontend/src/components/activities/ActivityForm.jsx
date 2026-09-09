@@ -1,7 +1,5 @@
 import { useState } from "react";
-
 import api from "../../services/api";
-
 import "../../styles/activities/activity-form.css";
 
 function ActivityForm({
@@ -11,321 +9,174 @@ function ActivityForm({
   onCreated,
 }) {
   const [form, setForm] = useState({
-    deal_id: "",
+    deal_id: deals.length > 0 ? deals[0].deal_id : "",
     activity_type: "task",
     details: "",
   });
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [error, setError] =
-    useState("");
-
-  // =====================================================
-  // HANDLE CHANGE
-  // =====================================================
+  const activityTypes = [
+    { key: "task", label: "Task", icon: "✓" },
+    { key: "call", label: "Phone Call", icon: "📞" },
+    { key: "meeting", label: "Meeting", icon: "📅" },
+    { key: "comment", label: "Note / Note", icon: "💬" },
+    { key: "message", label: "Message", icon: "✉️" },
+    { key: "negotiation", label: "Negotiation", icon: "🤝" },
+  ];
 
   const handleChange = (e) => {
-    const {
-      name,
-      value,
-    } = e.target;
-
-    setForm(
-      (current) => ({
-        ...current,
-        [name]: value,
-      })
-    );
+    const { name, value } = e.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
-  // =====================================================
-  // SUBMIT
-  // =====================================================
+  const handleTypeSelect = (typeKey) => {
+    setForm((current) => ({
+      ...current,
+      activity_type: typeKey,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
     if (!form.deal_id) {
-      setError(
-        "Please select a deal."
-      );
-
-      return;
-    }
-
-    if (!form.activity_type) {
-      setError(
-        "Please select an activity type."
-      );
-
+      setError("Please select a related deal.");
       return;
     }
 
     if (!form.details.trim()) {
-      setError(
-        "Please enter activity details."
-      );
-
+      setError("Please write the activity details or notes.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response =
-        await api.post(
-          "/activities",
-          {
-            deal_id:
-              form.deal_id,
+      const response = await api.post("/activities", {
+        deal_id: form.deal_id,
+        activity_type: form.activity_type,
+        details: form.details.trim(),
+      });
 
-            activity_type:
-              form.activity_type,
-
-            details:
-              form.details.trim(),
-          }
-        );
-
-      console.log(
-        "Create activity response:",
-        response.data
-      );
-
-      if (
-        !response.data?.success
-      ) {
-        throw new Error(
-          response.data?.message ||
-          "Failed to create activity."
-        );
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || "Failed to log activity.");
       }
 
       if (onCreated) {
-        onCreated(
-          response.data.activity
-        );
+        onCreated(response.data.activity);
       }
 
-      setForm({
-        deal_id: "",
-        activity_type: "task",
-        details: "",
-      });
-
       onClose?.();
-
-    } catch (error) {
-      console.error(
-        "Create activity error:",
-        error
-      );
-
+    } catch (err) {
+      console.error("Create activity error:", err);
       setError(
-        error.response?.data
-          ?.message ||
-        error.response?.data
-          ?.error ||
-        error.message ||
-        "Failed to create activity."
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to log activity."
       );
-
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form
-      className="activity-form"
-      onSubmit={handleSubmit}
-    >
+    <form className="activity-modal-form" onSubmit={handleSubmit}>
+      {error && <div className="activity-form-alert">{error}</div>}
 
-      {/* =================================================
-          ERROR
-      ================================================= */}
-
-      {error && (
-        <div className="activity-form-error">
-          {error}
-        </div>
-      )}
-
-      {/* =================================================
-          SELECTED DATE
-      ================================================= */}
-
-      {selectedDate && (
-        <div className="activity-selected-date">
-
-          <span>
-            Selected Date
-          </span>
-
-          <strong>
-            {selectedDate}
-          </strong>
-
-        </div>
-      )}
-
-      {/* =================================================
-          DEAL
-      ================================================= */}
-
-      <div className="form-group">
-
-        <label htmlFor="deal_id">
+      {/* Related Deal */}
+      <div className="form-field-block">
+        <label className="form-field-label" htmlFor="deal_id">
           Related Deal
         </label>
-
         <select
           id="deal_id"
           name="deal_id"
+          className="form-field-select"
           value={form.deal_id}
           onChange={handleChange}
           disabled={loading}
           required
         >
+          <option value="">Select a deal...</option>
+          {deals.map((deal) => (
+            <option key={deal.deal_id} value={deal.deal_id}>
+              {deal.deal_name || "Untitled Deal"}
+              {deal.deal_value ? ` ($${Number(deal.deal_value).toLocaleString()})` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
 
-          <option value="">
-            Select a deal
-          </option>
-
-          {deals.map(
-            (deal) => (
-              <option
-                key={deal.deal_id}
-                value={
-                  deal.deal_id
-                }
+      {/* Activity Type Selection Buttons */}
+      <div className="form-field-block">
+        <label className="form-field-label">Activity Type</label>
+        <div className="activity-type-buttons-grid">
+          {activityTypes.map((type) => {
+            const isActive = form.activity_type === type.key;
+            return (
+              <button
+                key={type.key}
+                type="button"
+                className={`type-select-btn ${isActive ? "active-type" : ""}`}
+                onClick={() => handleTypeSelect(type.key)}
               >
-                {deal.deal_name ||
-                  "Untitled Deal"}
-              </option>
-            )
-          )}
-
-        </select>
-
-        {deals.length === 0 && (
-          <small className="form-help">
-            No deals are available
-            for this user.
-          </small>
-        )}
-
+                <span>{type.icon}</span>
+                <span>{type.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* =================================================
-          ACTIVITY TYPE
-      ================================================= */}
-
-      <div className="form-group">
-
-        <label htmlFor="activity_type">
-          Activity Type
+      {/* Details Textarea */}
+      <div className="form-field-block">
+        <label className="form-field-label" htmlFor="details">
+          Details / Notes
         </label>
-
-        <select
-          id="activity_type"
-          name="activity_type"
-          value={
-            form.activity_type
-          }
-          onChange={handleChange}
-          disabled={loading}
-        >
-
-          <option value="task">
-            Task
-          </option>
-
-          <option value="comment">
-            Comment
-          </option>
-
-          <option value="stage change">
-            Stage Change
-          </option>
-
-          <option value="call">
-            Call
-          </option>
-
-          <option value="meeting">
-            Meeting
-          </option>
-
-          <option value="message">
-            Message
-          </option>
-
-          <option value="negotiation">
-            Negotiation
-          </option>
-
-        </select>
-
-      </div>
-
-      {/* =================================================
-          DETAILS
-      ================================================= */}
-
-      <div className="form-group">
-
-        <label htmlFor="details">
-          Details
-        </label>
-
         <textarea
           id="details"
           name="details"
+          className="form-field-textarea"
           value={form.details}
           onChange={handleChange}
-          placeholder="Enter activity details..."
-          rows="5"
+          placeholder={
+            form.activity_type === "call"
+              ? "e.g. Spoke with client about contract terms and budget requirements..."
+              : form.activity_type === "meeting"
+              ? "e.g. Product walkthrough scheduled to review onboarding questions..."
+              : "e.g. Follow up on proposal sent yesterday..."
+          }
+          rows="4"
           disabled={loading}
           required
         />
-
       </div>
 
-      {/* =================================================
-          ACTIONS
-      ================================================= */}
-
-      <div className="activity-form-actions">
-
+      {/* Actions */}
+      <div className="activity-form-footer">
         <button
           type="button"
-          className="secondary-button"
+          className="modal-btn-cancel"
           onClick={onClose}
           disabled={loading}
         >
           Cancel
         </button>
-
         <button
           type="submit"
-          className="primary-button"
-          disabled={
-            loading ||
-            deals.length === 0
-          }
+          className="modal-btn-submit"
+          disabled={loading || deals.length === 0}
         >
-          {loading
-            ? "Saving..."
-            : "Create Activity"}
+          {loading ? "Recording..." : "Log Activity"}
         </button>
-
       </div>
-
     </form>
   );
 }

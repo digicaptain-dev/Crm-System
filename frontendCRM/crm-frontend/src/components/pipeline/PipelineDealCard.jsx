@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-
 import "../../styles/pipeline/pipeline-deal-card.css";
 
 function PipelineDealCard({
@@ -12,14 +11,8 @@ function PipelineDealCard({
 
   const handleOpenDeal = (event) => {
     event.stopPropagation();
-
-    if (!deal?.deal_id) {
-      return;
-    }
-
-    navigate(
-      `/deals/${deal.deal_id}`
-    );
+    if (!deal?.deal_id) return;
+    navigate(`/deal/${deal.deal_id}`);
   };
 
   const handleDragStart = (event) => {
@@ -27,15 +20,8 @@ function PipelineDealCard({
       event.preventDefault();
       return;
     }
-
-    event.dataTransfer.setData(
-      "text/plain",
-      deal.deal_id
-    );
-
-    event.dataTransfer.effectAllowed =
-      "move";
-
+    event.dataTransfer.setData("text/plain", String(deal.deal_id));
+    event.dataTransfer.effectAllowed = "move";
     onDragStart?.(deal);
   };
 
@@ -43,171 +29,109 @@ function PipelineDealCard({
     onDragEnd?.();
   };
 
-  const priority =
-    deal?.deal_priority ||
-    "Medium";
-
-  const status =
-    deal?.deal_status ||
-    "Open";
+  const priority = deal?.deal_priority || "Medium";
+  const status = deal?.deal_status || "Open";
 
   const formattedValue =
     deal?.deal_value !== null &&
     deal?.deal_value !== undefined &&
     deal?.deal_value !== ""
-      ? `$${Number(
-          deal.deal_value
-        ).toLocaleString()}`
-      : "No value";
+      ? `$${Number(deal.deal_value).toLocaleString()}`
+      : "$0";
 
-  const priorityClass =
-    priority
-      .toLowerCase()
-      .replace(/\s+/g, "-");
-
-  const statusClass =
-    status
-      .toLowerCase()
-      .replace(/\s+/g, "-");
+  const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+  const statusClass = status.toLowerCase().replace(/\s+/g, "-");
 
   const formattedDate = deal?.close_date
-    ? new Date(
-        deal.close_date
-      ).toLocaleDateString(
-        "en-US",
-        {
-          month: "short",
-          day: "numeric",
-        }
-      )
+    ? new Date(deal.close_date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
     : null;
+
+  const ownerName = deal?.deal_owner || deal?.assigned_to_name || "";
+  const ownerInitial = ownerName ? ownerName.charAt(0).toUpperCase() : "?";
 
   return (
     <div
-      className={[
-        "pipeline-deal-card",
-        updating
-          ? "pipeline-deal-card-updating"
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""}`}
       draggable={!updating}
-      onDragStart={
-        handleDragStart
-      }
-      onDragEnd={
-        handleDragEnd
-      }
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleOpenDeal}
     >
-
-      {/* TOP */}
-
-      <div className="deal-card-top">
-
-        <span
-          className={[
-            "deal-priority",
-            priorityClass,
-          ].join(" ")}
-        >
+      {/* Top Badges */}
+      <div className="deal-card-badges">
+        <span className={`deal-priority-pill priority-${priorityClass}`}>
           {priority}
         </span>
-
-        <span
-          className={[
-            "deal-status",
-            statusClass,
-          ].join(" ")}
-        >
+        <span className={`deal-status-pill status-${statusClass}`}>
           {status}
         </span>
-
       </div>
 
-      {/* NAME */}
+      {/* Title */}
+      <h4 className="deal-card-title" title={deal?.deal_name || "Untitled Deal"}>
+        {deal?.deal_name || "Untitled Deal"}
+      </h4>
 
-      <button
-        type="button"
-        className="deal-card-name"
-        onClick={
-          handleOpenDeal
-        }
-      >
-        {deal?.deal_name ||
-          "Untitled Deal"}
-      </button>
+      {/* Organization */}
+      {deal?.deal_organization && (
+        <div className="deal-card-org">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          <span>{deal.deal_organization}</span>
+        </div>
+      )}
 
-      {/* VALUE */}
-
-      <div className="deal-card-value">
-        {formattedValue}
+      {/* Value */}
+      <div className="deal-card-value-row">
+        <span className="deal-value-amount">{formattedValue}</span>
+        {formattedDate && (
+          <span className="deal-close-date">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            {formattedDate}
+          </span>
+        )}
       </div>
 
-      {/* CUSTOMER */}
-
-      {deal?.customer_email && (
-        <div className="deal-card-email">
-          <span>✉</span>
-          {deal.customer_email}
-        </div>
-      )}
-
-      {/* CLOSE DATE */}
-
-      {formattedDate && (
-        <div className="deal-card-date">
-          <span>◷</span>
-          Close {formattedDate}
-        </div>
-      )}
-
-      {/* OWNER */}
-
-      {deal?.deal_owner && (
-        <div className="deal-card-owner">
-
-          <div className="deal-owner-avatar">
-            {String(
-              deal.deal_owner
-            )
-              .charAt(0)
-              .toUpperCase()}
-          </div>
-
-          <div>
-            <span>Owner</span>
-
-            <strong>
-              {deal.deal_owner}
-            </strong>
-          </div>
-
-        </div>
-      )}
-
-      {/* FOOTER */}
-
+      {/* Bottom Metadata */}
       <div className="deal-card-footer">
+        {ownerName ? (
+          <div className="deal-card-owner-info" title={`Owner: ${ownerName}`}>
+            <div className="deal-owner-circle">{ownerInitial}</div>
+            <span className="deal-owner-label">{ownerName}</span>
+          </div>
+        ) : (
+          <span className="deal-unassigned">Unassigned</span>
+        )}
 
         <button
           type="button"
-          className="deal-view-button"
-          onClick={
-            handleOpenDeal
-          }
+          className="deal-open-btn"
+          onClick={handleOpenDeal}
+          title="Open deal details"
         >
-          View Deal
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
-
-        {updating && (
-          <span className="deal-updating-text">
-            Updating...
-          </span>
-        )}
-
       </div>
 
+      {updating && (
+        <div className="deal-updating-overlay">
+          <span className="deal-spinner" />
+          <span>Moving...</span>
+        </div>
+      )}
     </div>
   );
 }
