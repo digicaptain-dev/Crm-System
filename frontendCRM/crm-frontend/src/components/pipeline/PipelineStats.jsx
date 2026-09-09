@@ -14,17 +14,28 @@ function PipelineStats({ pipeline }) {
     return Number.isFinite(value) ? total + value : total;
   }, 0);
 
+  // Mirrors the status equivalence already used by the /deals list endpoint
+  // (dealRoutes.js treats "Won"/"Closed Won" and "Lost"/"Closed Lost" as the
+  // same bucket) so deals saved under either label are still counted here.
+  const isWonStatus = (status) => {
+    const value = String(status || "").toLowerCase();
+    return value === "won" || value === "closed won";
+  };
+
+  const isLostStatus = (status) => {
+    const value = String(status || "").toLowerCase();
+    return value === "lost" || value === "closed lost";
+  };
+
   const openDeals = deals.filter(
-    (deal) => !deal?.deal_status || String(deal?.deal_status).toLowerCase() === "open"
+    (deal) =>
+      !deal?.deal_status ||
+      (!isWonStatus(deal?.deal_status) && !isLostStatus(deal?.deal_status) && String(deal?.deal_status).toLowerCase() === "open")
   );
 
-  const wonDeals = deals.filter(
-    (deal) => String(deal?.deal_status || "").toLowerCase() === "won"
-  );
+  const wonDeals = deals.filter((deal) => isWonStatus(deal?.deal_status));
 
-  const lostDeals = deals.filter(
-    (deal) => String(deal?.deal_status || "").toLowerCase() === "lost"
-  );
+  const lostDeals = deals.filter((deal) => isLostStatus(deal?.deal_status));
 
   const openValue = openDeals.reduce((sum, d) => sum + Number(d.deal_value || 0), 0);
   const wonValue = wonDeals.reduce((sum, d) => sum + Number(d.deal_value || 0), 0);
