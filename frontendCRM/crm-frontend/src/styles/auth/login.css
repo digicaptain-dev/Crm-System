@@ -7,6 +7,47 @@
     );
 }
 
+.password-field {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  padding-right: 38px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 5px;
+
+  background: transparent;
+
+  color: var(--text-secondary);
+}
+
+.password-toggle:hover {
+  color: var(--primary);
+}
+
+.password-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
 .login-options {
   display: flex;
   align-items: center;
