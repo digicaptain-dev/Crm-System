@@ -141,90 +141,70 @@ router.get("/deals", authenticateToken, async (req, res) => {
    GET SINGLE DEAL
    ===================================================== */
 
-router.get("/deal/:id", authenticateToken, async (req, res) => {
-
-    const { id } = req.params;
-    const { user_id, role } = req.user;
-
+router.get('/deal/:id', authenticateToken, async (req, res) => {
     try {
+        const { id } = req.params;
+        const userId = req.user.user_id;
+        const userRole = req.user.role;
 
-        let sql;
-        let params;
+        let sql = `
+            SELECT
+                deals.*,
+
+                /* Owner */
+                owner_user.name AS owner_name,
+                owner_user.email AS owner_email,
+
+                /* Assigned user */
+                assigned_user.name AS assigned_user_name,
+                assigned_user.email AS assigned_user_email,
+
+                /* Pipeline */
+                p.pipeline_name,
+                p.description AS pipeline_description,
+
+                /* Stage */
+                s.stage_name,
+                s.stage_order,
+                s.description AS stage_description
+
+            FROM deals
+
+            LEFT JOIN users AS owner_user
+                ON deals.deal_owner = owner_user.user_id
+
+            LEFT JOIN users AS assigned_user
+                ON deals.assign_to = assigned_user.user_id
+
+            LEFT JOIN pipelines AS p
+                ON deals.pipeline_id = p.pipeline_id
+
+            LEFT JOIN stages AS s
+                ON deals.pipeline_id = s.pipeline_id
+                AND deals.deal_stage = s.stage_id
+
+            WHERE deals.deal_id = ?
+        `;
+
+        const params = [id];
 
         /*
-         * ADMIN
-         * Admin can view any deal
+         * Admin can view any deal.
+         * Non-admin can only view assigned deals.
          */
-        if (role === "admin") {
-
-            sql = `
-                SELECT
-                    deals.*,
-
-                    assigned_user.name AS assigned_user_name,
-                    assigned_user.email AS assigned_user_email,
-
-                    owner_user.name AS owner_name,
-                    owner_user.email AS owner_email
-
-                FROM deals
-
-                LEFT JOIN users AS assigned_user
-                    ON deals.assign_to = assigned_user.user_id
-
-                LEFT JOIN users AS owner_user
-                    ON deals.deal_owner = owner_user.user_id
-
-                WHERE deals.deal_id = ?
-
-                LIMIT 1
-            `;
-
-            params = [id];
-
-        } else {
-
-            /*
-             * COWORKER / USER
-             * Can view only their assigned deals
-             */
-            sql = `
-                SELECT
-                    deals.*,
-
-                    assigned_user.name AS assigned_user_name,
-                    assigned_user.email AS assigned_user_email,
-
-                    owner_user.name AS owner_name,
-                    owner_user.email AS owner_email
-
-                FROM deals
-
-                LEFT JOIN users AS assigned_user
-                    ON deals.assign_to = assigned_user.user_id
-
-                LEFT JOIN users AS owner_user
-                    ON deals.deal_owner = owner_user.user_id
-
-                WHERE deals.deal_id = ?
-                AND deals.assign_to = ?
-
-                LIMIT 1
-            `;
-
-            params = [
-                id,
-                user_id
-            ];
+        if (userRole !== "admin") {
+            sql += ` AND deals.assign_to = ?`;
+            params.push(userId);
         }
+
+        sql += ` LIMIT 1`;
 
         const [results] = await db.query(sql, params);
 
         if (results.length === 0) {
-
             return res.status(404).json({
                 success: false,
-                message: "Deal not found or access denied"
+                message: "Deal not found or you do not have access to this deal"
             });
         }
 
@@ -234,12 +214,11 @@ router.get("/deal/:id", authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error("Fetch single deal error:", error);
+        console.error("GET DEAL DETAILS ERROR:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Failed to fetch deal"
+            message: "Failed to fetch deal details"
         });
     }
 });

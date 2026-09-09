@@ -95,7 +95,7 @@
   border-top: 1px solid var(--border, #e2e8f0);
 }
 
-.deal-value-tag {
+.deal-value {
   font-size: 14px;
   font-weight: 800;
   color: #15803d;

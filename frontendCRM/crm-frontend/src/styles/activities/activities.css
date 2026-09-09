@@ -19,6 +19,7 @@
 .activities-page *::before,
 .activities-page *::after {
   box-sizing: border-box;
+  color: #172033;
 }
 
 /* =========================================================
@@ -49,6 +50,136 @@
 }
 
 .activities-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.activities-heading {
+  min-width: 0;
+}
+
+.activities-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #7b879c;
+}
+
+.activities-breadcrumb span {
+  color: #b4bdca;
+}
+
+.activities-heading h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #111827;
+}
+
+.activities-heading p {
+  margin: 8px 0 0;
+  color: #6d7890;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.activities-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.refresh-button,
+.secondary-action-button,
+.primary-button,
+.today-button,
+.clear-filters {
+  height: 40px;
+  border-radius: 7px;
+  padding: 0 15px;
+  border: 1px solid #d7deea;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.refresh-button:hover,
+.secondary-action-button:hover,
+.today-button:hover {
+  background: #f8fafc;
+  border-color: #c5cedd;
+}
+
+.refresh-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.secondary-action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.secondary-action-button span,
+.primary-button span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.primary-button:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.refresh-icon {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.refresh-icon.spinning {
+  animation: activitySpin 0.8s linear infinite;
+}
+
+@keyframes activitySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.activities-error {
   display: flex;
   align-items: center;
   justify-content: space-between;

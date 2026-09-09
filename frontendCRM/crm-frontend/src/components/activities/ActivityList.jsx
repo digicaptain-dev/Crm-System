@@ -124,6 +124,90 @@ function ActivityList({
     return "tag-comment";
   };
 
+  // =====================================================
+  // ACTIVITY CLASS
+  // =====================================================
+
+  const getTypeClass = (type) => {
+    return (
+      type
+        ?.toLowerCase()
+        .replace(/\s+/g, "-") || "activity"
+    );
+  };
+
+  // =====================================================
+  // SORT ACTIVITIES
+  // =====================================================
+
+  const sortedActivities = useMemo(() => {
+    return [...activities].sort(
+      (a, b) =>
+        new Date(b.created_at) -
+        new Date(a.created_at)
+    );
+  }, [activities]);
+
+  // =====================================================
+  // GROUP ACTIVITIES BY DATE
+  // =====================================================
+
+  const groupedActivities = useMemo(() => {
+    const groups = {};
+
+    sortedActivities.forEach((activity) => {
+      const date = getActivityDate(activity);
+
+      if (!date) {
+        return;
+      }
+
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+
+      groups[date].push(activity);
+    });
+
+    return groups;
+  }, [sortedActivities]);
+
+  // =====================================================
+  // GROUP ORDER
+  // =====================================================
+
+  const groupDates = useMemo(() => {
+    return Object.keys(groupedActivities).sort(
+      (a, b) =>
+        new Date(`${b}T00:00:00`) -
+        new Date(`${a}T00:00:00`)
+    );
+  }, [groupedActivities]);
+
+  // =====================================================
+  // VIEW DEAL
+  // =====================================================
+
+  const handleViewDeal = (dealId) => {
+    if (!dealId) {
+      return;
+    }
+
+    navigate(`/deal/${dealId}`);
+  };
+
+  // =====================================================
+  // SELECTED DATE HEADER
+  // =====================================================
+
+  const headerDate = selectedDate
+    ? formatDate(selectedDate)
+    : "All Activities";
+
+  // =====================================================
+  // RENDER
+  // =====================================================
+
   return (
     <div className="activity-list-container">
       {/* Top Header Row */}

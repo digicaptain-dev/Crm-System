@@ -9,11 +9,24 @@ function PipelineDealCard({
 }) {
   const navigate = useNavigate();
 
+  /*
+   * =====================================================
+   * OPEN DEAL DETAILS
+   * =====================================================
+   */
+
   const handleOpenDeal = (event) => {
+    event.preventDefault();
     event.stopPropagation();
     if (!deal?.deal_id) return;
     navigate(`/deal/${deal.deal_id}`);
   };
+
+  /*
+   * =====================================================
+   * DEAL DRAG START
+   * =====================================================
+   */
 
   const handleDragStart = (event) => {
     if (updating) {
@@ -24,6 +37,12 @@ function PipelineDealCard({
     event.dataTransfer.effectAllowed = "move";
     onDragStart?.(deal);
   };
+
+  /*
+   * =====================================================
+   * DEAL DRAG END
+   * =====================================================
+   */
 
   const handleDragEnd = () => {
     onDragEnd?.();

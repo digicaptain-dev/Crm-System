@@ -86,6 +86,10 @@ function ActivityForm({
     }
   };
 
+  // =====================================================
+  // RENDER
+  // =====================================================
+
   return (
     <form className="activity-modal-form" onSubmit={handleSubmit}>
       {error && <div className="activity-form-alert">{error}</div>}
@@ -94,14 +98,20 @@ function ActivityForm({
       <div className="form-field-block">
         <label className="form-field-label" htmlFor="deal_id">
           Related Deal
+          <span className="required-mark">
+            *
+          </span>
         </label>
         <select
-          id="deal_id"
+          id="activity-deal"
           name="deal_id"
           className="form-field-select"
           value={form.deal_id}
           onChange={handleChange}
-          disabled={loading}
+          disabled={
+            loading ||
+            deals.length === 0
+          }
           required
         >
           <option value="">Select a deal...</option>
@@ -141,7 +151,7 @@ function ActivityForm({
           Details / Notes
         </label>
         <textarea
-          id="details"
+          id="activity-details"
           name="details"
           className="form-field-textarea"
           value={form.details}

@@ -339,7 +339,7 @@ function DealDetails() {
 
       await logActivity(
         "stage change",
-        `Deal status changed from "${previousStatus}" to "${newStatus}".`
+        `Deal status changed to ${newStatus}`
       );
     } catch (err) {
       console.error("Failed to update status:", err);

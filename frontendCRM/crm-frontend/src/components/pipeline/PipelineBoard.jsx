@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import PipelineDealCard from "./PipelineDealCard";
@@ -150,6 +155,7 @@ function PipelineBoard({
     }));
 
     setStages(normalizedStages);
+
     setDraggedStageId(null);
     setReorderingStages(true);
     setError("");

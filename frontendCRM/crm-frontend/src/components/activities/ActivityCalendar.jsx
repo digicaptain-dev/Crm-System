@@ -1,10 +1,25 @@
 import { useMemo, useState } from "react";
 import "../../styles/activities/activity-calendar.css";
 
+function getLocalDateString(date) {
+    const year = date.getFullYear();
+
+    const month = String(
+        date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+        date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
 function ActivityCalendar({
-  activities = [],
-  selectedDate,
-  onDateSelect,
+    selectedDate,
+    onDateSelect,
+    activities = [],
+    schedules = []
 }) {
   const selected = selectedDate
     ? new Date(`${selectedDate}T00:00:00`)

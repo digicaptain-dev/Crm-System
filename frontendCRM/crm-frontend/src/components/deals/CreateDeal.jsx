@@ -5,8 +5,6 @@ function CreateDeal({
   onClose,
   onCreate,
   pipelines = [],
-  initialPipelineId = "",
-  initialStageId = "",
 }) {
   const [form, setForm] = useState({
     deal_name: "",
@@ -16,8 +14,8 @@ function CreateDeal({
     deal_value: "",
     deal_priority: "Medium",
 
-    pipeline_id: initialPipelineId || (pipelines[0]?.pipeline_id || ""),
-    deal_stage: initialStageId || "",
+    pipeline_id: "",
+    deal_stage: "",
 
     deal_status: "Open",
 

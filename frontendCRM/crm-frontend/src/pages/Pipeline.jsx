@@ -250,6 +250,8 @@ function Pipeline() {
       await api.post(`/pipelines/${selectedPipelineId}/stages`, stageData);
       await fetchPipelines();
       setShowAddStageModal(false);
+
+      return response.data;
     } catch (err) {
       console.error("Create stage error:", err);
       setError(

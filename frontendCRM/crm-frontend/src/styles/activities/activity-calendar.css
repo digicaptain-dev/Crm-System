@@ -4,6 +4,11 @@
 
 .activity-calendar {
   width: 100%;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
   box-sizing: border-box;
   padding: 22px 24px;
   display: flex;

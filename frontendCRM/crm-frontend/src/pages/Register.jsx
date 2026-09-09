@@ -48,6 +48,7 @@ function Register() {
         }
       );
 
+
       console.log("Register response:", response.data);
       // Only navigate after successful backend response
       if (response.data.success) {
