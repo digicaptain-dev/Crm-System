@@ -59,7 +59,9 @@ function CompanyCard({ company }) {
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span>Account Owner: {company.owner_name || company.owner || "Suyash"}</span>
+          <span>
+            Assigned: {company.assigned_user_name || "Not Assigned"}
+          </span>
         </div>
       </div>
 

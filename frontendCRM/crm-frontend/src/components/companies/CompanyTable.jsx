@@ -91,11 +91,17 @@ function CompanyTable({ companies = [] }) {
                   </span>
                 </td>
 
-                {/* Owner */}
+                {/* Assigned User */}
                 <td>
-                  <span style={{ fontWeight: 600, color: "#334155" }}>
-                    {company.owner_name || company.owner || "Suyash"}
-                  </span>
+                  {company.assigned_user_name ? (
+                    <span style={{ fontWeight: 600, color: "#334155" }}>
+                      {company.assigned_user_name}
+                    </span>
+                  ) : (
+                    <span style={{ color: "#94a3b8", fontSize: "12px", fontStyle: "italic" }}>
+                      Not Assigned
+                    </span>
+                  )}
                 </td>
               </tr>
             );

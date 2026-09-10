@@ -52,7 +52,7 @@ function DealTable({
               </th>
             )}
             <th>Deal Title</th>
-            <th>Organization</th>
+            <th>Owner Name</th>
             <th>Stage</th>
             <th>Priority</th>
             <th>Status</th>
@@ -66,7 +66,8 @@ function DealTable({
             const isSelected = selectedDeals.includes(deal.deal_id);
             const priorityClass = getPriorityClass(deal.deal_priority);
             const statusClass = getStatusClass(deal.deal_status);
-            const ownerInitial = (deal.assigned_user_name || deal.deal_owner || "U").charAt(0).toUpperCase();
+            const assignedName = deal.assigned_user_name;
+            const ownerInitial = assignedName ? assignedName.charAt(0).toUpperCase() : "";
 
             return (
               <tr
@@ -104,16 +105,12 @@ function DealTable({
                   </div>
                 </td>
 
-                {/* Organization */}
+                {/* Owner Name */}
                 <td>
-                  {deal.deal_organization ? (
-                    <div className="deal-org-badge">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
-                      <span>{deal.deal_organization}</span>
-                    </div>
+                  {deal.deal_owner ? (
+                    <span style={{ fontWeight: 600, color: "#334155", fontSize: "13px" }}>
+                      {deal.deal_owner}
+                    </span>
                   ) : (
                     <span style={{ color: "#94a3b8" }}>—</span>
                   )}
@@ -141,12 +138,18 @@ function DealTable({
                   </span>
                 </td>
 
-                {/* Assigned Owner */}
+                {/* Assigned User */}
                 <td>
-                  <div className="deal-owner-cell">
-                    <div className="owner-tiny-avatar">{ownerInitial}</div>
-                    <span>{deal.assigned_user_name || deal.deal_owner || "Suyash"}</span>
-                  </div>
+                  {assignedName ? (
+                    <div className="deal-owner-cell">
+                      <div className="owner-tiny-avatar">{ownerInitial}</div>
+                      <span>{assignedName}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color: "#94a3b8", fontSize: "12px", fontStyle: "italic" }}>
+                      Not Assigned
+                    </span>
+                  )}
                 </td>
 
                 {/* Actions */}

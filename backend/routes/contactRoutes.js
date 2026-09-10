@@ -69,7 +69,7 @@ router.get("/contacts", authenticateToken, async (req, res) => {
             SELECT 
                 d.deal_id AS id,
                 d.deal_id,
-                COALESCE(NULLIF(d.contact_person, ''), d.deal_name) AS name,
+                COALESCE(NULLIF(d.deal_owner, ''), NULLIF(d.contact_person, ''), d.deal_name) AS name,
                 d.deal_name,
                 d.deal_organization AS company,
                 d.customer_email AS email,
@@ -82,9 +82,10 @@ router.get("/contacts", authenticateToken, async (req, res) => {
                 d.deal_stage,
                 d.creation_date,
                 d.last_updated,
-                u.name AS owner_name
+                assigned_user.name AS assigned_user_name,
+                assigned_user.name AS owner_name
             FROM deals d
-            LEFT JOIN users u ON d.deal_owner = u.user_id OR d.assign_to = u.user_id
+            LEFT JOIN users assigned_user ON d.assign_to = assigned_user.user_id
             ${whereSql}
             ORDER BY d.creation_date DESC
             LIMIT ? OFFSET ?

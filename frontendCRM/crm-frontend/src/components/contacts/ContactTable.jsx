@@ -97,11 +97,17 @@ function ContactTable({ contacts = [] }) {
                   </span>
                 </td>
 
-                {/* Owner */}
+                {/* Assigned User */}
                 <td>
-                  <span style={{ fontWeight: 600, color: "#334155" }}>
-                    {contact.owner_name || contact.owner || "Suyash"}
-                  </span>
+                  {contact.assigned_user_name ? (
+                    <span style={{ fontWeight: 600, color: "#334155" }}>
+                      {contact.assigned_user_name}
+                    </span>
+                  ) : (
+                    <span style={{ color: "#94a3b8", fontSize: "12px", fontStyle: "italic" }}>
+                      Not Assigned
+                    </span>
+                  )}
                 </td>
 
                 {/* Action */}

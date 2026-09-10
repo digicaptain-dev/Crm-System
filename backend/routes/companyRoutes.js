@@ -70,9 +70,10 @@ router.get("/companies", authenticateToken, async (req, res) => {
                 MAX(NULLIF(d.customer_email, '')) AS email,
                 MAX(NULLIF(d.customer_number, '')) AS phone,
                 MAX(NULLIF(d.customer_address, '')) AS address,
-                MAX(NULLIF(d.contact_person, '')) AS primary_contact,
+                MAX(COALESCE(NULLIF(d.deal_owner, ''), NULLIF(d.contact_person, ''))) AS primary_contact,
                 MAX(d.deal_owner) AS owner,
-                MAX(COALESCE(u.name, d.deal_owner)) AS owner_name,
+                MAX(assigned_user.name) AS assigned_user_name,
+                MAX(assigned_user.name) AS owner_name,
                 MAX(d.creation_date) AS last_activity,
                 CASE 
                     WHEN SUM(CASE WHEN d.deal_status = 'Open' THEN 1 ELSE 0 END) > 0 THEN 'Active'
@@ -80,7 +81,7 @@ router.get("/companies", authenticateToken, async (req, res) => {
                     ELSE 'Inactive'
                 END AS status
             FROM deals d
-            LEFT JOIN users u ON d.deal_owner = u.user_id OR d.assign_to = u.user_id
+            LEFT JOIN users assigned_user ON d.assign_to = assigned_user.user_id
             ${whereSql}
             GROUP BY d.deal_organization
             ORDER BY total_value DESC, deals_count DESC
