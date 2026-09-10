@@ -168,6 +168,18 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Feedback",
       ])
     ),
+    assigned_user: normalize(
+      getCell(row, [
+        "Assigned User",
+        "Assigned To",
+        "Assign To",
+        "Assigned",
+        "Sales Rep",
+        "Assigned Employee",
+        "Assignee",
+        "Representative",
+      ])
+    ),
   };
 
   return deal;
@@ -243,15 +255,38 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
     }
   }
 
+  // 4. Resolve Assigned User (if provided in CSV)
+  let resolvedAssignTo = null;
+  let resolvedAssignedUserName = null;
+
+  if (deal.assigned_user) {
+    try {
+      const qUser = deal.assigned_user.trim().toLowerCase();
+      const [userRows] = await db.query(
+        `SELECT user_id, name, email FROM users WHERE LOWER(TRIM(name)) = ? OR LOWER(TRIM(email)) = ? LIMIT 1`,
+        [qUser, qUser]
+      );
+      if (userRows.length > 0) {
+        resolvedAssignTo = userRows[0].user_id;
+        resolvedAssignedUserName = userRows[0].name;
+      }
+    } catch (e) {
+      console.warn("User lookup err:", e.message);
+    }
+  }
+
   return {
     ...deal,
     pipeline: resolvedPipelineName,
     stage: resolvedStageName,
+    assigned_user_name: resolvedAssignedUserName,
     valid: errors.length === 0,
     errors,
     resolved: {
       pipeline_id: resolvedPipelineId,
       stage_id: resolvedStageId,
+      assign_to: resolvedAssignTo,
+      assigned_user_name: resolvedAssignedUserName,
     },
   };
 };
@@ -354,6 +389,7 @@ async function executeImportDeals(rows) {
       const dealId = uuidv4();
       const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
       const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
+      const assignTo = row.resolved?.assign_to || row.assign_to || null;
       const notes = normalize(row.deal_notes);
 
       const sql = `
@@ -371,9 +407,10 @@ async function executeImportDeals(rows) {
           deal_priority,
           deal_status,
           deal_notes,
-          deal_source
+          deal_source,
+          assign_to
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -391,6 +428,7 @@ async function executeImportDeals(rows) {
         normalize(row.deal_status) || "Open",
         notes || null,
         normalize(row.website) || null,
+        assignTo,
       ];
 
       await connection.query(sql, values);

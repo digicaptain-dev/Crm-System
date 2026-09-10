@@ -16,6 +16,7 @@ function DealImportPreview({
   const validRows = rows.filter((row) => row.valid);
   const invalidRows = rows.filter((row) => !row.valid);
   const hasNotes = rows.some((r) => r.deal_notes && r.deal_notes.trim());
+  const hasAssigned = rows.some((r) => r.assigned_user || r.assigned_user_name);
 
   const [loading, setLoading] = useState(false);
 
@@ -100,6 +101,7 @@ function DealImportPreview({
                 <th>Email Address</th>
                 <th>Address / Location</th>
                 {hasNotes && <th>Comments / Notes</th>}
+                {hasAssigned && <th>Assigned To</th>}
                 <th>Result</th>
               </tr>
             </thead>
@@ -141,6 +143,22 @@ function DealImportPreview({
                       <span style={{ fontSize: "12px", color: "#0f172a" }}>
                         {row.deal_notes || "—"}
                       </span>
+                    </td>
+                  )}
+
+                  {hasAssigned && (
+                    <td>
+                      {row.assigned_user_name || row.resolved?.assigned_user_name ? (
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: "4px" }}>
+                          👤 {row.assigned_user_name || row.resolved?.assigned_user_name}
+                        </span>
+                      ) : row.assigned_user ? (
+                        <span style={{ fontSize: "12px", color: "#b45309", background: "#fef3c7", padding: "2px 6px", borderRadius: "4px" }} title="User not found in CRM">
+                          ⚠️ {row.assigned_user} (Not found)
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>Unassigned</span>
+                      )}
                     </td>
                   )}
 
