@@ -9,11 +9,6 @@ function PipelineStats({ pipeline }) {
 
   const totalDeals = deals.length;
 
-  const totalValue = deals.reduce((total, deal) => {
-    const value = Number(deal?.deal_value);
-    return Number.isFinite(value) ? total + value : total;
-  }, 0);
-
   const openDeals = deals.filter(
     (deal) => !deal?.deal_status || String(deal?.deal_status).toLowerCase() === "open"
   );
@@ -26,18 +21,8 @@ function PipelineStats({ pipeline }) {
     (deal) => String(deal?.deal_status || "").toLowerCase() === "lost"
   );
 
-  const openValue = openDeals.reduce((sum, d) => sum + Number(d.deal_value || 0), 0);
-  const wonValue = wonDeals.reduce((sum, d) => sum + Number(d.deal_value || 0), 0);
   const winRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
-  const avgDeal = totalDeals > 0 ? Math.round(totalValue / totalDeals) : 0;
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const openRate = totalDeals > 0 ? Math.round((openDeals.length / totalDeals) * 100) : 0;
 
   return (
     <div className="pipeline-kpi-grid">
@@ -58,24 +43,7 @@ function PipelineStats({ pipeline }) {
         </div>
       </div>
 
-      {/* 2. Pipeline Value */}
-      <div className="pipeline-kpi-card card-violet">
-        <div className="kpi-card-header">
-          <span className="kpi-card-label">Pipeline Value</span>
-          <div className="kpi-icon-pill icon-violet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
-        </div>
-        <div className="kpi-card-value highlight-violet">{formatCurrency(totalValue)}</div>
-        <div className="kpi-card-footer">
-          <span className="kpi-sub-text">Avg: {formatCurrency(avgDeal)} / deal</span>
-        </div>
-      </div>
-
-      {/* 3. Open Deals */}
+      {/* 2. Open Deals */}
       <div className="pipeline-kpi-card card-amber">
         <div className="kpi-card-header">
           <span className="kpi-card-label">Open Deals</span>
@@ -88,11 +56,11 @@ function PipelineStats({ pipeline }) {
         </div>
         <div className="kpi-card-value">{openDeals.length}</div>
         <div className="kpi-card-footer">
-          <span className="kpi-sub-text">Value: {formatCurrency(openValue)}</span>
+          <span className="kpi-sub-text">{openRate}% of all deals</span>
         </div>
       </div>
 
-      {/* 4. Won Deals */}
+      {/* 3. Won Deals */}
       <div className="pipeline-kpi-card card-emerald">
         <div className="kpi-card-header">
           <span className="kpi-card-label">Won Deals</span>
@@ -106,11 +74,10 @@ function PipelineStats({ pipeline }) {
         <div className="kpi-card-value">{wonDeals.length}</div>
         <div className="kpi-card-footer">
           <span className="kpi-badge-win">{winRate}% Win Rate</span>
-          <span className="kpi-sub-text">{formatCurrency(wonValue)}</span>
         </div>
       </div>
 
-      {/* 5. Lost Deals */}
+      {/* 4. Lost Deals */}
       <div className="pipeline-kpi-card card-rose">
         <div className="kpi-card-header">
           <span className="kpi-card-label">Lost Deals</span>

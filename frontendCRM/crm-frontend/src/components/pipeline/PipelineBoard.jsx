@@ -58,21 +58,6 @@ function PipelineBoard({
     setStages(sortedStages);
   }, [pipeline]);
 
-  const getStageValue = (deals) => {
-    return deals.reduce((total, deal) => {
-      const value = Number(deal?.deal_value);
-      return Number.isFinite(value) ? total + value : total;
-    }, 0);
-  };
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const totalVisibleDeals = useMemo(() => {
     return stages.reduce((total, stage) => total + stage.deals.length, 0);
   }, [stages]);
@@ -314,7 +299,6 @@ function PipelineBoard({
                 <tr>
                   <th>Deal Name</th>
                   <th>Stage</th>
-                  <th>Value</th>
                   <th>Owner</th>
                   <th>Status</th>
                   <th>Priority</th>
@@ -339,13 +323,6 @@ function PipelineBoard({
                       </td>
                       <td>
                         <span className="table-stage-chip">{stage.stage_name}</span>
-                      </td>
-                      <td>
-                        <strong className="table-value-text">
-                          {deal.deal_value !== null && deal.deal_value !== undefined
-                            ? formatCurrency(Number(deal.deal_value))
-                            : "$0"}
-                        </strong>
                       </td>
                       <td>
                         <span className="table-owner-text">{deal.deal_owner || "Unassigned"}</span>
@@ -444,7 +421,6 @@ function PipelineBoard({
           <div className="pipeline-columns-row">
             {stages.map((stage, index) => {
               const deals = Array.isArray(stage.deals) ? stage.deals : [];
-              const stageValue = getStageValue(deals);
               const theme = STAGE_THEMES[index % STAGE_THEMES.length];
               const isDragOver = String(dragOverStageId) === String(stage.stage_id);
               const isDraggedStage = String(draggedStageId) === String(stage.stage_id);
@@ -524,7 +500,6 @@ function PipelineBoard({
                     </div>
 
                     <div className="stage-header-meta">
-                      <span className="stage-value-badge">{formatCurrency(stageValue)}</span>
                       {deals.length > 0 && (
                         <span className="stage-deals-count-text">
                           {deals.length} {deals.length === 1 ? "deal" : "deals"}

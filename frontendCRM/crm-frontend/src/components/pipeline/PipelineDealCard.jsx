@@ -51,13 +51,6 @@ function PipelineDealCard({
   const priority = deal?.deal_priority || "Medium";
   const status = deal?.deal_status || "Open";
 
-  const formattedValue =
-    deal?.deal_value !== null &&
-    deal?.deal_value !== undefined &&
-    deal?.deal_value !== ""
-      ? `$${Number(deal.deal_value).toLocaleString()}`
-      : "$0";
-
   const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
   const statusClass = status.toLowerCase().replace(/\s+/g, "-");
 
@@ -105,10 +98,9 @@ function PipelineDealCard({
         </div>
       )}
 
-      {/* Value */}
-      <div className="deal-card-value-row">
-        <span className="deal-value-amount">{formattedValue}</span>
-        {formattedDate && (
+      {/* Close Date */}
+      {formattedDate && (
+        <div className="deal-card-value-row">
           <span className="deal-close-date">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -118,8 +110,8 @@ function PipelineDealCard({
             </svg>
             {formattedDate}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Bottom Metadata */}
       <div className="deal-card-footer">
