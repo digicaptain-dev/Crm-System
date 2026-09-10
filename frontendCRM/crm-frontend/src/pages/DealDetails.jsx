@@ -56,6 +56,8 @@ function DealDetails() {
     confirmText: "Confirm",
   });
 
+  const [poolLeavingCountdown, setPoolLeavingCountdown] = useState(null);
+
   // =====================================================
   // FETCH DEAL
   // =====================================================
@@ -264,15 +266,19 @@ function DealDetails() {
     if (!deal?.deal_id || String(deal.deal_stage) === String(targetStageId)) return;
     const targetStageObj = stages.find((s) => String(s.stage_id) === String(targetStageId));
     const stageName = targetStageObj ? targetStageObj.stage_name : `Stage ${targetStageId}`;
+    const isPool = stageName.toLowerCase().includes("pool");
+    const isEmp = currentUser?.role === "user";
 
     setConfirmationModal({
       isOpen: true,
       type: "stage",
-      title: `Advance to "${stageName}"?`,
-      message: `Are you sure you want to move "${deal.deal_name || "this deal"}" to the "${stageName}" stage in the sales pipeline?`,
+      title: isPool ? "Move to Pool Drive?" : `Advance to "${stageName}"?`,
+      message: isPool
+        ? `Are you sure you want to move "${deal.deal_name || "this deal"}" to Pool Drive? This lead will be transferred to the central Pool Drive${isEmp ? " and removed from your account after 5 seconds" : ""}.`
+        : `Are you sure you want to move "${deal.deal_name || "this deal"}" to the "${stageName}" stage in the sales pipeline?`,
       targetValue: targetStageId,
       confirmVariant: "primary",
-      confirmText: `Move to ${stageName}`,
+      confirmText: isPool ? "Confirm Move" : `Move to ${stageName}`,
     });
   };
 
@@ -300,9 +306,14 @@ function DealDetails() {
     const prevStage = deal.deal_stage;
     const targetStageObj = stages.find((s) => String(s.stage_id) === String(targetStageId));
     const targetStageName = targetStageObj ? targetStageObj.stage_name : `Stage ${targetStageId}`;
+    const isPool = targetStageName.toLowerCase().includes("pool");
 
     // Optimistic update
-    setDeal((curr) => ({ ...curr, deal_stage: targetStageId }));
+    setDeal((curr) => ({
+      ...curr,
+      deal_stage: targetStageId,
+      ...(isPool ? { moved_by_name: currentUser?.name || "User" } : {}),
+    }));
 
     try {
       await api.put(`/deals/${deal.deal_id}/stage`, {
@@ -311,8 +322,24 @@ function DealDetails() {
 
       await logActivity(
         "stage change",
-        `Deal stage advanced to "${targetStageName}".`
+        isPool
+          ? `User ${currentUser?.name || "User"} moved this deal to Pool Drive.`
+          : `Deal stage advanced to "${targetStageName}".`
       );
+
+      if (isPool && currentUser?.role === "user") {
+        setPoolLeavingCountdown(5);
+        const timer = setInterval(() => {
+          setPoolLeavingCountdown((sec) => {
+            if (sec <= 1) {
+              clearInterval(timer);
+              navigate("/pipelines");
+              return null;
+            }
+            return sec - 1;
+          });
+        }, 1000);
+      }
     } catch (err) {
       console.error("Failed to update deal stage:", err);
       setDeal((curr) => ({ ...curr, deal_stage: prevStage }));
@@ -582,6 +609,11 @@ function DealDetails() {
           </div>
 
           <div className="deal-title-badges">
+            {deal.moved_by_name && (
+              <span className="deal-pill-badge deal-pool-moved-pill" title={`Moved by ${deal.moved_by_name}`}>
+                ● User {deal.moved_by_name} Moved this
+              </span>
+            )}
             <span className={`deal-pill-badge priority-${priorityClass}`}>
               {priority} Priority
             </span>
@@ -599,6 +631,18 @@ function DealDetails() {
             </button>
           </div>
         </div>
+
+        {poolLeavingCountdown !== null && (
+          <div className="deal-pool-exit-banner">
+            <div className="pool-exit-inner">
+              <span className="pool-exit-icon">⏳</span>
+              <div>
+                <strong>Moved to Pool Drive</strong>
+                <span> — Removing this deal from your account in {poolLeavingCountdown}s...</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* =================================================
             INTERACTIVE STAGE PROGRESSION STEPPER

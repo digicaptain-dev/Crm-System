@@ -39,6 +39,51 @@ function PipelineBoard({
   const [reorderingStages, setReorderingStages] = useState(false);
   const [error, setError] = useState("");
 
+  /* Current User & Role */
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  } catch {}
+  const isEmployee = currentUser?.role === "user";
+
+  const [poolCountdowns, setPoolCountdowns] = useState({});
+  const [pendingPoolConfirmation, setPendingPoolConfirmation] = useState(null);
+
+  /* =====================================================
+     5-SECOND COUNTDOWN EFFECT FOR EMPLOYEE POOL MOVES
+  ===================================================== */
+  useEffect(() => {
+    const activeKeys = Object.keys(poolCountdowns);
+    if (activeKeys.length === 0) return;
+
+    const timer = setInterval(() => {
+      setPoolCountdowns((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        Object.entries(next).forEach(([dealId, sec]) => {
+          if (sec > 1) {
+            next[dealId] = sec - 1;
+            changed = true;
+          } else {
+            delete next[dealId];
+            changed = true;
+            if (isEmployee) {
+              setStages((currStages) =>
+                currStages.map((stg) => ({
+                  ...stg,
+                  deals: stg.deals.filter((d) => String(d.deal_id) !== String(dealId)),
+                }))
+              );
+            }
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [poolCountdowns, isEmployee]);
+
   /* =====================================================
      SYNC PIPELINE DATA
   ===================================================== */
@@ -157,6 +202,113 @@ function PipelineBoard({
   };
 
   /* =====================================================
+     EXECUTE DEAL MOVE (CORE LOGIC)
+  ===================================================== */
+  const executeMoveDeal = async (deal, targetStage, sourceStage) => {
+    const dealId = deal.deal_id;
+    setUpdatingDealId(dealId);
+    setError("");
+
+    const moverName = currentUser?.name || "User";
+    const isTargetPool =
+      targetStage.stage_name && targetStage.stage_name.toLowerCase().includes("pool");
+
+    // Optimistic UI update
+    setStages((previousStages) =>
+      previousStages.map((stage) => {
+        if (String(stage.stage_id) === String(sourceStage.stage_id)) {
+          return {
+            ...stage,
+            deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
+          };
+        }
+        if (String(stage.stage_id) === String(targetStage.stage_id)) {
+          return {
+            ...stage,
+            deals: [
+              ...stage.deals,
+              {
+                ...deal,
+                deal_stage: targetStage.stage_id,
+                ...(isTargetPool ? { moved_by_name: moverName } : {}),
+              },
+            ],
+          };
+        }
+        return stage;
+      })
+    );
+
+    if (isTargetPool && isEmployee) {
+      // Start 5-second countdown on this deal for employee
+      setPoolCountdowns((prev) => ({ ...prev, [dealId]: 5 }));
+    }
+
+    try {
+      await api.put(`/deals/${dealId}/stage`, {
+        deal_stage: targetStage.stage_id,
+      });
+    } catch (err) {
+      console.error("Move deal error:", err);
+      // Revert optimistic update
+      setStages((previousStages) =>
+        previousStages.map((stage) => {
+          if (String(stage.stage_id) === String(sourceStage.stage_id)) {
+            return {
+              ...stage,
+              deals: [...stage.deals, deal],
+            };
+          }
+          if (String(stage.stage_id) === String(targetStage.stage_id)) {
+            return {
+              ...stage,
+              deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
+            };
+          }
+          return stage;
+        })
+      );
+      setPoolCountdowns((prev) => {
+        const next = { ...prev };
+        delete next[dealId];
+        return next;
+      });
+      setError(err.response?.data?.message || err.message || "Failed to move deal.");
+    } finally {
+      setUpdatingDealId(null);
+      setDraggedDealId(null);
+    }
+  };
+
+  /* =====================================================
+     INITIATE DEAL MOVE (CONFIRMATION FOR POOL DRIVE)
+  ===================================================== */
+  const initiateDealMove = (deal, targetStage, sourceStage) => {
+    if (!deal?.deal_id || !targetStage?.stage_id || !sourceStage?.stage_id) return;
+    if (String(sourceStage.stage_id) === String(targetStage.stage_id)) return;
+
+    const isTargetPool =
+      targetStage.stage_name && targetStage.stage_name.toLowerCase().includes("pool");
+
+    if (isTargetPool) {
+      setPendingPoolConfirmation({
+        deal,
+        targetStage,
+        sourceStage,
+      });
+    } else {
+      executeMoveDeal(deal, targetStage, sourceStage);
+    }
+  };
+
+  const confirmPoolMove = async () => {
+    if (!pendingPoolConfirmation) return;
+    const { deal, targetStage, sourceStage } = pendingPoolConfirmation;
+    setPendingPoolConfirmation(null);
+    await executeMoveDeal(deal, targetStage, sourceStage);
+  };
+
+  /* =====================================================
      DEAL MOVE DROP
   ===================================================== */
   const handleDealDrop = async (event, targetStage) => {
@@ -175,68 +327,13 @@ function PipelineBoard({
     );
     if (!sourceStage) return;
 
-    if (String(sourceStage.stage_id) === String(targetStage.stage_id)) {
-      setDraggedDealId(null);
-      return;
-    }
-
     const deal = sourceStage.deals.find((item) => String(item.deal_id) === String(dealId));
     if (!deal) {
       setDraggedDealId(null);
       return;
     }
 
-    setUpdatingDealId(dealId);
-    setError("");
-
-    // Optimistic UI update
-    setStages((previousStages) =>
-      previousStages.map((stage) => {
-        if (String(stage.stage_id) === String(sourceStage.stage_id)) {
-          return {
-            ...stage,
-            deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
-          };
-        }
-        if (String(stage.stage_id) === String(targetStage.stage_id)) {
-          return {
-            ...stage,
-            deals: [...stage.deals, { ...deal, deal_stage: targetStage.stage_id }],
-          };
-        }
-        return stage;
-      })
-    );
-
-    try {
-      await api.put(`/deals/${dealId}/stage`, {
-        deal_stage: targetStage.stage_id,
-      });
-    } catch (err) {
-      console.error("Move deal error:", err);
-      // Revert optimistic update
-      setStages((previousStages) =>
-        previousStages.map((stage) => {
-          if (String(stage.stage_id) === String(sourceStage.stage_id)) {
-            return {
-              ...stage,
-              deals: [...stage.deals, deal],
-            };
-          }
-          if (String(stage.stage_id) === String(targetStage.stage_id)) {
-            return {
-              ...stage,
-              deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
-            };
-          }
-          return stage;
-        })
-      );
-      setError(err.response?.data?.message || err.message || "Failed to move deal.");
-    } finally {
-      setUpdatingDealId(null);
-      setDraggedDealId(null);
-    }
+    initiateDealMove(deal, targetStage, sourceStage);
   };
 
   const handleMoveDealToStage = async (deal, targetStageId) => {
@@ -250,57 +347,7 @@ function PipelineBoard({
     const targetStage = stages.find((s) => String(s.stage_id) === String(targetStageId));
     if (!targetStage) return;
 
-    const dealId = deal.deal_id;
-    setUpdatingDealId(dealId);
-    setError("");
-
-    // Optimistic UI update
-    setStages((previousStages) =>
-      previousStages.map((stage) => {
-        if (String(stage.stage_id) === String(sourceStage.stage_id)) {
-          return {
-            ...stage,
-            deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
-          };
-        }
-        if (String(stage.stage_id) === String(targetStage.stage_id)) {
-          return {
-            ...stage,
-            deals: [...stage.deals, { ...deal, deal_stage: targetStage.stage_id }],
-          };
-        }
-        return stage;
-      })
-    );
-
-    try {
-      await api.put(`/deals/${dealId}/stage`, {
-        deal_stage: targetStage.stage_id,
-      });
-    } catch (err) {
-      console.error("Move deal error:", err);
-      // Revert optimistic update
-      setStages((previousStages) =>
-        previousStages.map((stage) => {
-          if (String(stage.stage_id) === String(sourceStage.stage_id)) {
-            return {
-              ...stage,
-              deals: [...stage.deals, deal],
-            };
-          }
-          if (String(stage.stage_id) === String(targetStage.stage_id)) {
-            return {
-              ...stage,
-              deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
-            };
-          }
-          return stage;
-        })
-      );
-      setError(err.response?.data?.message || err.message || "Failed to move deal.");
-    } finally {
-      setUpdatingDealId(null);
-    }
+    initiateDealMove(deal, targetStage, sourceStage);
   };
 
   const handleDrop = async (event, targetStage) => {
@@ -599,6 +646,7 @@ function PipelineBoard({
                           onDragEnd={handleDealDragEnd}
                           onMoveStage={handleMoveDealToStage}
                           updating={String(updatingDealId) === String(deal.deal_id)}
+                          countdown={poolCountdowns[deal.deal_id] ?? null}
                         />
                       ))
                     )}
@@ -620,6 +668,61 @@ function PipelineBoard({
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Pool Drive Confirmation Modal */}
+      {pendingPoolConfirmation && (
+        <div
+          className="pipeline-modal-backdrop"
+          onClick={() => setPendingPoolConfirmation(null)}
+        >
+          <div
+            className="pool-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pool-confirm-header">
+              <div className="pool-confirm-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="pool-confirm-title-area">
+                <h3 className="pool-confirm-title">Move to Pool Drive?</h3>
+                <p className="pool-confirm-subtitle">
+                  Move <strong>{pendingPoolConfirmation.deal?.deal_name || "this deal"}</strong> to Pool Drive?
+                </p>
+              </div>
+            </div>
+
+            <div className="pool-confirm-body">
+              <div className="pool-confirm-info-box">
+                <span className="pool-info-dot" />
+                <p>
+                  This lead will be unassigned and transferred to the central Pool Drive for Admins and Managers.
+                  {isEmployee && " It will disappear from your account after 5 seconds."}
+                </p>
+              </div>
+            </div>
+
+            <div className="pool-confirm-actions">
+              <button
+                type="button"
+                className="pool-btn-cancel"
+                onClick={() => setPendingPoolConfirmation(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="pool-btn-confirm"
+                onClick={confirmPoolMove}
+                autoFocus
+              >
+                Confirm Move
+              </button>
+            </div>
           </div>
         </div>
       )}

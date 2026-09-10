@@ -31,9 +31,10 @@ router.get("/deals", authenticateToken, async (req, res) => {
         let whereClauses = [];
         let params = [];
 
-        if (role !== "admin") {
+        if (role !== "admin" && role !== "coworker") {
             whereClauses.push("deals.assign_to = ?");
             params.push(user_id);
+            whereClauses.push("(deals.deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))");
         } else if (assign_to && assign_to !== "all") {
             whereClauses.push("deals.assign_to = ?");
             params.push(assign_to);
@@ -581,29 +582,25 @@ router.put(
             let sql;
             let params;
 
-            if (role === "admin") {
-
+            if (role === "admin" || role === "coworker") {
                 sql = `
                     SELECT *
                     FROM deals
                     WHERE deal_id = ?
                     LIMIT 1
                 `;
-
                 params = [dealId];
-
             } else {
-
                 sql = `
                     SELECT *
                     FROM deals
                     WHERE deal_id = ?
-                    AND assign_to = ?
+                    AND (assign_to = ? OR deal_owner = ? OR assign_to IS NULL)
                     LIMIT 1
                 `;
-
                 params = [
                     dealId,
+                    user_id,
                     user_id
                 ];
             }
@@ -614,7 +611,6 @@ router.put(
             );
 
             if (dealResults.length === 0) {
-
                 return res.status(404).json({
                     success: false,
                     message: "Deal not found or access denied"
@@ -630,7 +626,6 @@ router.put(
                 String(currentDeal.deal_stage) ===
                 String(deal_stage)
             ) {
-
                 return res.status(200).json({
                     success: true,
                     message: "Deal is already in this stage",
@@ -639,46 +634,116 @@ router.put(
             }
 
             /*
-             * Update stage
+             * Check target stage details
              */
-            await db.query(
-                `
-                UPDATE deals
-                SET
-                    deal_stage = ?,
-                    last_updated = CURRENT_TIMESTAMP
-                WHERE deal_id = ?
-                `,
-                [
-                    deal_stage,
-                    dealId
-                ]
+            const [stageRows] = await db.query(
+                `SELECT stage_id, stage_name FROM stages WHERE stage_id = ? OR stage_name = ? LIMIT 1`,
+                [deal_stage, deal_stage]
             );
+            const targetStageId = stageRows[0]?.stage_id || deal_stage;
+            const targetStageName = stageRows[0]?.stage_name || deal_stage;
+            const isPoolDrive = targetStageName.toLowerCase().includes("pool");
 
-            /*
-             * Create activity
-             *
-             * Your activities table supports:
-             * "stage change"
-             */
-            await db.query(
-                `
-                INSERT INTO activities
-                (
-                    deal_id,
-                    user_id,
-                    activity_type,
-                    details
-                )
-                VALUES (?, ?, ?, ?)
-                `,
-                [
-                    dealId,
-                    user_id,
-                    "stage change",
-                    `Deal stage changed from "${currentDeal.deal_stage}" to "${deal_stage}"`
-                ]
+            const [userRows] = await db.query(
+                `SELECT name FROM users WHERE user_id = ? LIMIT 1`,
+                [user_id]
             );
+            const moverName = userRows[0]?.name || req.user.name || "User";
+
+            if (isPoolDrive) {
+                // Moving to Pool Drive: unassign deal, record moved_by
+                await db.query(
+                    `
+                    UPDATE deals
+                    SET
+                        deal_stage = ?,
+                        assign_to = NULL,
+                        moved_by_name = ?,
+                        moved_by_user_id = ?,
+                        moved_at = CURRENT_TIMESTAMP,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE deal_id = ?
+                    `,
+                    [
+                        targetStageId,
+                        moverName,
+                        user_id,
+                        dealId
+                    ]
+                );
+
+                await db.query(
+                    `
+                    INSERT INTO activities
+                    (
+                        deal_id,
+                        user_id,
+                        activity_type,
+                        details
+                    )
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                        dealId,
+                        user_id,
+                        "stage change",
+                        `User ${moverName} moved this deal to Pool Drive`
+                    ]
+                );
+
+                // Notify admin & manager users
+                try {
+                    const [admins] = await db.query(
+                        `SELECT user_id FROM users WHERE role IN ('admin', 'coworker') AND user_id != ?`,
+                        [user_id]
+                    );
+                    for (const adm of admins) {
+                        await notifyUser({
+                            userId: adm.user_id,
+                            title: "Lead Moved to Pool Drive",
+                            message: `${moverName} moved "${currentDeal.deal_name}" to Pool Drive`,
+                            type: "deal_moved_pool",
+                            dealId: dealId
+                        });
+                    }
+                } catch (notifyErr) {
+                    console.error("Failed to send pool notifications:", notifyErr);
+                }
+            } else {
+                // Moving to normal stage
+                await db.query(
+                    `
+                    UPDATE deals
+                    SET
+                        deal_stage = ?,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE deal_id = ?
+                    `,
+                    [
+                        targetStageId,
+                        dealId
+                    ]
+                );
+
+                await db.query(
+                    `
+                    INSERT INTO activities
+                    (
+                        deal_id,
+                        user_id,
+                        activity_type,
+                        details
+                    )
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                        dealId,
+                        user_id,
+                        "stage change",
+                        `Deal stage changed from "${currentDeal.deal_stage}" to "${targetStageName}"`
+                    ]
+                );
+            }
 
             /*
              * Fetch updated deal

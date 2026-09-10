@@ -9,6 +9,7 @@ function PipelineDealCard({
   onDragEnd,
   onMoveStage,
   updating = false,
+  countdown = null,
 }) {
   const navigate = useNavigate();
   const [showMoveMenu, setShowMoveMenu] = useState(false);
@@ -37,6 +38,7 @@ function PipelineDealCard({
   const handleOpenDeal = (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (countdown !== null) return;
     if (!deal?.deal_id) return;
     navigate(`/deal/${deal.deal_id}`);
   };
@@ -47,7 +49,7 @@ function PipelineDealCard({
    * =====================================================
    */
   const handleDragStart = (event) => {
-    if (updating) {
+    if (updating || countdown !== null) {
       event.preventDefault();
       return;
     }
@@ -90,19 +92,18 @@ function PipelineDealCard({
     : null;
 
   const ownerName = deal?.deal_owner || deal?.assigned_user_name || "";
-  const ownerInitial = ownerName ? ownerName.charAt(0).toUpperCase() : "?";
 
   return (
     <div
-      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""}`}
-      draggable={!updating && !showMoveMenu}
+      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""}`}
+      draggable={!updating && !showMoveMenu && countdown === null}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleOpenDeal}
     >
       {/* Top Badges & Quick Move Button */}
       <div className="deal-card-badges">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
           <span className={`deal-priority-pill priority-${priorityClass}`}>
             {priority}
           </span>
@@ -112,7 +113,7 @@ function PipelineDealCard({
         </div>
 
         {/* Quick Move Stage Trigger */}
-        {stages.length > 0 && (
+        {stages.length > 0 && countdown === null && (
           <div className="deal-move-stage-container" ref={moveMenuRef}>
             <button
               type="button"
@@ -212,7 +213,12 @@ function PipelineDealCard({
 
       {/* Bottom Metadata */}
       <div className="deal-card-footer">
-        {deal?.assigned_user_name ? (
+        {deal?.moved_by_name ? (
+          <div className="deal-card-moved-by-tag" title={`Moved by ${deal.moved_by_name}`}>
+            <span className="deal-moved-by-dot" />
+            <span className="deal-moved-by-text">User {deal.moved_by_name} Moved this</span>
+          </div>
+        ) : deal?.assigned_user_name ? (
           <div className="deal-card-owner-info" title={`Assigned User: ${deal.assigned_user_name}`}>
             <div className="deal-owner-circle">{deal.assigned_user_name.charAt(0).toUpperCase()}</div>
             <span className="deal-owner-label">{deal.assigned_user_name}</span>
@@ -226,6 +232,7 @@ function PipelineDealCard({
           className="deal-open-btn"
           onClick={handleOpenDeal}
           title="Open deal details"
+          disabled={countdown !== null}
         >
           Open
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -234,7 +241,28 @@ function PipelineDealCard({
         </button>
       </div>
 
-      {updating && (
+      {/* 5-Second Pool Removal Countdown Overlay */}
+      {countdown !== null && (
+        <div className="deal-pool-countdown-overlay">
+          <div className="pool-countdown-box">
+            <div className="pool-countdown-top">
+              <span className="pool-countdown-badge">Moved to Pool Drive</span>
+              <span className="pool-countdown-sec">{countdown}s</span>
+            </div>
+            <p className="pool-countdown-msg">
+              Removing from your account in <strong>{countdown}s</strong>...
+            </p>
+            <div className="pool-countdown-bar-wrap">
+              <div
+                className="pool-countdown-bar-inner"
+                style={{ width: `${(countdown / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {updating && countdown === null && (
         <div className="deal-updating-overlay">
           <span className="deal-spinner" />
           <span>Moving...</span>

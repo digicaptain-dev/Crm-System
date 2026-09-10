@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { v4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 
 /**
  * @swagger
@@ -28,6 +29,18 @@ router.get('/pipelines', async (req, res) => {
     console.log('GET ALL PIPELINES');
     console.log('========================================');
 
+    let requesterUser = null;
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            const jwtSecret = process.env.JWT_SECRET || 'crm_super_secure_jwt_secret_key_2026';
+            requesterUser = jwt.verify(token, jwtSecret);
+        }
+    } catch (e) {
+        // Token optional
+    }
+
     const query = `
         SELECT 
             p.pipeline_id,
@@ -46,10 +59,21 @@ router.get('/pipelines', async (req, res) => {
             d.deal_stage,
             d.deal_owner,
             d.customer_email,
+            d.customer_number,
+            d.customer_address,
+            d.website,
+            d.deal_organization,
+            d.contact_person,
             d.close_date,
             d.deal_priority,
             d.deal_status,
-            d.pipeline_id AS deal_pipeline_id
+            d.assign_to,
+            d.moved_by_name,
+            d.moved_by_user_id,
+            d.moved_at,
+            d.pipeline_id AS deal_pipeline_id,
+            assigned_user.name AS assigned_user_name,
+            owner_user.name AS owner_name
 
         FROM pipelines p
 
@@ -59,6 +83,12 @@ router.get('/pipelines', async (req, res) => {
         LEFT JOIN deals d
             ON s.pipeline_id = d.pipeline_id
             AND s.stage_id = d.deal_stage
+
+        LEFT JOIN users AS assigned_user
+            ON d.assign_to = assigned_user.user_id
+
+        LEFT JOIN users AS owner_user
+            ON d.deal_owner = owner_user.user_id
 
         ORDER BY
             p.created_at DESC,
@@ -117,6 +147,18 @@ router.get('/pipelines', async (req, res) => {
             }
 
             if (stage && row.deal_id) {
+                const isPool = stage.stage_name && stage.stage_name.toLowerCase().includes('pool');
+                const isEmployee = requesterUser && requesterUser.role === 'user';
+
+                // If user is employee, Pool Drive deals are hidden and non-pool only show assigned
+                if (isEmployee) {
+                    if (isPool) {
+                        return;
+                    }
+                    if (row.assign_to && String(row.assign_to) !== String(requesterUser.user_id)) {
+                        return;
+                    }
+                }
 
                 stage.deals.push({
                     deal_id: row.deal_id,
@@ -125,9 +167,20 @@ router.get('/pipelines', async (req, res) => {
                     deal_stage: row.deal_stage,
                     deal_owner: row.deal_owner,
                     customer_email: row.customer_email,
+                    customer_number: row.customer_number,
+                    customer_address: row.customer_address,
+                    website: row.website,
+                    deal_organization: row.deal_organization,
+                    contact_person: row.contact_person,
                     close_date: row.close_date,
                     deal_priority: row.deal_priority,
-                    deal_status: row.deal_status
+                    deal_status: row.deal_status,
+                    assign_to: row.assign_to,
+                    assigned_user_name: row.assigned_user_name,
+                    owner_name: row.owner_name,
+                    moved_by_name: row.moved_by_name,
+                    moved_by_user_id: row.moved_by_user_id,
+                    moved_at: row.moved_at
                 });
             }
         });

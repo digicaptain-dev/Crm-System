@@ -1374,3 +1374,34 @@
     transform: scale(1) translateY(0);
   }
 }
+
+/* =====================================================
+   POOL DRIVE DETAIL BADGES & EXIT BANNER
+===================================================== */
+.deal-pool-moved-pill {
+  background: #eff6ff !important;
+  color: #1e40af !important;
+  border: 1px solid #bfdbfe !important;
+  font-weight: 700 !important;
+}
+
+.deal-pool-exit-banner {
+  margin-top: 14px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+  padding: 12px 16px;
+  animation: countdownFadeIn 0.2s ease-out;
+}
+
+.pool-exit-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1e40af;
+  font-size: 13px;
+}
+
+.pool-exit-icon {
+  font-size: 18px;
+}
