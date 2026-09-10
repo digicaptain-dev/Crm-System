@@ -239,6 +239,70 @@ function PipelineBoard({
     }
   };
 
+  const handleMoveDealToStage = async (deal, targetStageId) => {
+    if (!deal?.deal_id || !targetStageId) return;
+
+    const sourceStage = stages.find((s) =>
+      s.deals.some((d) => String(d.deal_id) === String(deal.deal_id))
+    );
+    if (!sourceStage || String(sourceStage.stage_id) === String(targetStageId)) return;
+
+    const targetStage = stages.find((s) => String(s.stage_id) === String(targetStageId));
+    if (!targetStage) return;
+
+    const dealId = deal.deal_id;
+    setUpdatingDealId(dealId);
+    setError("");
+
+    // Optimistic UI update
+    setStages((previousStages) =>
+      previousStages.map((stage) => {
+        if (String(stage.stage_id) === String(sourceStage.stage_id)) {
+          return {
+            ...stage,
+            deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
+          };
+        }
+        if (String(stage.stage_id) === String(targetStage.stage_id)) {
+          return {
+            ...stage,
+            deals: [...stage.deals, { ...deal, deal_stage: targetStage.stage_id }],
+          };
+        }
+        return stage;
+      })
+    );
+
+    try {
+      await api.put(`/deals/${dealId}/stage`, {
+        deal_stage: targetStage.stage_id,
+      });
+    } catch (err) {
+      console.error("Move deal error:", err);
+      // Revert optimistic update
+      setStages((previousStages) =>
+        previousStages.map((stage) => {
+          if (String(stage.stage_id) === String(sourceStage.stage_id)) {
+            return {
+              ...stage,
+              deals: [...stage.deals, deal],
+            };
+          }
+          if (String(stage.stage_id) === String(targetStage.stage_id)) {
+            return {
+              ...stage,
+              deals: stage.deals.filter((item) => String(item.deal_id) !== String(dealId)),
+            };
+          }
+          return stage;
+        })
+      );
+      setError(err.response?.data?.message || err.message || "Failed to move deal.");
+    } finally {
+      setUpdatingDealId(null);
+    }
+  };
+
   const handleDrop = async (event, targetStage) => {
     const stageDragId = event.dataTransfer.getData("application/x-pipeline-stage");
     if (stageDragId) {
@@ -530,8 +594,10 @@ function PipelineBoard({
                         <PipelineDealCard
                           key={deal.deal_id}
                           deal={deal}
+                          stages={stages}
                           onDragStart={handleDealDragStart}
                           onDragEnd={handleDealDragEnd}
+                          onMoveStage={handleMoveDealToStage}
                           updating={String(updatingDealId) === String(deal.deal_id)}
                         />
                       ))
