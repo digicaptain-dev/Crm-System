@@ -271,7 +271,9 @@ function NotificationDropdown() {
                         title="Mark as read"
                         onClick={(e) => handleMarkAsRead(e, item)}
                       >
-                        ✓
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="13" height="13">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                       </button>
                     ) : (
                       <div style={{ width: 8 }} />

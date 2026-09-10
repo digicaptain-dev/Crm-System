@@ -63,12 +63,22 @@ router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
         const { user_id } = req.user;
         const { id } = req.params;
 
-        await db.query(
-            `UPDATE notifications 
-             SET is_read = 1 
-             WHERE (notification_id = ? OR id = ?) AND user_id = ?`,
-            [id, id, String(user_id)]
-        );
+        const isNumericId = /^\d+$/.test(String(id));
+        if (isNumericId) {
+            await db.query(
+                `UPDATE notifications 
+                 SET is_read = 1 
+                 WHERE (id = ? OR notification_id = ?) AND user_id = ?`,
+                [Number(id), String(id), String(user_id)]
+            );
+        } else {
+            await db.query(
+                `UPDATE notifications 
+                 SET is_read = 1 
+                 WHERE notification_id = ? AND user_id = ?`,
+                [String(id), String(user_id)]
+            );
+        }
 
         const [unreadResult] = await db.query(
             `SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = 0`,
@@ -123,11 +133,20 @@ router.delete('/notifications/:id', authenticateToken, async (req, res) => {
         const { user_id } = req.user;
         const { id } = req.params;
 
-        await db.query(
-            `DELETE FROM notifications 
-             WHERE (notification_id = ? OR id = ?) AND user_id = ?`,
-            [id, id, String(user_id)]
-        );
+        const isNumericId = /^\d+$/.test(String(id));
+        if (isNumericId) {
+            await db.query(
+                `DELETE FROM notifications 
+                 WHERE (id = ? OR notification_id = ?) AND user_id = ?`,
+                [Number(id), String(id), String(user_id)]
+            );
+        } else {
+            await db.query(
+                `DELETE FROM notifications 
+                 WHERE notification_id = ? AND user_id = ?`,
+                [String(id), String(user_id)]
+            );
+        }
 
         return res.status(200).json({
             success: true,
