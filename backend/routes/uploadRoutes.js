@@ -5,13 +5,21 @@ const XLSX = require("xlsx");
 const { v4: uuidv4 } = require("uuid");
 const db = require("../db");
 const fs = require("fs");
+const path = require("path");
 
 // ======================================================
-// MULTER
+// MULTER SETUP
 // ======================================================
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const upload = multer({
-  dest: "uploads/",
+  dest: uploadDir,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max
 });
 
 // ======================================================
@@ -22,157 +30,27 @@ const normalize = (value) => {
   if (value === undefined || value === null) {
     return "";
   }
-
   return String(value).trim();
 };
 
 const normalizeHeader = (value) => {
   return normalize(value)
     .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/[^a-z0-9]/g, "");
 };
-
-const parseNumber = (value) => {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
-    return null;
-  }
-
-  const cleaned = String(value)
-    .replace(/,/g, "")
-    .replace(/[^\d.-]/g, "");
-
-  if (!cleaned) {
-    return null;
-  }
-
-  const number = Number(cleaned);
-
-  return Number.isFinite(number)
-    ? number
-    : null;
-};
-
-const parseProbability = (value) => {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isInteger(number)) {
-    return null;
-  }
-
-  if (number < 0 || number > 100) {
-    return null;
-  }
-
-  return number;
-};
-
-const normalizeDate = (value) => {
-  if (!value) {
-    return null;
-  }
-
-  // Excel serial date
-  if (typeof value === "number") {
-    const date =
-      XLSX.SSF.parse_date_code(value);
-
-    if (!date) {
-      return null;
-    }
-
-    const year = date.y;
-    const month = String(date.m).padStart(2, "0");
-    const day = String(date.d).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  }
-
-  const stringValue = String(value).trim();
-
-  // Already YYYY-MM-DD
-  if (
-    /^\d{4}-\d{2}-\d{2}$/.test(
-      stringValue
-    )
-  ) {
-    return stringValue;
-  }
-
-  // DD/MM/YYYY
-  const slashMatch =
-    stringValue.match(
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
-    );
-
-  if (slashMatch) {
-    const day = String(
-      slashMatch[1]
-    ).padStart(2, "0");
-
-    const month = String(
-      slashMatch[2]
-    ).padStart(2, "0");
-
-    const year = slashMatch[3];
-
-    return `${year}-${month}-${day}`;
-  }
-
-  // Try normal JS date
-  const date = new Date(
-    stringValue
-  );
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const year = date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-// ======================================================
-// EXCEL HEADER MAPPING
-// ======================================================
 
 const getCell = (row, possibleNames) => {
   const rowKeys = Object.keys(row);
 
   for (const possibleName of possibleNames) {
-    const normalizedPossible =
-      normalizeHeader(possibleName);
+    const normalizedPossible = normalizeHeader(possibleName);
 
-    const matchingKey =
-      rowKeys.find(
-        (key) =>
-          normalizeHeader(key) ===
-          normalizedPossible
-      );
+    const matchingKey = rowKeys.find(
+      (key) => normalizeHeader(key) === normalizedPossible
+    );
 
-    if (matchingKey) {
-      return row[matchingKey];
+    if (matchingKey && row[matchingKey] !== undefined && row[matchingKey] !== null) {
+      return String(row[matchingKey]).trim();
     }
   }
 
@@ -180,13 +58,10 @@ const getCell = (row, possibleNames) => {
 };
 
 // ======================================================
-// CONVERT EXCEL ROW
+// CONVERT EXCEL / CSV ROW
 // ======================================================
 
-const convertExcelRow = (
-  row,
-  excelRowNumber
-) => {
+const convertExcelRow = (row, excelRowNumber) => {
   const businessName = normalize(
     getCell(row, [
       "Business Name",
@@ -197,15 +72,28 @@ const convertExcelRow = (
       "Company Name",
       "Deal Name",
       "DealName",
+      "Name",
     ])
   );
 
+  const rawStatus = normalize(
+    getCell(row, ["Status", "Deal Status", "Lead Status"])
+  );
+
+  let cleanStatus = "Open";
+  const lowerStatus = rawStatus.toLowerCase();
+  if (lowerStatus.includes("won")) {
+    cleanStatus = "Closed Won";
+  } else if (lowerStatus.includes("lost")) {
+    cleanStatus = "Closed Lost";
+  } else if (lowerStatus === "open") {
+    cleanStatus = "Open";
+  }
+
   const deal = {
     excel_row: excelRowNumber,
-
     deal_name: businessName,
     deal_organization: businessName,
-
     deal_owner: normalize(
       getCell(row, [
         "Owner Name",
@@ -213,9 +101,9 @@ const convertExcelRow = (
         "Deal Owner",
         "DealOwner",
         "Owner",
+        "Contact Person",
       ])
     ),
-
     website: normalize(
       getCell(row, [
         "Website",
@@ -225,7 +113,6 @@ const convertExcelRow = (
         "Business Website",
       ])
     ),
-
     customer_number: normalize(
       getCell(row, [
         "Phone Number",
@@ -234,9 +121,9 @@ const convertExcelRow = (
         "Customer Number",
         "Number",
         "Mobile",
+        "Contact Number",
       ])
     ),
-
     customer_email: normalize(
       getCell(row, [
         "Email Address",
@@ -244,9 +131,9 @@ const convertExcelRow = (
         "Customer Email",
         "Email",
         "Email ID",
+        "Mail",
       ])
     ),
-
     customer_address: normalize(
       getCell(row, [
         "Address / Location",
@@ -254,51 +141,22 @@ const convertExcelRow = (
         "Address",
         "Location",
         "Customer Address",
+        "City",
+        "State",
       ])
     ),
-
     pipeline: normalize(
-      getCell(row, [
-        "Pipeline",
-        "Pipeline Name",
-      ])
+      getCell(row, ["Pipeline", "Pipeline Name"])
     ),
-
     stage: normalize(
-      getCell(row, [
-        "Stage",
-        "Stage Name",
-      ])
+      getCell(row, ["Stage", "Stage Name"])
     ),
-
-    deal_source: normalize(
-      getCell(row, [
-        "Website",
-        "Deal Source",
-        "Source",
-      ])
-    ),
-
     deal_priority: normalize(
-      getCell(row, [
-        "Priority",
-        "Deal Priority",
-      ])
+      getCell(row, ["Priority", "Deal Priority"])
     ) || "Medium",
-
-    deal_status: normalize(
-      getCell(row, [
-        "Status",
-        "Deal Status",
-      ])
-    ) || "Open",
-
+    deal_status: cleanStatus,
     deal_notes: normalize(
-      getCell(row, [
-        "Notes",
-        "Deal Notes",
-        "Comment",
-      ])
+      getCell(row, ["Notes", "Deal Notes", "Comment"])
     ),
   };
 
@@ -309,707 +167,384 @@ const convertExcelRow = (
 // VALIDATE ONE DEAL
 // ======================================================
 
-const validateDeal = async (deal) => {
+const validateDeal = async (deal, defaultPipeline, defaultStage) => {
   const errors = [];
 
-  // -----------------------------------------------
-  // Mandatory Fields
-  // -----------------------------------------------
-
+  // 1. Mandatory Fields
   if (!deal.deal_organization && !deal.deal_name) {
-    errors.push(
-      "Business Name is required."
-    );
+    errors.push("Business Name is required.");
   }
 
   if (!deal.deal_owner) {
-    errors.push(
-      "Owner Name is required."
-    );
+    errors.push("Owner Name is required.");
   }
 
   if (!deal.website) {
-    errors.push(
-      "Website is required."
-    );
+    errors.push("Website is required.");
   }
 
   if (!deal.customer_number) {
-    errors.push(
-      "Phone Number is required."
-    );
+    errors.push("Phone Number is required.");
   }
 
   if (!deal.customer_email) {
-    errors.push(
-      "Email Address is required."
-    );
+    errors.push("Email Address is required.");
   }
 
   if (!deal.customer_address) {
-    errors.push(
-      "Address / Location is required."
-    );
+    errors.push("Address / Location is required.");
   }
 
-  if (!deal.pipeline) {
-    errors.push(
-      "Pipeline is required."
-    );
-  }
-
-  if (!deal.stage) {
-    errors.push(
-      "Stage is required."
-    );
-  }
-
-  // -----------------------------------------------
-  // Validate priority
-  // -----------------------------------------------
-
-  if (
-    deal.deal_priority &&
-    ![
-      "High",
-      "Medium",
-      "Low",
-    ].includes(
-      deal.deal_priority
-    )
-  ) {
-    errors.push(
-      "Priority must be High, Medium, or Low."
-    );
-  }
-
-  // -----------------------------------------------
-  // Validate status
-  // -----------------------------------------------
-
-  if (
-    deal.deal_status &&
-    ![
-      "Open",
-      "Closed Won",
-      "Won",
-      "Closed Lost",
-      "Lost",
-      "Removed",
-    ].includes(
-      deal.deal_status
-    )
-  ) {
-    errors.push(
-      "Status must be Open, Closed Won, Closed Lost, or Removed."
-    );
-  }
-
-  // -----------------------------------------------
-  // Find owner
-  // -----------------------------------------------
-
-  let owner = null;
-
-  if (deal.deal_owner) {
-    const [users] =
-      await db.query(
-        `
-        SELECT user_id, name
-        FROM users
-        WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
-        LIMIT 1
-        `,
-        [deal.deal_owner]
-      );
-
-    if (!users.length) {
-      errors.push(
-        `Deal Owner "${deal.deal_owner}" was not found.`
-      );
-    } else {
-      owner = users[0];
-    }
-  }
-
-  // -----------------------------------------------
-  // Find pipeline
-  // -----------------------------------------------
-
-  let pipeline = null;
+  // 2. Resolve Pipeline
+  let resolvedPipelineId = defaultPipeline?.pipeline_id || null;
+  let resolvedPipelineName = defaultPipeline?.pipeline_name || "Default";
 
   if (deal.pipeline) {
-    const [pipelines] =
-      await db.query(
-        `
-        SELECT pipeline_id, pipeline_name
-        FROM pipelines
-        WHERE LOWER(TRIM(pipeline_name)) =
-              LOWER(TRIM(?))
-        LIMIT 1
-        `,
+    try {
+      const [pipelines] = await db.query(
+        `SELECT pipeline_id, pipeline_name FROM pipelines WHERE LOWER(TRIM(pipeline_name)) = LOWER(TRIM(?)) LIMIT 1`,
         [deal.pipeline]
       );
-
-    if (!pipelines.length) {
-      errors.push(
-        `Pipeline "${deal.pipeline}" was not found.`
-      );
-    } else {
-      pipeline = pipelines[0];
+      if (pipelines.length > 0) {
+        resolvedPipelineId = pipelines[0].pipeline_id;
+        resolvedPipelineName = pipelines[0].pipeline_name;
+      }
+    } catch (e) {
+      console.warn("Pipeline lookup err:", e.message);
     }
   }
 
-  // -----------------------------------------------
-  // Find stage inside selected pipeline
-  // -----------------------------------------------
+  // 3. Resolve Stage
+  let resolvedStageId = defaultStage?.stage_id || null;
+  let resolvedStageName = defaultStage?.stage_name || "Stage 1";
 
-  let stage = null;
-
-  if (
-    deal.stage &&
-    pipeline
-  ) {
-    const [stages] =
-      await db.query(
-        `
-        SELECT stage_id, stage_name
-        FROM stages
-        WHERE pipeline_id = ?
-          AND LOWER(TRIM(stage_name)) =
-              LOWER(TRIM(?))
-        LIMIT 1
-        `,
-        [
-          pipeline.pipeline_id,
-          deal.stage,
-        ]
+  if (deal.stage && resolvedPipelineId) {
+    try {
+      const [stages] = await db.query(
+        `SELECT stage_id, stage_name FROM stages WHERE pipeline_id = ? AND LOWER(TRIM(stage_name)) = LOWER(TRIM(?)) LIMIT 1`,
+        [resolvedPipelineId, deal.stage]
       );
-
-    if (!stages.length) {
-      errors.push(
-        `Stage "${deal.stage}" was not found in pipeline "${pipeline.pipeline_name}".`
-      );
-    } else {
-      stage = stages[0];
+      if (stages.length > 0) {
+        resolvedStageId = stages[0].stage_id;
+        resolvedStageName = stages[0].stage_name;
+      }
+    } catch (e) {
+      console.warn("Stage lookup err:", e.message);
     }
   }
 
   return {
     ...deal,
-
+    pipeline: resolvedPipelineName,
+    stage: resolvedStageName,
     valid: errors.length === 0,
-
     errors,
-
-    // These are returned for preview only.
-    // Frontend does not need to display them.
     resolved: {
-      user_id:
-        owner?.user_id || null,
-
-      pipeline_id:
-        pipeline?.pipeline_id || null,
-
-      stage_id:
-        stage?.stage_id || null,
+      pipeline_id: resolvedPipelineId,
+      stage_id: resolvedStageId,
     },
   };
 };
 
 // ======================================================
-// PREVIEW EXCEL
-//
-// POST /api/deals/upload/preview
+// HELPER: PROCESS UPLOADED FILE (CSV or XLSX)
 // ======================================================
 
-router.post(
-  "/preview",
-  upload.single("dealsFile"),
-  async (req, res) => {
-    let filePath = null;
+async function processUploadedFile(filePath) {
+  const workbook = XLSX.readFile(filePath, {
+    raw: false,
+    cellDates: true,
+  });
 
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "No Excel file uploaded.",
-        });
-      }
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error("File does not contain any readable sheets.");
+  }
 
-      filePath = req.file.path;
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
 
-      // ---------------------------------------------
-      // Check extension
-      // ---------------------------------------------
+  const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+    defval: "",
+    raw: false,
+  });
 
-      const fileName =
-        req.file.originalname.toLowerCase();
+  if (!rawRows || rawRows.length === 0) {
+    throw new Error("Uploaded file is empty.");
+  }
 
-      if (
-        !fileName.endsWith(".xlsx")
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Only .xlsx Excel files are supported.",
-        });
-      }
+  // Fetch default pipeline & stage
+  let defaultPipeline = null;
+  let defaultStage = null;
+  try {
+    const [pRows] = await db.query(`SELECT pipeline_id, pipeline_name FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
+    if (pRows.length > 0) {
+      defaultPipeline = pRows[0];
+      const [sRows] = await db.query(
+        `SELECT stage_id, stage_name FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
+        [defaultPipeline.pipeline_id]
+      );
+      if (sRows.length > 0) defaultStage = sRows[0];
+    }
+  } catch (dbErr) {
+    console.warn("Default pipeline lookup err:", dbErr.message);
+  }
 
-      // ---------------------------------------------
-      // Read workbook
-      // ---------------------------------------------
+  const validatedRows = [];
 
-      const workbook =
-        XLSX.readFile(filePath);
+  for (let index = 0; index < rawRows.length; index++) {
+    const deal = convertExcelRow(rawRows[index], index + 2);
+    const validated = await validateDeal(deal, defaultPipeline, defaultStage);
+    validatedRows.push(validated);
+  }
 
-      if (
-        !workbook.SheetNames.length
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Excel file does not contain any worksheet.",
-        });
-      }
+  const validCount = validatedRows.filter((r) => r.valid).length;
+  const invalidCount = validatedRows.filter((r) => !r.valid).length;
 
-      const sheetName =
-        workbook.SheetNames[0];
+  return {
+    total: validatedRows.length,
+    valid: validCount,
+    invalid: invalidCount,
+    rows: validatedRows,
+  };
+}
 
-      const worksheet =
-        workbook.Sheets[
-          sheetName
-        ];
+// ======================================================
+// PREVIEW FILE ENDPOINT (Supports /preview and root POST with file)
+// ======================================================
 
-      const rawRows =
-        XLSX.utils.sheet_to_json(
-          worksheet,
-          {
-            defval: "",
-          }
-        );
+router.post("/preview", upload.any(), async (req, res) => {
+  const file = req.files?.[0] || req.file;
+  if (!file) {
+    return res.status(400).json({ success: false, message: "No file uploaded." });
+  }
 
-      if (
-        !rawRows ||
-        rawRows.length === 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Excel file is empty.",
-        });
-      }
+  try {
+    const result = await processUploadedFile(file.path);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error("Preview error:", error);
+    return res.status(400).json({ success: false, message: error.message || "Failed to process file." });
+  } finally {
+    if (file && file.path) {
+      fs.unlink(file.path, () => {});
+    }
+  }
+});
 
-      // ---------------------------------------------
-      // Validate headers
-      // ---------------------------------------------
+// ======================================================
+// COMMIT IMPORT ENDPOINT
+// ======================================================
 
-      const headers =
-        Object.keys(
-          rawRows[0]
-        ).map(normalizeHeader);
+router.post("/commit", async (req, res) => {
+  try {
+    const rows = req.body?.rows;
 
-      const requiredHeaders = [
-        "deal name",
-        "deal owner",
-        "pipeline",
-        "stage",
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No rows provided for import.",
+      });
+    }
+
+    // Get default pipeline & stage fallback
+    let fallbackPipelineId = null;
+    let fallbackStageId = null;
+    const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
+    if (pRows.length > 0) {
+      fallbackPipelineId = pRows[0].pipeline_id;
+      const [sRows] = await db.query(
+        `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
+        [fallbackPipelineId]
+      );
+      if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
+    }
+
+    await db.beginTransaction();
+
+    let imported = 0;
+
+    for (const row of rows) {
+      const businessName = normalize(row.deal_organization || row.deal_name);
+      if (!businessName) continue;
+
+      const dealId = uuidv4();
+      const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
+      const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
+
+      const sql = `
+        INSERT INTO deals (
+          deal_id,
+          deal_name,
+          deal_organization,
+          deal_owner,
+          website,
+          customer_number,
+          customer_email,
+          customer_address,
+          pipeline_id,
+          deal_stage,
+          deal_priority,
+          deal_status,
+          deal_notes,
+          deal_source
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const values = [
+        dealId,
+        businessName,
+        businessName,
+        normalize(row.deal_owner) || "Unknown",
+        normalize(row.website) || null,
+        normalize(row.customer_number) || null,
+        normalize(row.customer_email) || null,
+        normalize(row.customer_address) || null,
+        pipelineId,
+        stageId,
+        normalize(row.deal_priority) || "Medium",
+        normalize(row.deal_status) || "Open",
+        normalize(row.deal_notes) || null,
+        normalize(row.website) || null,
       ];
 
-      const missingHeaders =
-        requiredHeaders.filter(
-          (header) =>
-            !headers.includes(header)
-        );
+      await db.query(sql, values);
+      imported++;
+    }
 
-      if (
-        missingHeaders.length > 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Required Excel columns are missing.",
-          missingColumns:
-            missingHeaders,
-        });
+    await db.commit();
+
+    return res.json({
+      success: true,
+      message: `Successfully imported ${imported} leads.`,
+      imported,
+    });
+  } catch (error) {
+    await db.rollback().catch(() => {});
+    console.error("Import commit error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Database error while saving imported leads.",
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================
+// ROOT POST ROUTE (Handles BOTH multipart file upload AND JSON commit)
+// ======================================================
+
+router.post("/", upload.any(), async (req, res) => {
+  const file = req.files?.[0] || req.file;
+
+  // Case 1: File is being uploaded -> return preview
+  if (file) {
+    try {
+      const result = await processUploadedFile(file.path);
+      return res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Root upload preview error:", error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to parse file.",
+      });
+    } finally {
+      if (file && file.path) {
+        fs.unlink(file.path, () => {});
+      }
+    }
+  }
+
+  // Case 2: JSON payload with { rows } -> perform commit
+  if (req.body?.rows && Array.isArray(req.body.rows)) {
+    try {
+      const rows = req.body.rows;
+      let fallbackPipelineId = null;
+      let fallbackStageId = null;
+      const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
+      if (pRows.length > 0) {
+        fallbackPipelineId = pRows[0].pipeline_id;
+        const [sRows] = await db.query(
+          `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
+          [fallbackPipelineId]
+        );
+        if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
       }
 
-      // ---------------------------------------------
-      // Convert + validate
-      // ---------------------------------------------
+      await db.beginTransaction();
+      let imported = 0;
 
-      const validatedRows = [];
+      for (const row of rows) {
+        const businessName = normalize(row.deal_organization || row.deal_name);
+        if (!businessName) continue;
 
-      for (
-        let index = 0;
-        index < rawRows.length;
-        index++
-      ) {
-        const deal =
-          convertExcelRow(
-            rawRows[index],
-            index + 2
-          );
+        const dealId = uuidv4();
+        const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
+        const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
 
-        const validated =
-          await validateDeal(
-            deal
-          );
+        const sql = `
+          INSERT INTO deals (
+            deal_id,
+            deal_name,
+            deal_organization,
+            deal_owner,
+            website,
+            customer_number,
+            customer_email,
+            customer_address,
+            pipeline_id,
+            deal_stage,
+            deal_priority,
+            deal_status,
+            deal_notes,
+            deal_source
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
 
-        validatedRows.push(
-          validated
-        );
+        const values = [
+          dealId,
+          businessName,
+          businessName,
+          normalize(row.deal_owner) || "Unknown",
+          normalize(row.website) || null,
+          normalize(row.customer_number) || null,
+          normalize(row.customer_email) || null,
+          normalize(row.customer_address) || null,
+          pipelineId,
+          stageId,
+          normalize(row.deal_priority) || "Medium",
+          normalize(row.deal_status) || "Open",
+          normalize(row.deal_notes) || null,
+          normalize(row.website) || null,
+        ];
+
+        await db.query(sql, values);
+        imported++;
       }
 
-      const validCount =
-        validatedRows.filter(
-          (row) => row.valid
-        ).length;
-
-      const invalidCount =
-        validatedRows.filter(
-          (row) => !row.valid
-        ).length;
+      await db.commit();
 
       return res.json({
         success: true,
-
-        total:
-          validatedRows.length,
-
-        valid:
-          validCount,
-
-        invalid:
-          invalidCount,
-
-        rows:
-          validatedRows,
+        message: `Successfully imported ${imported} leads.`,
+        imported,
       });
-
-    } catch (error) {
-      console.error(
-        "Excel preview error:",
-        error
-      );
-
+    } catch (dbError) {
+      await db.rollback().catch(() => {});
+      console.error("Root import commit error:", dbError);
       return res.status(500).json({
         success: false,
-        message:
-          "Failed to process Excel file.",
-        error:
-          error.message,
-      });
-
-    } finally {
-      // ---------------------------------------------
-      // Delete temporary Excel file
-      // ---------------------------------------------
-
-      if (filePath) {
-        fs.unlink(
-          filePath,
-          (err) => {
-            if (err) {
-              console.error(
-                "Failed to delete temporary Excel file:",
-                err
-              );
-            }
-          }
-        );
-      }
-    }
-  }
-);
-
-// ======================================================
-// ACTUAL BULK IMPORT
-//
-// POST /api/deals/upload
-// ======================================================
-
-router.post(
-  "/",
-  async (req, res) => {
-    try {
-      const rows =
-        req.body?.rows;
-
-      if (
-        !Array.isArray(rows) ||
-        rows.length === 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "No valid deal rows were provided.",
-        });
-      }
-
-      // ---------------------------------------------
-      // Revalidate everything on backend.
-      //
-      // Do NOT trust pipeline_id/stage_id
-      // sent by frontend.
-      // ---------------------------------------------
-
-      const dealsToInsert = [];
-
-      for (
-        let index = 0;
-        index < rows.length;
-        index++
-      ) {
-        const row = rows[index];
-
-        // Only accept normal user-facing fields.
-        const deal = {
-          deal_name:
-            normalize(
-              row.deal_name
-            ),
-
-          deal_owner:
-            normalize(
-              row.deal_owner
-            ),
-
-          pipeline:
-            normalize(
-              row.pipeline
-            ),
-
-          stage:
-            normalize(
-              row.stage
-            ),
-
-          deal_value:
-            row.deal_value ??
-            null,
-
-          customer_email:
-            normalize(
-              row.customer_email
-            ) || null,
-
-          close_date:
-            row.close_date ||
-            null,
-
-          deal_source:
-            normalize(
-              row.deal_source
-            ) || null,
-
-          deal_priority:
-            normalize(
-              row.deal_priority
-            ) || "Medium",
-
-          deal_status:
-            normalize(
-              row.deal_status
-            ) || "Open",
-
-          probability:
-            row.probability ??
-            null,
-
-          tags:
-            normalize(
-              row.tags
-            ) || null,
-
-          currency:
-            normalize(
-              row.currency
-            ) || null,
-
-          team_members:
-            normalize(
-              row.team_members
-            ) || null,
-
-          deal_organization:
-            normalize(
-              row.deal_organization
-            ) || null,
-
-          contact_person:
-            normalize(
-              row.contact_person
-            ) || null,
-
-          assign_to:
-            normalize(
-              row.assign_to
-            ) || null,
-
-          time_zone:
-            normalize(
-              row.time_zone
-            ) || null,
-
-          customer_number:
-            normalize(
-              row.customer_number
-            ) || null,
-
-          customer_address:
-            normalize(
-              row.customer_address
-            ) || null,
-
-          products_services:
-            normalize(
-              row.products_services
-            ) || null,
-
-          deal_notes:
-            normalize(
-              row.deal_notes
-            ) || null,
-        };
-
-        const validation =
-          await validateDeal(
-            deal
-          );
-
-        if (!validation.valid) {
-          return res.status(400).json({
-            success: false,
-            message:
-              `Row ${
-                row.excel_row ||
-                index + 1
-              } is invalid.`,
-            errors:
-              validation.errors,
-          });
-        }
-
-        dealsToInsert.push({
-          deal,
-          resolved:
-            validation.resolved,
-        });
-      }
-
-      // ---------------------------------------------
-      // START TRANSACTION
-      // ---------------------------------------------
-
-      await db.beginTransaction();
-
-      try {
-        let imported = 0;
-
-        // -------------------------------------------
-        // Insert each deal
-        // -------------------------------------------
-
-        for (
-          const item of dealsToInsert
-        ) {
-          const {
-            deal,
-            resolved,
-          } = item;
-
-          const dealId =
-            uuidv4();
-
-          const sql = `
-            INSERT INTO deals (
-              deal_id,
-              deal_name,
-              deal_organization,
-              deal_owner,
-              website,
-              customer_number,
-              customer_email,
-              customer_address,
-              deal_stage,
-              pipeline_id,
-              deal_priority,
-              deal_status,
-              deal_notes,
-              deal_source,
-              assign_to
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `;
-
-          const values = [
-            dealId,
-            deal.deal_name,
-            deal.deal_organization,
-            deal.deal_owner,
-            deal.website || null,
-            deal.customer_number || null,
-            deal.customer_email || null,
-            deal.customer_address || null,
-            resolved.stage_id,
-            resolved.pipeline_id,
-            deal.deal_priority || "Medium",
-            deal.deal_status || "Open",
-            deal.deal_notes || null,
-            deal.website || null,
-            deal.assign_to || null,
-          ];
-
-          await db.query(
-            sql,
-            values
-          );
-
-          imported++;
-        }
-
-        // -------------------------------------------
-        // COMMIT
-        // -------------------------------------------
-
-        await db.commit();
-
-        return res.json({
-          success: true,
-
-          message:
-            `Successfully imported ${imported} deals.`,
-
-          imported,
-        });
-
-      } catch (dbError) {
-        // -------------------------------------------
-        // ROLLBACK
-        // -------------------------------------------
-
-        await db.rollback();
-
-        throw dbError;
-      }
-
-    } catch (error) {
-      console.error(
-        "Bulk deal import error:",
-        error
-      );
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to import deals.",
-        error:
-          error.message,
+        message: "Failed to import deals into database.",
+        error: dbError.message,
       });
     }
   }
-);
+
+  return res.status(400).json({
+    success: false,
+    message: "No file or valid rows provided.",
+  });
+});
 
 module.exports = router;

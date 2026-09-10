@@ -1,15 +1,53 @@
+import { useState } from "react";
+import api from "../../services/api";
 import "../../styles/deals/deal-import-preview.css";
 
 function DealImportPreview({
   preview,
-  importing,
+  previewData,
+  importing: propImporting,
   onClose,
   onImport,
+  onImportComplete,
 }) {
-  const rows = preview?.rows || [];
+  const data = preview || previewData || {};
+  const rows = data.rows || [];
 
   const validRows = rows.filter((row) => row.valid);
   const invalidRows = rows.filter((row) => !row.valid);
+
+  const [loading, setLoading] = useState(false);
+
+  const handleExecuteImport = async () => {
+    if (validRows.length === 0) return;
+
+    if (onImport) {
+      return onImport(validRows);
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.post("/deals/upload/commit", { rows: validRows });
+
+      if (res.data?.success) {
+        alert(res.data.message || `Successfully imported ${validRows.length} leads!`);
+        if (onImportComplete) {
+          onImportComplete();
+        } else if (onClose) {
+          onClose();
+        }
+      } else {
+        alert(res.data?.message || "Failed to import leads.");
+      }
+    } catch (err) {
+      console.error("Import error:", err);
+      alert(err.response?.data?.message || "Failed to commit imported leads.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isImporting = propImporting || loading;
 
   return (
     <div className="modal-overlay">
@@ -18,13 +56,13 @@ function DealImportPreview({
         <div className="import-preview-header">
           <div>
             <h2>Import Leads & Deals</h2>
-            <p>Review validated Excel / CSV data before importing into your pipeline.</p>
+            <p>Review validated Excel / CSV data before importing into your CRM.</p>
           </div>
 
           <button
             className="modal-close"
             onClick={onClose}
-            disabled={importing}
+            disabled={isImporting}
           >
             ×
           </button>
@@ -33,17 +71,17 @@ function DealImportPreview({
         {/* SUMMARY */}
         <div className="import-summary">
           <div className="import-summary-card">
-            <strong>{preview?.total || 0}</strong>
+            <strong>{data?.total || rows.length || 0}</strong>
             <span>Total Rows</span>
           </div>
 
           <div className="import-summary-card valid">
-            <strong>{preview?.valid || 0}</strong>
+            <strong>{data?.valid ?? validRows.length}</strong>
             <span>Valid Rows</span>
           </div>
 
           <div className="import-summary-card invalid">
-            <strong>{preview?.invalid || 0}</strong>
+            <strong>{data?.invalid ?? invalidRows.length}</strong>
             <span>Invalid Rows</span>
           </div>
         </div>
@@ -60,7 +98,6 @@ function DealImportPreview({
                 <th>Phone Number</th>
                 <th>Email Address</th>
                 <th>Address / Location</th>
-                <th>Pipeline / Stage</th>
                 <th>Result</th>
               </tr>
             </thead>
@@ -68,10 +105,10 @@ function DealImportPreview({
             <tbody>
               {rows.map((row, index) => (
                 <tr
-                  key={`${row.excel_row}-${index}`}
+                  key={`${row.excel_row || index}-${index}`}
                   className={row.valid ? "row-valid" : "row-invalid"}
                 >
-                  <td>{row.excel_row}</td>
+                  <td>{row.excel_row || index + 1}</td>
 
                   <td>
                     <strong>{row.deal_organization || row.deal_name || "—"}</strong>
@@ -94,12 +131,6 @@ function DealImportPreview({
                   <td>
                     <span style={{ fontSize: "12px", color: "#64748b" }}>
                       {row.customer_address || "—"}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span style={{ fontSize: "12px" }}>
-                      {row.pipeline || "Default"} / {row.stage || "Stage 1"}
                     </span>
                   </td>
 
@@ -130,17 +161,17 @@ function DealImportPreview({
           <button
             className="secondary-button"
             onClick={onClose}
-            disabled={importing}
+            disabled={isImporting}
           >
             Cancel
           </button>
 
           <button
             className="primary-button"
-            onClick={onImport}
-            disabled={importing || validRows.length === 0}
+            onClick={handleExecuteImport}
+            disabled={isImporting || validRows.length === 0}
           >
-            {importing
+            {isImporting
               ? "Importing..."
               : `Import ${validRows.length} Leads`}
           </button>
