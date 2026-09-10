@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../../styles/activities/activity-list.css";
 
 function ActivityList({
@@ -9,6 +9,8 @@ function ActivityList({
   onOpenCreate,
   onDeleteActivity,
 }) {
+  const navigate = useNavigate();
+
   const getActivityDate = (activity) => {
     if (!activity.created_at) return null;
     const date = new Date(activity.created_at);
@@ -201,7 +203,7 @@ function ActivityList({
   // =====================================================
 
   const headerDate = selectedDate
-    ? formatDate(selectedDate)
+    ? formatDateLabel(selectedDate)
     : "All Activities";
 
   // =====================================================
