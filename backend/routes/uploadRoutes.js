@@ -187,20 +187,73 @@ const convertExcelRow = (
   row,
   excelRowNumber
 ) => {
+  const businessName = normalize(
+    getCell(row, [
+      "Business Name",
+      "BusinessName",
+      "Organization",
+      "Deal Organization",
+      "Company",
+      "Company Name",
+      "Deal Name",
+      "DealName",
+    ])
+  );
+
   const deal = {
     excel_row: excelRowNumber,
 
-    deal_name: normalize(
-      getCell(row, [
-        "Deal Name",
-        "DealName",
-      ])
-    ),
+    deal_name: businessName,
+    deal_organization: businessName,
 
     deal_owner: normalize(
       getCell(row, [
+        "Owner Name",
+        "OwnerName",
         "Deal Owner",
         "DealOwner",
+        "Owner",
+      ])
+    ),
+
+    website: normalize(
+      getCell(row, [
+        "Website",
+        "Site",
+        "Web",
+        "URL",
+        "Business Website",
+      ])
+    ),
+
+    customer_number: normalize(
+      getCell(row, [
+        "Phone Number",
+        "PhoneNumber",
+        "Phone",
+        "Customer Number",
+        "Number",
+        "Mobile",
+      ])
+    ),
+
+    customer_email: normalize(
+      getCell(row, [
+        "Email Address",
+        "EmailAddress",
+        "Customer Email",
+        "Email",
+        "Email ID",
+      ])
+    ),
+
+    customer_address: normalize(
+      getCell(row, [
+        "Address / Location",
+        "Address/Location",
+        "Address",
+        "Location",
+        "Customer Address",
       ])
     ),
 
@@ -218,30 +271,9 @@ const convertExcelRow = (
       ])
     ),
 
-    deal_value: parseNumber(
-      getCell(row, [
-        "Deal Value",
-        "Value",
-      ])
-    ),
-
-    customer_email: normalize(
-      getCell(row, [
-        "Customer Email",
-        "Email",
-        "Email ID",
-      ])
-    ),
-
-    close_date: normalizeDate(
-      getCell(row, [
-        "Close Date",
-        "CloseDate",
-      ])
-    ),
-
     deal_source: normalize(
       getCell(row, [
+        "Website",
         "Deal Source",
         "Source",
       ])
@@ -252,92 +284,14 @@ const convertExcelRow = (
         "Priority",
         "Deal Priority",
       ])
-    ),
+    ) || "Medium",
 
     deal_status: normalize(
       getCell(row, [
         "Status",
         "Deal Status",
       ])
-    ),
-
-    probability: parseProbability(
-      getCell(row, [
-        "Probability",
-      ])
-    ),
-
-    tags: normalize(
-      getCell(row, [
-        "Tags",
-      ])
-    ),
-
-    currency: normalize(
-      getCell(row, [
-        "Currency",
-      ])
-    ),
-
-    team_members: normalize(
-      getCell(row, [
-        "Team Members",
-        "TeamMembers",
-      ])
-    ),
-
-    deal_organization: normalize(
-      getCell(row, [
-        "Organization",
-        "Deal Organization",
-      ])
-    ),
-
-    contact_person: normalize(
-      getCell(row, [
-        "Contact Person",
-        "ContactPerson",
-        "Name",
-      ])
-    ),
-
-    assign_to: normalize(
-      getCell(row, [
-        "Assign To",
-        "AssignTo",
-      ])
-    ),
-
-    time_zone: normalize(
-      getCell(row, [
-        "Time Zone",
-        "Timezone",
-      ])
-    ),
-
-    customer_number: normalize(
-      getCell(row, [
-        "Customer Number",
-        "Number",
-        "Phone",
-      ])
-    ),
-
-    customer_address: normalize(
-      getCell(row, [
-        "Customer Address",
-        "Address",
-      ])
-    ),
-
-    products_services: normalize(
-      getCell(row, [
-        "Products/Services",
-        "Products Services",
-        "Products",
-        "Services",
-      ])
-    ),
+    ) || "Open",
 
     deal_notes: normalize(
       getCell(row, [
@@ -359,18 +313,50 @@ const validateDeal = async (deal) => {
   const errors = [];
 
   // -----------------------------------------------
-  // Required fields
+  // Mandatory Fields
   // -----------------------------------------------
 
-  if (!deal.deal_name) {
+  if (!deal.deal_organization && !deal.deal_name) {
     errors.push(
-      "Deal Name is required."
+      "Business Name is required."
     );
   }
 
   if (!deal.deal_owner) {
     errors.push(
-      "Deal Owner is required."
+      "Owner Name is required."
+    );
+  }
+
+  if (!deal.website) {
+    errors.push(
+      "Website is required."
+    );
+  }
+
+  if (!deal.customer_number) {
+    errors.push(
+      "Phone Number is required."
+    );
+  }
+
+  if (!deal.customer_email) {
+    errors.push(
+      "Email Address is required."
+    );
+  } else if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      deal.customer_email
+    )
+  ) {
+    errors.push(
+      "Email Address is invalid."
+    );
+  }
+
+  if (!deal.customer_address) {
+    errors.push(
+      "Address / Location is required."
     );
   }
 
@@ -383,21 +369,6 @@ const validateDeal = async (deal) => {
   if (!deal.stage) {
     errors.push(
       "Stage is required."
-    );
-  }
-
-  // -----------------------------------------------
-  // Validate email
-  // -----------------------------------------------
-
-  if (
-    deal.customer_email &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-      deal.customer_email
-    )
-  ) {
-    errors.push(
-      "Customer Email is invalid."
     );
   }
 
@@ -429,7 +400,9 @@ const validateDeal = async (deal) => {
     ![
       "Open",
       "Closed Won",
+      "Won",
       "Closed Lost",
+      "Lost",
       "Removed",
     ].includes(
       deal.deal_status
@@ -438,47 +411,6 @@ const validateDeal = async (deal) => {
     errors.push(
       "Status must be Open, Closed Won, Closed Lost, or Removed."
     );
-  }
-
-  // -----------------------------------------------
-  // Validate value
-  // -----------------------------------------------
-
-  const rawValue =
-    deal.deal_value;
-
-  if (
-    rawValue !== null &&
-    rawValue !== undefined &&
-    rawValue !== ""
-  ) {
-    if (
-      !Number.isFinite(
-        Number(rawValue)
-      )
-    ) {
-      errors.push(
-        "Deal Value must be a valid number."
-      );
-    }
-  }
-
-  // -----------------------------------------------
-  // Validate probability
-  // -----------------------------------------------
-
-  if (
-    deal.probability !== null &&
-    deal.probability !== undefined
-  ) {
-    if (
-      deal.probability < 0 ||
-      deal.probability > 100
-    ) {
-      errors.push(
-        "Probability must be between 0 and 100."
-      );
-    }
   }
 
   // -----------------------------------------------
@@ -1003,77 +935,39 @@ router.post(
             INSERT INTO deals (
               deal_id,
               deal_name,
-              deal_value,
-              deal_stage,
+              deal_organization,
               deal_owner,
+              website,
+              customer_number,
               customer_email,
-              close_date,
-              deal_source,
+              customer_address,
+              deal_stage,
+              pipeline_id,
               deal_priority,
               deal_status,
               deal_notes,
-              products_services,
-              pipeline_id,
-              probability,
-              tags,
-              currency,
-              team_members,
-              deal_organization,
-              contact_person,
-              assign_to,
-              time_zone,
-              customer_number,
-              customer_address
+              deal_source,
+              assign_to
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
 
           const values = [
             dealId,
-
             deal.deal_name,
-
-            deal.deal_value,
-
-            resolved.stage_id,
-
-            deal.deal_owner,
-
-            deal.customer_email,
-
-            deal.close_date,
-
-            deal.deal_source,
-
-            deal.deal_priority,
-
-            deal.deal_status,
-
-            deal.deal_notes,
-
-            deal.products_services,
-
-            resolved.pipeline_id,
-
-            deal.probability,
-
-            deal.tags,
-
-            deal.currency,
-
-            deal.team_members,
-
             deal.deal_organization,
-
-            deal.contact_person,
-
-            deal.assign_to,
-
-            deal.time_zone,
-
-            deal.customer_number,
-
-            deal.customer_address,
+            deal.deal_owner,
+            deal.website || null,
+            deal.customer_number || null,
+            deal.customer_email || null,
+            deal.customer_address || null,
+            resolved.stage_id,
+            resolved.pipeline_id,
+            deal.deal_priority || "Medium",
+            deal.deal_status || "Open",
+            deal.deal_notes || null,
+            deal.website || null,
+            deal.assign_to || null,
           ];
 
           await db.query(

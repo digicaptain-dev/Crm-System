@@ -7,21 +7,16 @@ function CreateDeal({
   pipelines = [],
 }) {
   const [form, setForm] = useState({
-    deal_name: "",
     deal_organization: "",
-    customer_email: "",
     deal_owner: "",
-    deal_value: "",
+    website: "",
+    customer_number: "",
+    customer_email: "",
+    customer_address: "",
     deal_priority: "Medium",
-
     pipeline_id: "",
     deal_stage: "",
-
     deal_status: "Open",
-
-    contact_person: "",
-    customer_number: "",
-    customer_address: "",
     deal_notes: "",
   });
 
@@ -53,11 +48,6 @@ function CreateDeal({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.deal_name.trim()) {
-      alert("Please enter a deal title.");
-      return;
-    }
-
     if (!form.pipeline_id) {
       alert("Please select a pipeline.");
       return;
@@ -68,20 +58,50 @@ function CreateDeal({
       return;
     }
 
+    if (!form.deal_organization.trim()) {
+      alert("Please enter a Business Name.");
+      return;
+    }
+
+    if (!form.deal_owner.trim()) {
+      alert("Please enter Owner Name.");
+      return;
+    }
+
+    if (!form.website.trim()) {
+      alert("Please enter Website.");
+      return;
+    }
+
+    if (!form.customer_number.trim()) {
+      alert("Please enter Phone Number.");
+      return;
+    }
+
+    if (!form.customer_email.trim()) {
+      alert("Please enter Email Address.");
+      return;
+    }
+
+    if (!form.customer_address.trim()) {
+      alert("Please enter Address / Location.");
+      return;
+    }
+
     const dealData = {
-      deal_name: form.deal_name.trim(),
-      deal_organization: form.deal_organization.trim() || null,
-      customer_email: form.customer_email.trim() || null,
-      deal_owner: form.deal_owner.trim() || null,
-      deal_value: form.deal_value ? Number(form.deal_value) : null,
+      deal_name: form.deal_organization.trim(),
+      deal_organization: form.deal_organization.trim(),
+      deal_owner: form.deal_owner.trim(),
+      website: form.website.trim(),
+      customer_number: form.customer_number.trim(),
+      customer_email: form.customer_email.trim(),
+      customer_address: form.customer_address.trim(),
       deal_priority: form.deal_priority,
       pipeline_id: form.pipeline_id,
       deal_stage: form.deal_stage,
       deal_status: form.deal_status,
-      contact_person: form.contact_person.trim() || null,
-      customer_number: form.customer_number.trim() || null,
-      customer_address: form.customer_address.trim() || null,
       deal_notes: form.deal_notes.trim() || null,
+      deal_source: form.website.trim() || null,
     };
 
     try {
@@ -143,77 +163,90 @@ function CreateDeal({
           </select>
         </div>
 
-        {/* DEAL NAME */}
+        {/* BUSINESS NAME */}
         <div className="form-group form-group-full">
           <label>
-            Deal Title <span className="required-star">*</span>
+            Business Name <span className="required-star">*</span>
           </label>
-          <input
-            name="deal_name"
-            value={form.deal_name}
-            onChange={handleChange}
-            placeholder="e.g. Enterprise Cloud License - Q3"
-            required
-          />
-        </div>
-
-        {/* ORGANIZATION */}
-        <div className="form-group">
-          <label>Organization / Company</label>
           <input
             name="deal_organization"
             value={form.deal_organization}
             onChange={handleChange}
-            placeholder="e.g. Acme Corp"
+            placeholder="e.g. Acme Corporation Pvt Ltd"
+            required
           />
         </div>
 
-        {/* DEAL VALUE */}
+        {/* OWNER NAME */}
         <div className="form-group">
-          <label>Deal Value ($ USD)</label>
+          <label>
+            Owner Name <span className="required-star">*</span>
+          </label>
           <input
-            type="number"
-            name="deal_value"
-            value={form.deal_value}
+            name="deal_owner"
+            value={form.deal_owner}
             onChange={handleChange}
-            placeholder="e.g. 25000"
-            min="0"
-            step="any"
+            placeholder="e.g. Suyash Sharma"
+            required
           />
         </div>
 
-        {/* CONTACT PERSON */}
+        {/* WEBSITE */}
         <div className="form-group">
-          <label>Contact Person</label>
+          <label>
+            Website <span className="required-star">*</span>
+          </label>
           <input
-            name="contact_person"
-            value={form.contact_person}
+            type="text"
+            name="website"
+            value={form.website}
             onChange={handleChange}
-            placeholder="e.g. Sarah Connor"
+            placeholder="e.g. https://example.com"
+            required
           />
         </div>
 
-        {/* EMAIL */}
+        {/* PHONE NUMBER */}
         <div className="form-group">
-          <label>Customer Email</label>
-          <input
-            type="email"
-            name="customer_email"
-            value={form.customer_email}
-            onChange={handleChange}
-            placeholder="sarah@example.com"
-          />
-        </div>
-
-        {/* PHONE */}
-        <div className="form-group">
-          <label>Customer Phone</label>
+          <label>
+            Phone Number <span className="required-star">*</span>
+          </label>
           <input
             type="tel"
             name="customer_number"
             value={form.customer_number}
             onChange={handleChange}
-            placeholder="+1 555 123 4567"
+            placeholder="e.g. +91 9876543210"
+            required
+          />
+        </div>
+
+        {/* EMAIL ADDRESS */}
+        <div className="form-group">
+          <label>
+            Email Address <span className="required-star">*</span>
+          </label>
+          <input
+            type="email"
+            name="customer_email"
+            value={form.customer_email}
+            onChange={handleChange}
+            placeholder="e.g. contact@example.com"
+            required
+          />
+        </div>
+
+        {/* ADDRESS / LOCATION */}
+        <div className="form-group form-group-full">
+          <label>
+            Address / Location <span className="required-star">*</span>
+          </label>
+          <input
+            name="customer_address"
+            value={form.customer_address}
+            onChange={handleChange}
+            placeholder="e.g. Sector 62, Noida, Uttar Pradesh, India"
+            required
           />
         </div>
 
@@ -231,15 +264,18 @@ function CreateDeal({
           </select>
         </div>
 
-        {/* ADDRESS */}
-        <div className="form-group form-group-full">
-          <label>Customer Address</label>
-          <input
-            name="customer_address"
-            value={form.customer_address}
+        {/* STATUS */}
+        <div className="form-group">
+          <label>Status</label>
+          <select
+            name="deal_status"
+            value={form.deal_status}
             onChange={handleChange}
-            placeholder="Street address, City, Country"
-          />
+          >
+            <option value="Open">Open</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
         </div>
 
         {/* NOTES */}
@@ -270,7 +306,7 @@ function CreateDeal({
           className="primary-button"
           disabled={submitting}
         >
-          {submitting ? "Creating Deal..." : "Create Deal"}
+          {submitting ? "Creating Lead..." : "Create Lead"}
         </button>
       </div>
     </form>
