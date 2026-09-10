@@ -11,7 +11,6 @@ const path = require("path");
 // MULTER SETUP
 // ======================================================
 
-// Ensure uploads directory exists
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -156,7 +155,18 @@ const convertExcelRow = (row, excelRowNumber) => {
     ) || "Medium",
     deal_status: cleanStatus,
     deal_notes: normalize(
-      getCell(row, ["Notes", "Deal Notes", "Comment"])
+      getCell(row, [
+        "Comments",
+        "Comment",
+        "Notes",
+        "Deal Notes",
+        "Lead Notes",
+        "Note",
+        "Remarks",
+        "Remark",
+        "Description",
+        "Feedback",
+      ])
     ),
   };
 
@@ -309,7 +319,122 @@ async function processUploadedFile(filePath) {
 }
 
 // ======================================================
-// PREVIEW FILE ENDPOINT (Supports /preview and root POST with file)
+// HELPER: EXECUTE DEALS INSERTION
+// ======================================================
+
+async function executeImportDeals(rows) {
+  let fallbackPipelineId = null;
+  let fallbackStageId = null;
+
+  try {
+    const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
+    if (pRows.length > 0) {
+      fallbackPipelineId = pRows[0].pipeline_id;
+      const [sRows] = await db.query(
+        `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
+        [fallbackPipelineId]
+      );
+      if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
+    }
+  } catch (err) {
+    console.warn("Fallback lookup err:", err.message);
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    let imported = 0;
+
+    for (const row of rows) {
+      const businessName = normalize(row.deal_organization || row.deal_name);
+      if (!businessName) continue;
+
+      const dealId = uuidv4();
+      const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
+      const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
+      const notes = normalize(row.deal_notes);
+
+      const sql = `
+        INSERT INTO deals (
+          deal_id,
+          deal_name,
+          deal_organization,
+          deal_owner,
+          website,
+          customer_number,
+          customer_email,
+          customer_address,
+          pipeline_id,
+          deal_stage,
+          deal_priority,
+          deal_status,
+          deal_notes,
+          deal_source
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const values = [
+        dealId,
+        businessName,
+        businessName,
+        normalize(row.deal_owner) || "Unknown",
+        normalize(row.website) || null,
+        normalize(row.customer_number) || null,
+        normalize(row.customer_email) || null,
+        normalize(row.customer_address) || null,
+        pipelineId,
+        stageId,
+        normalize(row.deal_priority) || "Medium",
+        normalize(row.deal_status) || "Open",
+        notes || null,
+        normalize(row.website) || null,
+      ];
+
+      await connection.query(sql, values);
+
+      // If comments/notes exist in CSV, auto-insert into comments table
+      if (notes) {
+        try {
+          const commentId = uuidv4();
+          await connection.query(
+            `INSERT INTO comments (comment_id, deal_id, comment, user_id, user_name, user_role, created_at)
+             VALUES (?, ?, ?, 'import', 'Import System', 'system', NOW())`,
+            [commentId, dealId, notes]
+          );
+
+          await connection.query(
+            `INSERT INTO activities (deal_id, user_id, activity_type, details)
+             VALUES (?, 'import', 'comment', ?)`,
+            [dealId, `Imported comment: "${notes.substring(0, 80)}"`]
+          );
+        } catch (commErr) {
+          console.warn("[IMPORT COMMENT ERROR]", commErr.message);
+        }
+      }
+
+      imported++;
+    }
+
+    await connection.commit();
+    connection.release();
+
+    return {
+      success: true,
+      message: `Successfully imported ${imported} leads.`,
+      imported,
+    };
+  } catch (dbError) {
+    await connection.rollback().catch(() => {});
+    connection.release();
+    throw dbError;
+  }
+}
+
+// ======================================================
+// PREVIEW FILE ENDPOINT
 // ======================================================
 
 router.post("/preview", upload.any(), async (req, res) => {
@@ -346,81 +471,9 @@ router.post("/commit", async (req, res) => {
       });
     }
 
-    // Get default pipeline & stage fallback
-    let fallbackPipelineId = null;
-    let fallbackStageId = null;
-    const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
-    if (pRows.length > 0) {
-      fallbackPipelineId = pRows[0].pipeline_id;
-      const [sRows] = await db.query(
-        `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
-        [fallbackPipelineId]
-      );
-      if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
-    }
-
-    await db.beginTransaction();
-
-    let imported = 0;
-
-    for (const row of rows) {
-      const businessName = normalize(row.deal_organization || row.deal_name);
-      if (!businessName) continue;
-
-      const dealId = uuidv4();
-      const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
-      const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
-
-      const sql = `
-        INSERT INTO deals (
-          deal_id,
-          deal_name,
-          deal_organization,
-          deal_owner,
-          website,
-          customer_number,
-          customer_email,
-          customer_address,
-          pipeline_id,
-          deal_stage,
-          deal_priority,
-          deal_status,
-          deal_notes,
-          deal_source
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      const values = [
-        dealId,
-        businessName,
-        businessName,
-        normalize(row.deal_owner) || "Unknown",
-        normalize(row.website) || null,
-        normalize(row.customer_number) || null,
-        normalize(row.customer_email) || null,
-        normalize(row.customer_address) || null,
-        pipelineId,
-        stageId,
-        normalize(row.deal_priority) || "Medium",
-        normalize(row.deal_status) || "Open",
-        normalize(row.deal_notes) || null,
-        normalize(row.website) || null,
-      ];
-
-      await db.query(sql, values);
-      imported++;
-    }
-
-    await db.commit();
-
-    return res.json({
-      success: true,
-      message: `Successfully imported ${imported} leads.`,
-      imported,
-    });
+    const result = await executeImportDeals(rows);
+    return res.json(result);
   } catch (error) {
-    await db.rollback().catch(() => {});
     console.error("Import commit error:", error);
     return res.status(500).json({
       success: false,
@@ -431,13 +484,13 @@ router.post("/commit", async (req, res) => {
 });
 
 // ======================================================
-// ROOT POST ROUTE (Handles BOTH multipart file upload AND JSON commit)
+// ROOT POST ROUTE (Dual handler for Preview and Commit)
 // ======================================================
 
 router.post("/", upload.any(), async (req, res) => {
   const file = req.files?.[0] || req.file;
 
-  // Case 1: File is being uploaded -> return preview
+  // Case 1: Multipart File -> Return preview
   if (file) {
     try {
       const result = await processUploadedFile(file.path);
@@ -455,83 +508,12 @@ router.post("/", upload.any(), async (req, res) => {
     }
   }
 
-  // Case 2: JSON payload with { rows } -> perform commit
+  // Case 2: JSON payload with { rows } -> Perform commit
   if (req.body?.rows && Array.isArray(req.body.rows)) {
     try {
-      const rows = req.body.rows;
-      let fallbackPipelineId = null;
-      let fallbackStageId = null;
-      const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
-      if (pRows.length > 0) {
-        fallbackPipelineId = pRows[0].pipeline_id;
-        const [sRows] = await db.query(
-          `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
-          [fallbackPipelineId]
-        );
-        if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
-      }
-
-      await db.beginTransaction();
-      let imported = 0;
-
-      for (const row of rows) {
-        const businessName = normalize(row.deal_organization || row.deal_name);
-        if (!businessName) continue;
-
-        const dealId = uuidv4();
-        const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
-        const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
-
-        const sql = `
-          INSERT INTO deals (
-            deal_id,
-            deal_name,
-            deal_organization,
-            deal_owner,
-            website,
-            customer_number,
-            customer_email,
-            customer_address,
-            pipeline_id,
-            deal_stage,
-            deal_priority,
-            deal_status,
-            deal_notes,
-            deal_source
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        const values = [
-          dealId,
-          businessName,
-          businessName,
-          normalize(row.deal_owner) || "Unknown",
-          normalize(row.website) || null,
-          normalize(row.customer_number) || null,
-          normalize(row.customer_email) || null,
-          normalize(row.customer_address) || null,
-          pipelineId,
-          stageId,
-          normalize(row.deal_priority) || "Medium",
-          normalize(row.deal_status) || "Open",
-          normalize(row.deal_notes) || null,
-          normalize(row.website) || null,
-        ];
-
-        await db.query(sql, values);
-        imported++;
-      }
-
-      await db.commit();
-
-      return res.json({
-        success: true,
-        message: `Successfully imported ${imported} leads.`,
-        imported,
-      });
+      const result = await executeImportDeals(req.body.rows);
+      return res.json(result);
     } catch (dbError) {
-      await db.rollback().catch(() => {});
       console.error("Root import commit error:", dbError);
       return res.status(500).json({
         success: false,

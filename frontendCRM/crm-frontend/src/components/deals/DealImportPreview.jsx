@@ -15,6 +15,7 @@ function DealImportPreview({
 
   const validRows = rows.filter((row) => row.valid);
   const invalidRows = rows.filter((row) => !row.valid);
+  const hasNotes = rows.some((r) => r.deal_notes && r.deal_notes.trim());
 
   const [loading, setLoading] = useState(false);
 
@@ -98,6 +99,7 @@ function DealImportPreview({
                 <th>Phone Number</th>
                 <th>Email Address</th>
                 <th>Address / Location</th>
+                {hasNotes && <th>Comments / Notes</th>}
                 <th>Result</th>
               </tr>
             </thead>
@@ -133,6 +135,14 @@ function DealImportPreview({
                       {row.customer_address || "—"}
                     </span>
                   </td>
+
+                  {hasNotes && (
+                    <td>
+                      <span style={{ fontSize: "12px", color: "#0f172a" }}>
+                        {row.deal_notes || "—"}
+                      </span>
+                    </td>
+                  )}
 
                   <td>
                     {row.valid ? (
