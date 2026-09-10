@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Modal from "../components/common/Modal";
 import ActivityForm from "../components/activities/ActivityForm";
-import ScheduleForm from "../components/activities/ScheduleForm";
 import ActivityCalendar from "../components/activities/ActivityCalendar";
 import ActivityList from "../components/activities/ActivityList";
 import api from "../services/api";
@@ -20,32 +19,22 @@ function Activities() {
   const [deals, setDeals] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const [search, setSearch] =
-    useState("");
-
-  const [activityType, setActivityType] =
-    useState("all");
-
-  const [dealFilter, setDealFilter] =
-    useState("all");
-
-  const [dateFilter, setDateFilter] =
-    useState("selected");
-
   // =====================================================
   // FETCH ACTIVITIES & DEALS
   // =====================================================
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async (isRefresh = false) => {
     try {
-      if (showLoader) {
-        setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
       }
+      setError("");
 
       const response = await api.get("/activities");
       const fetchedActivities = response.data?.activities || [];
@@ -60,65 +49,13 @@ function Activities() {
       );
       setActivities([]);
     } finally {
-      if (showLoader) {
-        setLoading(false);
-      }
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  // =====================================================
-  // FETCH SCHEDULES
-  // =====================================================
-
-  const fetchSchedules = async () => {
+  const fetchDeals = useCallback(async () => {
     try {
-      const response = await api.get(
-        "/schedules"
-      );
-
-      const fetchedSchedules =
-        response.data?.schedules || [];
-
-      const normalizedSchedules =
-        Array.isArray(fetchedSchedules)
-          ? fetchedSchedules.map(
-              (schedule) => ({
-                ...schedule,
-
-                status:
-                  schedule.status ||
-                  "scheduled",
-
-                activity_type:
-                  schedule.activity_type ||
-                  "follow_up",
-              })
-            )
-          : [];
-
-      setSchedules(
-        normalizedSchedules
-      );
-    } catch (error) {
-      console.error(
-        "Fetch schedules error:",
-        error
-      );
-
-      /*
-       * Backend will be properly connected
-       * in the next step.
-       *
-       * For now do not break the page
-       * when schedules API is unavailable.
-       */
-      setSchedules([]);
-    }
-  };
-
-  const fetchDeals = async () => {
-    try {
-      const response = await api.get("/deals");
+      const response = await api.get("/deals", { params: { limit: 100 } });
       const fetchedDeals = Array.isArray(response.data)
         ? response.data
         : response.data?.deals || [];
@@ -127,23 +64,31 @@ function Activities() {
       console.error("Fetch deals error:", err);
       setDeals([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const loadPage = async () => {
       setLoading(true);
-
-      await Promise.all([
-        fetchActivities(),
-        fetchSchedules(),
-        fetchDeals(),
-      ]);
-
-      setLoading(false);
+      try {
+        await Promise.allSettled([
+          fetchActivities(false),
+          fetchDeals(),
+        ]);
+      } catch (err) {
+        console.error("Initial load error:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
     loadPage();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchActivities, fetchDeals]);
 
   // =====================================================
   // DELETE ACTIVITY
@@ -217,7 +162,7 @@ function Activities() {
     if (newActivity) {
       setActivities((current) => [newActivity, ...current]);
     }
-    fetchActivities();
+    fetchActivities(false);
   };
 
   if (loading && activities.length === 0) {
@@ -249,8 +194,8 @@ function Activities() {
           <div className="activities-header-actions">
             <button
               type="button"
-              className="btn-refresh-activities"
-              onClick={fetchActivities}
+              className={`btn-refresh-activities ${refreshing ? "is-refreshing" : ""}`}
+              onClick={() => fetchActivities(true)}
               title="Refresh Activities"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -332,6 +277,7 @@ function Activities() {
       {error && (
         <div className="activities-error-banner">
           <span>⚠️ {error}</span>
+          <button type="button" onClick={() => setError("")}>×</button>
         </div>
       )}
 
@@ -415,417 +361,6 @@ function Activities() {
           />
         </div>
       </div>
-
-      {/* =================================================
-          SCHEDULE MANAGEMENT
-      ================================================= */}
-
-      <section className="schedule-management-section">
-
-        <div className="schedule-management-header">
-
-          <div>
-            <h2>
-              Scheduled Activities
-            </h2>
-
-            <p>
-              Manage calls, meetings and follow-ups.
-            </p>
-          </div>
-
-          <div className="schedule-management-summary">
-
-            <span className="management-count">
-              {manageableSchedules.length}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleOpenSchedule}
-            >
-              + Schedule
-            </button>
-
-          </div>
-
-        </div>
-
-        {manageableSchedules.length === 0 ? (
-          <div className="schedule-management-empty">
-
-            <div className="schedule-empty-icon">
-              ◫
-            </div>
-
-            <strong>
-              No scheduled activities
-            </strong>
-
-            <span>
-              Create a call, meeting or follow-up
-              related to a deal.
-            </span>
-
-            <button
-              type="button"
-              onClick={handleOpenSchedule}
-            >
-              Schedule Activity
-            </button>
-
-          </div>
-        ) : (
-          <div className="schedule-management-table">
-
-            <div className="schedule-table-head">
-
-              <span>Activity</span>
-              <span>Related Deal</span>
-              <span>Date & Time</span>
-              <span>Type</span>
-              <span>Status</span>
-              <span>Actions</span>
-
-            </div>
-
-            {manageableSchedules.map(
-              (schedule) => (
-                <div
-                  className="schedule-table-row"
-                  key={schedule.id}
-                >
-
-                  {/* ACTIVITY */}
-
-                  <div className="schedule-table-activity">
-
-                    <div
-                      className={`schedule-table-icon ${schedule.activity_type}`}
-                    >
-                      {getScheduleIcon(
-                        schedule.activity_type
-                      )}
-                    </div>
-
-                    <div>
-                      <strong>
-                        {schedule.title ||
-                          getScheduleTypeLabel(
-                            schedule.activity_type
-                          )}
-                      </strong>
-
-                      {schedule.description && (
-                        <span>
-                          {schedule.description}
-                        </span>
-                      )}
-                    </div>
-
-                  </div>
-
-                  {/* DEAL */}
-
-                  <div className="schedule-table-deal">
-
-                    {schedule.deal_name ||
-                      "No deal associated"}
-
-                  </div>
-
-                  {/* DATE TIME */}
-
-                  <div className="schedule-table-time">
-
-                    <strong>
-                      {formatScheduleDate(
-                        schedule.start_time
-                      )}
-                    </strong>
-
-                    <span>
-                      {formatActivityTime(
-                        schedule.start_time
-                      )}
-                      {" – "}
-                      {formatActivityTime(
-                        schedule.end_time
-                      )}
-                    </span>
-
-                  </div>
-
-                  {/* TYPE */}
-
-                  <div>
-                    <span
-                      className={`schedule-table-type ${schedule.activity_type}`}
-                    >
-                      {getScheduleTypeLabel(
-                        schedule.activity_type
-                      )}
-                    </span>
-                  </div>
-
-                  {/* STATUS */}
-
-                  <div>
-                    <span
-                      className={`schedule-table-status ${
-                        schedule.status ||
-                        "scheduled"
-                      }`}
-                    >
-                      {getStatusLabel(
-                        schedule.status
-                      )}
-                    </span>
-                  </div>
-
-                  {/* ACTIONS */}
-
-                  <div
-                    className="schedule-table-actions"
-                    onClick={(e) =>
-                      e.stopPropagation()
-                    }
-                  >
-
-                    <button
-                      type="button"
-                      className="view-schedule-action"
-                      onClick={() =>
-                        handleOpenScheduleDetails(
-                          schedule
-                        )
-                      }
-                      title="View details"
-                    >
-                      View
-                    </button>
-
-                    {schedule.status ===
-                      "scheduled" && (
-                      <>
-                        <button
-                          type="button"
-                          className="complete-schedule-action"
-                          onClick={() =>
-                            handleScheduleStatusChangeForId(
-                              schedule.id,
-                              "completed"
-                            )
-                          }
-                          title="Complete"
-                        >
-                          ✓
-                        </button>
-
-                        <button
-                          type="button"
-                          className="cancel-schedule-action"
-                          onClick={() =>
-                            handleScheduleStatusChangeForId(
-                              schedule.id,
-                              "cancelled"
-                            )
-                          }
-                          title="Cancel"
-                        >
-                          ×
-                        </button>
-                      </>
-                    )}
-
-                    {(schedule.status ===
-                      "completed" ||
-                      schedule.status ===
-                        "cancelled") && (
-                      <button
-                        type="button"
-                        className="reopen-schedule-action"
-                        onClick={() =>
-                          handleScheduleStatusChangeForId(
-                            schedule.id,
-                            "scheduled"
-                          )
-                        }
-                        title="Reopen / Reschedule"
-                      >
-                        ↻
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className="delete-schedule-action"
-                      onClick={() =>
-                        handleDeleteScheduleById(
-                          schedule.id
-                        )
-                      }
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
-
-                  </div>
-
-                </div>
-              )
-            )}
-
-          </div>
-        )}
-
-      </section>
-
-      {/* =================================================
-          UPCOMING
-      ================================================= */}
-
-      <section className="upcoming-section">
-
-        <div className="upcoming-header">
-
-          <div>
-            <h2>
-              Upcoming Activities
-            </h2>
-
-            <p>
-              Your next scheduled CRM activities.
-            </p>
-          </div>
-
-          <div className="upcoming-header-actions">
-
-            <span>
-              {activityStats.scheduled}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleOpenSchedule}
-            >
-              + Schedule
-            </button>
-
-          </div>
-
-        </div>
-
-        {upcomingSchedules.length === 0 ? (
-          <div className="upcoming-empty">
-
-            <div className="upcoming-empty-icon">
-              ◫
-            </div>
-
-            <strong>
-              No upcoming activities
-            </strong>
-
-            <span>
-              Schedule a call, meeting or
-              follow-up to keep your pipeline moving.
-            </span>
-
-            <button
-              type="button"
-              onClick={handleOpenSchedule}
-            >
-              Schedule Activity
-            </button>
-
-          </div>
-        ) : (
-          <div className="upcoming-list">
-
-            {upcomingSchedules.map(
-              (schedule) => (
-                <button
-                  type="button"
-                  className="upcoming-item"
-                  key={schedule.id}
-                  onClick={() =>
-                    handleOpenScheduleDetails(
-                      schedule
-                    )
-                  }
-                >
-
-                  <div
-                    className={`upcoming-icon schedule-${schedule.activity_type}`}
-                  >
-                    {getScheduleIcon(
-                      schedule.activity_type
-                    )}
-                  </div>
-
-                  <div className="upcoming-content">
-
-                    <strong>
-                      {schedule.title ||
-                        getScheduleTypeLabel(
-                          schedule.activity_type
-                        )}
-                    </strong>
-
-                    <span>
-                      {schedule.deal_name ||
-                        "No deal associated"}
-                    </span>
-
-                  </div>
-
-                  <div className="upcoming-meta">
-
-                    <strong>
-                      {new Date(
-                        schedule.start_time
-                      ).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                        }
-                      )}
-                    </strong>
-
-                    <span>
-                      {formatActivityTime(
-                        schedule.start_time
-                      )}
-                      {" – "}
-                      {formatActivityTime(
-                        schedule.end_time
-                      )}
-                    </span>
-
-                  </div>
-
-                  <span
-                    className={`upcoming-type ${schedule.activity_type}`}
-                  >
-                    {getScheduleTypeLabel(
-                      schedule.activity_type
-                    )}
-                  </span>
-
-                  <span className="schedule-view-arrow">
-                    →
-                  </span>
-
-                </button>
-              )
-            )}
-
-          </div>
-        )}
-
-      </section>
 
       {/* =================================================
           CREATE ACTIVITY MODAL

@@ -6,6 +6,76 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 /*
 |--------------------------------------------------------------------------
+| GET ALL SCHEDULED ACTIVITIES
+|--------------------------------------------------------------------------
+*/
+router.get("/", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const userRole = req.user.role;
+
+        let sql = `
+            SELECT
+                s.id,
+                s.deal_id,
+                s.user_id,
+                s.title,
+                s.activity_type,
+                s.description,
+                s.start_time,
+                s.end_time,
+                s.status,
+                s.created_at,
+
+                d.deal_name,
+
+                u.name AS user_name,
+                u.email AS user_email
+
+            FROM schedules s
+
+            INNER JOIN deals d
+                ON s.deal_id = d.deal_id
+
+            LEFT JOIN users u
+                ON s.user_id = u.user_id
+        `;
+
+        const params = [];
+
+        if (userRole !== "admin") {
+            sql += `
+                WHERE d.assign_to = ?
+            `;
+
+            params.push(userId);
+        }
+
+        sql += `
+            ORDER BY s.start_time ASC
+            LIMIT 100
+        `;
+
+        const [rows] = await db.query(sql, params);
+
+        return res.json({
+            success: true,
+            schedules: rows
+        });
+
+    } catch (error) {
+        console.error("GET ALL SCHEDULES ERROR:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch scheduled activities"
+        });
+    }
+});
+
+
+/*
+|--------------------------------------------------------------------------
 | GET SCHEDULES FOR DEAL
 |--------------------------------------------------------------------------
 */
@@ -68,75 +138,6 @@ router.get("/:dealId", authMiddleware, async (req, res) => {
 
     } catch (error) {
         console.error("GET SCHEDULES ERROR:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Failed to fetch scheduled activities"
-        });
-    }
-});
-
-
-/*
-|--------------------------------------------------------------------------
-| GET ALL SCHEDULED ACTIVITIES
-|--------------------------------------------------------------------------
-*/
-router.get("/", authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user.user_id;
-        const userRole = req.user.role;
-
-        let sql = `
-            SELECT
-                s.id,
-                s.deal_id,
-                s.user_id,
-                s.title,
-                s.activity_type,
-                s.description,
-                s.start_time,
-                s.end_time,
-                s.status,
-                s.created_at,
-
-                d.deal_name,
-
-                u.name AS user_name,
-                u.email AS user_email
-
-            FROM schedules s
-
-            INNER JOIN deals d
-                ON s.deal_id = d.deal_id
-
-            LEFT JOIN users u
-                ON s.user_id = u.user_id
-        `;
-
-        const params = [];
-
-        if (userRole !== "admin") {
-            sql += `
-                WHERE d.assign_to = ?
-            `;
-
-            params.push(userId);
-        }
-
-        sql += `
-            ORDER BY s.start_time ASC
-        `;
-
-        const [rows] = await db.query(sql, params);
-
-        return res.json({
-            success: true,
-            schedules: rows
-        });
-
-    } catch (error) {
-        console.error("GET ALL SCHEDULES ERROR:", error);
 
         return res.status(500).json({
             success: false,

@@ -27,6 +27,7 @@ router.get("/activities", authenticateToken, async (req, res) => {
             LEFT JOIN deals d 
                 ON a.deal_id = d.deal_id
             ORDER BY a.created_at DESC
+            LIMIT 200
         `);
 
         return res.status(200).json({
