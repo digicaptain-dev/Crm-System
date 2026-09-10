@@ -40,8 +40,11 @@ function Sidebar() {
   return (
     <aside className="app-sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">CRM</div>
-        <span>CRM System</span>
+        <img
+          src="/brand-logo.png"
+          alt="Brand Center USA"
+          className="sidebar-brand-img"
+        />
       </div>
 
       <nav className="sidebar-navigation">

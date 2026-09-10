@@ -66,7 +66,7 @@ function Header() {
         <button className="mobile-menu-button" type="button">
           ☰
         </button>
-        <div className="header-title">CRM</div>
+        <div className="header-title">Pipedrive</div>
       </div>
 
       {/* RIGHT */}

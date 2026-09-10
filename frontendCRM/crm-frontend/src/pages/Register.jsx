@@ -82,8 +82,12 @@ function Register() {
 
       <div className="auth-card register-card">
 
-        <div className="auth-logo">
-          CRM
+        <div className="auth-brand-container">
+          <img
+            src="/brand-logo.png"
+            alt="Brand Center USA"
+            className="auth-brand-logo"
+          />
         </div>
 
         <div className="auth-header">

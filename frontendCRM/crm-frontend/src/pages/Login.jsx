@@ -90,8 +90,12 @@ function Login() {
     <div className="auth-page login-page">
       <div className="auth-card">
 
-        <div className="auth-logo">
-          CRM
+        <div className="auth-brand-container">
+          <img
+            src="/brand-logo.png"
+            alt="Brand Center USA"
+            className="auth-brand-logo"
+          />
         </div>
 
         <div className="auth-header">

@@ -24,33 +24,19 @@
 
   display: flex;
   align-items: center;
-
-  gap: 10px;
-
-  padding: 0 18px;
-
-  border-bottom: 1px solid var(--border);
-
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.sidebar-logo-mark {
-  width: 32px;
-  height: 32px;
-
-  display: flex;
-  align-items: center;
   justify-content: center;
 
-  border-radius: 6px;
+  padding: 0 16px;
 
-  background: var(--primary);
+  border-bottom: 1px solid var(--border);
+}
 
-  color: #fff;
-
-  font-size: 10px;
-  font-weight: 700;
+.sidebar-brand-img {
+  max-width: 175px;
+  max-height: 42px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Navigation */
