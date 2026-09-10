@@ -95,7 +95,7 @@ function PipelineDealCard({
 
   return (
     <div
-      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""}`}
+      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""} ${showMoveMenu ? "has-popover-open" : ""}`}
       draggable={!updating && !showMoveMenu && countdown === null}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
