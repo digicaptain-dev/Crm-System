@@ -3,26 +3,6 @@ import "../../styles/pipeline/pipeline-summary.css";
 function PipelineSummary({ deals = [] }) {
   const totalDeals = deals.length;
 
-  const totalValue = deals.reduce(
-    (total, deal) =>
-      total + Number(deal.deal_value || 0),
-    0
-  );
-
-  const openDeals = deals.filter(
-    (deal) =>
-      String(
-        deal.deal_status || "Open"
-      ).toLowerCase() === "open"
-  ).length;
-
-  const wonDeals = deals.filter(
-    (deal) =>
-      String(
-        deal.deal_status || ""
-      ).toLowerCase() === "won"
-  ).length;
-
   const lostDeals = deals.filter(
     (deal) =>
       String(
@@ -30,27 +10,11 @@ function PipelineSummary({ deals = [] }) {
       ).toLowerCase() === "lost"
   ).length;
 
-  const formatCurrency = (value) => {
-    return `$${Number(value).toLocaleString(
-      "en-US",
-      {
-        maximumFractionDigits: 0,
-      }
-    )}`;
-  };
-
   const cards = [
     {
       label: "Total Deals",
       value: totalDeals,
       icon: "▣",
-    },
-    {
-      label: "Pipeline Value",
-      value: formatCurrency(
-        totalValue
-      ),
-      icon: "$",
     },
     {
       label: "Open Deals",

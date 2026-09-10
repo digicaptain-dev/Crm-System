@@ -500,11 +500,9 @@ function PipelineBoard({
                     </div>
 
                     <div className="stage-header-meta">
-                      {deals.length > 0 && (
-                        <span className="stage-deals-count-text">
-                          {deals.length} {deals.length === 1 ? "deal" : "deals"}
-                        </span>
-                      )}
+                      <span className="stage-deals-count-text">
+                        {deals.length} {deals.length === 1 ? "deal" : "deals"}
+                      </span>
                     </div>
                   </div>
 

@@ -22,7 +22,7 @@ function PipelineStats({ pipeline }) {
   );
 
   const winRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
-  const openRate = totalDeals > 0 ? Math.round((openDeals.length / totalDeals) * 100) : 0;
+  const lossRate = totalDeals > 0 ? Math.round((lostDeals.length / totalDeals) * 100) : 0;
 
   return (
     <div className="pipeline-kpi-grid">
@@ -56,7 +56,7 @@ function PipelineStats({ pipeline }) {
         </div>
         <div className="kpi-card-value">{openDeals.length}</div>
         <div className="kpi-card-footer">
-          <span className="kpi-sub-text">{openRate}% of all deals</span>
+          <span className="kpi-sub-text">Active in pipeline</span>
         </div>
       </div>
 
@@ -91,9 +91,7 @@ function PipelineStats({ pipeline }) {
         </div>
         <div className="kpi-card-value">{lostDeals.length}</div>
         <div className="kpi-card-footer">
-          <span className="kpi-sub-text">
-            {totalDeals > 0 ? Math.round((lostDeals.length / totalDeals) * 100) : 0}% loss rate
-          </span>
+          <span className="kpi-sub-text">{lossRate}% Loss Rate</span>
         </div>
       </div>
     </div>
