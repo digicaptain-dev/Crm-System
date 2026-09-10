@@ -120,6 +120,34 @@ app.use('/api/img/conv', imageRoutes);
 app.use('/api', activityRoutes, contactRoutes, companyRoutes, notificationRoutes);
 
 // Start HTTP Server
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`[SERVER ACTIVE] Running in ${process.env.NODE_ENV || 'development'} mode on Port ${PORT}`);
+
+    // Self-healing: Repair any assigned deals stuck in Pool Drive
+    try {
+        const [stuckDeals] = await db.query(`
+            SELECT d.deal_id, d.pipeline_id, s.stage_name
+            FROM deals d
+            JOIN stages s ON d.deal_stage = s.stage_id
+            WHERE d.assign_to IS NOT NULL AND LOWER(s.stage_name) LIKE '%pool%'
+        `);
+        for (const deal of stuckDeals) {
+            const [firstStage] = await db.query(`
+                SELECT stage_id FROM stages
+                WHERE (pipeline_id = ? OR pipeline_id IS NULL)
+                AND LOWER(stage_name) NOT LIKE '%pool%'
+                ORDER BY stage_order ASC LIMIT 1
+            `, [deal.pipeline_id]);
+            if (firstStage.length > 0) {
+                await db.query(`
+                    UPDATE deals
+                    SET deal_stage = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL
+                    WHERE deal_id = ?
+                `, [firstStage[0].stage_id, deal.deal_id]);
+                console.log(`[AUTO-FIX] Repaired assigned deal ${deal.deal_id} from Pool to stage ${firstStage[0].stage_id}`);
+            }
+        }
+    } catch (e) {
+        console.warn("[AUTO-FIX] Error repairing stuck pool deals on startup:", e.message);
+    }
 });

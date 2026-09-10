@@ -479,6 +479,37 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
         }
 
         /*
+         * If deal is being assigned to a user, check if it's currently in Pool Drive.
+         * If so, automatically move it to the first active stage of its pipeline and clear moved_by.
+         */
+        if (updatedDeal.assign_to) {
+            const [stageCheck] = await db.query(
+                `SELECT d.pipeline_id, s.stage_name 
+                 FROM deals d 
+                 LEFT JOIN stages s ON d.deal_stage = s.stage_id 
+                 WHERE d.deal_id = ? LIMIT 1`,
+                [id]
+            );
+            if (stageCheck[0]?.stage_name && stageCheck[0].stage_name.toLowerCase().includes("pool")) {
+                if (!updatedDeal.deal_stage || updatedDeal.deal_stage === dealResults[0]?.deal_stage) {
+                    const [firstStages] = await db.query(
+                        `SELECT stage_id FROM stages 
+                         WHERE (pipeline_id = ? OR pipeline_id IS NULL) 
+                         AND LOWER(stage_name) NOT LIKE '%pool%' 
+                         ORDER BY stage_order ASC LIMIT 1`,
+                        [stageCheck[0].pipeline_id]
+                    );
+                    if (firstStages.length > 0) {
+                        updatedDeal.deal_stage = firstStages[0].stage_id;
+                    }
+                }
+                updatedDeal.moved_by_name = null;
+                updatedDeal.moved_by_user_id = null;
+                updatedDeal.moved_at = null;
+            }
+        }
+
+        /*
          * Update deal
          */
         await db.query(
@@ -721,12 +752,15 @@ router.put(
                     console.error("Failed to send pool notifications:", notifyErr);
                 }
             } else {
-                // Moving to normal stage
+                // Moving to normal stage: clear pool flags
                 await db.query(
                     `
                     UPDATE deals
                     SET
                         deal_stage = ?,
+                        moved_by_name = NULL,
+                        moved_by_user_id = NULL,
+                        moved_at = NULL,
                         last_updated = CURRENT_TIMESTAMP
                     WHERE deal_id = ?
                     `,
@@ -1033,6 +1067,44 @@ router.put(
                 query,
                 params
             );
+
+            // If any assigned deals are currently in Pool Drive, automatically move them to the first active stage
+            try {
+                const [poolDeals] = await db.query(
+                    `SELECT d.deal_id, d.pipeline_id 
+                     FROM deals d
+                     JOIN stages s ON d.deal_stage = s.stage_id
+                     WHERE d.deal_id IN (${placeholders}) AND LOWER(s.stage_name) LIKE '%pool%'`,
+                    deal_ids
+                );
+
+                for (const pd of poolDeals) {
+                    const [firstStages] = await db.query(
+                        `SELECT stage_id FROM stages 
+                         WHERE (pipeline_id = ? OR pipeline_id IS NULL) 
+                         AND LOWER(stage_name) NOT LIKE '%pool%' 
+                         ORDER BY stage_order ASC LIMIT 1`,
+                        [pd.pipeline_id]
+                    );
+                    if (firstStages.length > 0) {
+                        await db.query(
+                            `UPDATE deals 
+                             SET deal_stage = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
+                             WHERE deal_id = ?`,
+                            [firstStages[0].stage_id, pd.deal_id]
+                        );
+                    } else {
+                        await db.query(
+                            `UPDATE deals 
+                             SET moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
+                             WHERE deal_id = ?`,
+                            [pd.deal_id]
+                        );
+                    }
+                }
+            } catch (poolSyncErr) {
+                console.warn("Failed to auto-shift assigned deals out of Pool Drive:", poolSyncErr.message);
+            }
 
             console.log(
                 "Deals assigned:",
