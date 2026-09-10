@@ -114,7 +114,7 @@ function PipelineDealCard({
 
         {/* Quick Move Stage Trigger */}
         {stages.length > 0 && countdown === null && (
-          <div className="deal-move-stage-container" ref={moveMenuRef}>
+          <div className={`deal-move-stage-container ${showMoveMenu ? "open" : ""}`} ref={moveMenuRef}>
             <button
               type="button"
               className={`deal-move-stage-btn ${showMoveMenu ? "active" : ""}`}
