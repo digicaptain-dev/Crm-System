@@ -41,7 +41,7 @@ function AppRoutes() {
 
                 <Route
                     path="/register"
-                    element={<Register />}
+                    element={<Navigate to="/login" replace />}
                 />
 
 

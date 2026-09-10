@@ -197,29 +197,15 @@ function Login() {
           </div>
 
           <div className="login-options">
-
             <label className="remember-me">
-
               <input
                 type="checkbox"
                 name="remember"
                 checked={form.remember}
                 onChange={handleChange}
               />
-
-              <span>
-                Remember me
-              </span>
-
+              <span>Remember me</span>
             </label>
-
-            <button
-              type="button"
-              className="forgot-password"
-            >
-              Forgot Password?
-            </button>
-
           </div>
 
           <button
@@ -231,18 +217,6 @@ function Login() {
           </button>
 
         </form>
-
-        <div className="auth-footer">
-
-          <span>
-            Don't have an account?
-          </span>
-
-          <Link to="/register">
-            Create Account
-          </Link>
-
-        </div>
 
       </div>
     </div>
