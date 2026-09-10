@@ -85,19 +85,6 @@ function DealCard({
   };
 
   // =====================================================
-  // VALUE
-  // =====================================================
-
-  const formattedValue =
-    deal?.deal_value !== null &&
-    deal?.deal_value !== undefined &&
-    deal?.deal_value !== ""
-      ? `$${Number(
-          deal.deal_value
-        ).toLocaleString()}`
-      : "No value";
-
-  // =====================================================
   // PRIORITY
   // =====================================================
 
@@ -179,10 +166,6 @@ function DealCard({
       ================================================= */}
 
       <div className="deal-card-footer">
-
-        <div className="deal-value">
-          {formattedValue}
-        </div>
 
         <div
           className={`deal-priority ${String(

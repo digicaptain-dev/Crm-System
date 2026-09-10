@@ -44,18 +44,18 @@ router.get("/companies", authenticateToken, async (req, res) => {
         const [metricsResult] = await db.query(`
             SELECT 
                 COUNT(DISTINCT NULLIF(TRIM(deal_organization), '')) AS totalCompanies,
-                SUM(deal_value) AS totalPipelineValue,
+                SUM(CASE WHEN LOWER(deal_status) = 'open' THEN 1 ELSE 0 END) AS openDeals,
                 COUNT(*) AS totalDeals,
-                SUM(CASE WHEN deal_status IN ('Closed Won', 'Won') THEN deal_value ELSE 0 END) AS wonValue
+                SUM(CASE WHEN LOWER(deal_status) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonDeals
             FROM deals
             WHERE deal_organization IS NOT NULL AND TRIM(deal_organization) != ''
         `);
 
         const globalMetrics = {
-            totalCompanies: metricsResult[0]?.totalCompanies || 0,
-            totalPipelineValue: metricsResult[0]?.totalPipelineValue || 0,
-            totalDeals: metricsResult[0]?.totalDeals || 0,
-            wonValue: metricsResult[0]?.wonValue || 0
+            totalCompanies: Number(metricsResult[0]?.totalCompanies || 0),
+            openDeals: Number(metricsResult[0]?.openDeals || 0),
+            totalDeals: Number(metricsResult[0]?.totalDeals || 0),
+            wonDeals: Number(metricsResult[0]?.wonDeals || 0)
         };
 
         // 3. Paginated Companies Data

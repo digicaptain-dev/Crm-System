@@ -1,11 +1,6 @@
 import "../../styles/companies/company-table.css";
 
 function CompanyTable({ companies = [] }) {
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   const getStatusClass = (status) => {
     const s = String(status || "Active").toLowerCase();
     return `status-${s}`;
@@ -19,7 +14,6 @@ function CompanyTable({ companies = [] }) {
             <th>Company / Organization</th>
             <th>Primary Contact</th>
             <th>Deals Count</th>
-            <th>Total Pipeline Value</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Location / City</th>
@@ -57,13 +51,6 @@ function CompanyTable({ companies = [] }) {
                 <td>
                   <span className="company-deals-badge">
                     💼 {company.deals_count || 1} {Number(company.deals_count) === 1 ? "Deal" : "Deals"}
-                  </span>
-                </td>
-
-                {/* Total Value */}
-                <td>
-                  <span className="company-value-pill">
-                    {formatCurrency(company.total_value)}
                   </span>
                 </td>
 

@@ -358,7 +358,7 @@ function Pipeline() {
         <div className="pipeline-loading-card">
           <div className="pipeline-spinner" />
           <h3>Loading Pipeline Board...</h3>
-          <p>Fetching active pipeline stages, deal values, and owners.</p>
+          <p>Fetching active pipeline stages, deals, and owners.</p>
         </div>
       </div>
     );

@@ -6,11 +6,6 @@ function ContactCard({ contact }) {
   const rawStatus = contact.status || "Open";
   const statusClass = String(rawStatus).toLowerCase().replace(/\s+/g, "-");
 
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   return (
     <div className="contact-card">
       <div className="contact-card-top">
@@ -72,15 +67,15 @@ function ContactCard({ contact }) {
       </div>
 
       <div className="contact-card-footer">
-        <span className="contact-value-pill">{formatCurrency(contact.value)}</span>
-
-        {contact.deal_id && (
+        {contact.deal_id ? (
           <Link to={`/deal/${contact.deal_id}`} className="btn-card-open-deal">
             <span>View Deal</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </Link>
+        ) : (
+          <div />
         )}
       </div>
     </div>

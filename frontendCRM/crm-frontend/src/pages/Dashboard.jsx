@@ -482,33 +482,33 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* 2. Total Pipeline Value */}
+        {/* 2. Active Opportunities */}
         <div className="stat-box card-indigo">
           <div className="stat-top">
             <span className="stat-label">
-              {isAdmin ? "Total Pipeline Value" : "My Total Pipeline"}
+              {isAdmin ? "Active Opportunities" : "My Active Deals"}
             </span>
             <div className="stat-icon-wrap icon-indigo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
             </div>
           </div>
           <div className="stat-number">
-            ${stats.totalPipelineValue.toLocaleString()}
+            {stats.openCount}
           </div>
           <div className="stat-sub-row">
             <span className="stat-pill pill-indigo">
-              Open: ${stats.openPipelineValue.toLocaleString()}
+              {stats.totalDeals > 0 ? Math.round((stats.openCount / stats.totalDeals) * 100) : 0}% of all deals
             </span>
           </div>
         </div>
 
-        {/* 3. Won Revenue & Win Rate */}
+        {/* 3. Won Deals & Win Rate */}
         <div className="stat-box card-emerald">
           <div className="stat-top">
-            <span className="stat-label">Won Revenue</span>
+            <span className="stat-label">Won Deals</span>
             <div className="stat-icon-wrap icon-emerald">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -517,11 +517,11 @@ function Dashboard() {
             </div>
           </div>
           <div className="stat-number text-emerald">
-            ${stats.wonPipelineValue.toLocaleString()}
+            {stats.wonCount}
           </div>
           <div className="stat-sub-row">
             <span className="stat-pill pill-emerald">
-              {stats.wonCount} Deals Won ({stats.winRate}% Win Rate)
+              {stats.winRate}% Win Rate
             </span>
           </div>
         </div>
@@ -569,10 +569,10 @@ function Dashboard() {
           </div>
         )}
 
-        {/* 5. Average Deal Size */}
+        {/* 5. Overall Win Rate */}
         <div className="stat-box card-slate">
           <div className="stat-top">
-            <span className="stat-label">Average Deal Size</span>
+            <span className="stat-label">Win Rate</span>
             <div className="stat-icon-wrap icon-slate">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 20V10" />
@@ -582,10 +582,10 @@ function Dashboard() {
             </div>
           </div>
           <div className="stat-number">
-            ${stats.avgDealValue.toLocaleString()}
+            {stats.winRate}%
           </div>
           <div className="stat-sub-row">
-            <span className="stat-muted">Calculated per opportunity</span>
+            <span className="stat-muted">{stats.wonCount} won of {stats.totalDeals} total</span>
           </div>
         </div>
       </div>
@@ -598,9 +598,9 @@ function Dashboard() {
         <div className="chart-panel-card">
           <div className="chart-header">
             <div className="chart-header-left">
-              <h3 className="chart-title">Pipeline Stage Distribution & Value</h3>
+              <h3 className="chart-title">Pipeline Stage Distribution</h3>
               <p className="chart-subtitle">
-                Deals count and accumulated pipeline value across each stage
+                Deals count across each pipeline stage
               </p>
             </div>
             <span className="chart-badge">
@@ -628,9 +628,6 @@ function Dashboard() {
                     <div className="stage-stats-wrap">
                       <span className="stage-deal-count">
                         <strong>{st.count}</strong> {st.count === 1 ? "deal" : "deals"}
-                      </span>
-                      <span className="stage-dollar-val">
-                        ${st.value.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -741,17 +738,13 @@ function Dashboard() {
               <div className="health-pill-card open-health">
                 <span className="health-label">Open Active</span>
                 <strong>{stats.openCount} Deals</strong>
-                <span className="health-sub">
-                  ${stats.openPipelineValue.toLocaleString()}
-                </span>
+                <span className="health-sub">Active in pipeline</span>
               </div>
 
               <div className="health-pill-card won-health">
                 <span className="health-label">Closed Won</span>
                 <strong>{stats.wonCount} Deals</strong>
-                <span className="health-sub">
-                  ${stats.wonPipelineValue.toLocaleString()}
-                </span>
+                <span className="health-sub">{stats.winRate}% Win Rate</span>
               </div>
 
               <div className="health-pill-card lost-health">
@@ -773,7 +766,7 @@ function Dashboard() {
             <div>
               <h3 className="section-title">Team Workload & Deal Distribution</h3>
               <p className="section-subtitle">
-                Overview of assigned deals, active volume, and total pipeline value per sales rep / user.
+                Overview of assigned deals, active volume, and status breakdown per sales rep / user.
               </p>
             </div>
             <button
@@ -794,7 +787,6 @@ function Dashboard() {
                   <th>Assigned Deals</th>
                   <th>Active / Open</th>
                   <th>Won Deals</th>
-                  <th>Total Pipeline Value</th>
                   <th>Workload Share</th>
                 </tr>
               </thead>
@@ -852,11 +844,6 @@ function Dashboard() {
                           </span>
                         </td>
 
-                        {/* Total Pipeline Value */}
-                        <td className="value-cell">
-                          <strong>${u.totalValue.toLocaleString()}</strong>
-                        </td>
-
                         {/* Workload Share */}
                         <td>
                           <div className="workload-bar-wrap">
@@ -907,7 +894,6 @@ function Dashboard() {
               <tr>
                 <th>Deal Name</th>
                 <th>Organization</th>
-                <th>Value</th>
                 <th>Assigned Rep</th>
                 <th>Priority</th>
                 <th>Status</th>
@@ -940,13 +926,6 @@ function Dashboard() {
 
                       {/* Organization */}
                       <td>{deal.deal_organization || "-"}</td>
-
-                      {/* Value */}
-                      <td className="value-cell">
-                        <strong>
-                          ${Number(deal.deal_value || 0).toLocaleString()}
-                        </strong>
-                      </td>
 
                       {/* Assigned Rep */}
                       <td>

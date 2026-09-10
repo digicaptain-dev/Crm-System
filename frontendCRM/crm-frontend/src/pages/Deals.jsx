@@ -49,9 +49,9 @@ function Deals() {
   // KPI Metrics
   const [metrics, setMetrics] = useState({
     totalDeals: 0,
-    totalPipelineValue: 0,
     openDeals: 0,
-    wonValue: 0,
+    wonDeals: 0,
+    lostDeals: 0,
   });
 
   // Assignment
@@ -254,11 +254,6 @@ function Deals() {
 
   const startIdx = totalDeals === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endIdx = Math.min(totalDeals, currentPage * limit);
-
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
 
   // Single Deal Delete Handler
   const handleDeleteDeal = async (dealId) => {
@@ -475,19 +470,6 @@ function Deals() {
 
         <div className="deal-kpi-card">
           <div className="deal-kpi-info">
-            <span className="deal-kpi-label">Total Pipeline Value</span>
-            <span className="deal-kpi-val">{formatCurrency(metrics.totalPipelineValue)}</span>
-          </div>
-          <div className="deal-kpi-icon icon-green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="deal-kpi-card">
-          <div className="deal-kpi-info">
             <span className="deal-kpi-label">Active Opportunities</span>
             <span className="deal-kpi-val">{metrics.openDeals}</span>
           </div>
@@ -500,12 +482,26 @@ function Deals() {
 
         <div className="deal-kpi-card">
           <div className="deal-kpi-info">
-            <span className="deal-kpi-label">Won Revenue Realized</span>
-            <span className="deal-kpi-val">{formatCurrency(metrics.wonValue)}</span>
+            <span className="deal-kpi-label">Won Deals</span>
+            <span className="deal-kpi-val">{metrics.wonDeals ?? 0}</span>
           </div>
-          <div className="deal-kpi-icon icon-amber">
+          <div className="deal-kpi-icon icon-green">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="deal-kpi-card">
+          <div className="deal-kpi-info">
+            <span className="deal-kpi-label">Lost Deals</span>
+            <span className="deal-kpi-val">{metrics.lostDeals ?? 0}</span>
+          </div>
+          <div className="deal-kpi-icon icon-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
           </div>
         </div>

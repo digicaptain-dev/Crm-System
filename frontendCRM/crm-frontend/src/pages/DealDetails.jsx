@@ -363,11 +363,6 @@ function DealDetails() {
   // =====================================================
   // FORMATTERS
   // =====================================================
-  const formatCurrency = (val) => {
-    if (val === null || val === undefined || val === "") return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   const formatActivityTime = (dateStr) => {
     if (!dateStr) return "";
     try {
@@ -663,14 +658,16 @@ function DealDetails() {
             LEFT COLUMN: DEAL & CONTACT INTELLIGENCE
         =============================================== */}
         <div className="deal-left-column">
-          {/* Card 1: Value & Key Metrics */}
+          {/* Card 1: Key Overview & Dates */}
           <div className="deal-sidebar-card card-highlight">
             <div className="sidebar-card-header">
-              <span className="sidebar-card-title">Deal Value</span>
-              <span className="currency-tag">USD</span>
+              <span className="sidebar-card-title">Deal Status</span>
+              <span className={`deal-priority-badge priority-${String(deal.deal_priority || "medium").toLowerCase()}`}>
+                {deal.deal_priority || "Medium"} Priority
+              </span>
             </div>
-            <div className="deal-big-value">
-              {formatCurrency(deal.deal_value)}
+            <div className="deal-big-value" style={{ fontSize: "20px", textTransform: "capitalize" }}>
+              {deal.deal_status || "Open"}
             </div>
             <div className="deal-metrics-subrow">
               <div className="metric-item">

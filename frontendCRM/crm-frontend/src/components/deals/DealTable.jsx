@@ -25,12 +25,6 @@ function DealTable({
     }
   }, [someSelected]);
 
-  const formatValue = (value) => {
-    if (value === null || value === undefined || value === "") return "$0";
-    const num = Number(value);
-    return Number.isNaN(num) ? "$0" : `$${num.toLocaleString()}`;
-  };
-
   const getPriorityClass = (priority) => {
     const p = String(priority || "Medium").toLowerCase();
     return `priority-${p}`;
@@ -60,7 +54,6 @@ function DealTable({
             <th>Deal Title</th>
             <th>Organization</th>
             <th>Stage</th>
-            <th>Deal Value</th>
             <th>Priority</th>
             <th>Status</th>
             <th>Assigned User</th>
@@ -130,13 +123,6 @@ function DealTable({
                 <td>
                   <span className="deal-stage-pill">
                     {deal.stage_name || `Stage ${deal.deal_stage || 1}`}
-                  </span>
-                </td>
-
-                {/* Value */}
-                <td>
-                  <span className="deal-value-pill">
-                    {formatValue(deal.deal_value)}
                   </span>
                 </td>
 

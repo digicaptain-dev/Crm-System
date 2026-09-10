@@ -2,11 +2,6 @@ import { Link } from "react-router-dom";
 import "../../styles/contacts/contact-table.css";
 
 function ContactTable({ contacts = [] }) {
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   const getStatusClass = (status) => {
     const s = String(status || "Open").toLowerCase().replace(/\s+/g, "-");
     return `status-${s}`;
@@ -21,7 +16,6 @@ function ContactTable({ contacts = [] }) {
             <th>Company / Org</th>
             <th>Email</th>
             <th>Phone</th>
-            <th>Deal Value</th>
             <th>Status</th>
             <th>Assigned User</th>
             <th>Actions</th>
@@ -93,11 +87,6 @@ function ContactTable({ contacts = [] }) {
                   ) : (
                     <span style={{ color: "#94a3b8" }}>—</span>
                   )}
-                </td>
-
-                {/* Deal Value */}
-                <td>
-                  <span className="contact-value-pill">{formatCurrency(contact.value)}</span>
                 </td>
 
                 {/* Status */}

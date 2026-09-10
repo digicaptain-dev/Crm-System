@@ -5,11 +5,6 @@ function CompanyCard({ company }) {
   const rawStatus = company.status || "Active";
   const statusClass = String(rawStatus).toLowerCase();
 
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   return (
     <div className="company-card">
       <div className="company-card-top">
@@ -71,10 +66,6 @@ function CompanyCard({ company }) {
       <div className="company-card-footer">
         <span className="company-deals-badge">
           💼 {company.deals_count || 1} {Number(company.deals_count) === 1 ? "Deal" : "Deals"}
-        </span>
-
-        <span className="company-value-pill">
-          {formatCurrency(company.total_value)}
         </span>
       </div>
     </div>

@@ -85,17 +85,17 @@ router.get("/deals", authenticateToken, async (req, res) => {
         const [metricsResult] = await db.query(`
             SELECT 
                 COUNT(*) AS totalAll,
-                COALESCE(SUM(deal_value), 0) AS totalPipelineValue,
-                SUM(CASE WHEN deal_status = 'Open' THEN 1 ELSE 0 END) AS openDeals,
-                SUM(CASE WHEN deal_status IN ('Closed Won', 'Won') THEN deal_value ELSE 0 END) AS wonValue
+                SUM(CASE WHEN LOWER(deal_status) = 'open' THEN 1 ELSE 0 END) AS openDeals,
+                SUM(CASE WHEN LOWER(deal_status) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonDeals,
+                SUM(CASE WHEN LOWER(deal_status) IN ('closed lost', 'lost') THEN 1 ELSE 0 END) AS lostDeals
             FROM deals
         `);
 
         const globalMetrics = {
-            totalDeals: metricsResult[0]?.totalAll || 0,
-            totalPipelineValue: metricsResult[0]?.totalPipelineValue || 0,
-            openDeals: metricsResult[0]?.openDeals || 0,
-            wonValue: metricsResult[0]?.wonValue || 0
+            totalDeals: Number(metricsResult[0]?.totalAll || 0),
+            openDeals: Number(metricsResult[0]?.openDeals || 0),
+            wonDeals: Number(metricsResult[0]?.wonDeals || 0),
+            lostDeals: Number(metricsResult[0]?.lostDeals || 0)
         };
 
         // 3. Paginated Data fetch

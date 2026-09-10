@@ -131,11 +131,6 @@ function Companies() {
   const startIdx = total === 0 ? 0 : (page - 1) * limit + 1;
   const endIdx = Math.min(total, page * limit);
 
-  const formatCurrency = (val) => {
-    if (!val || isNaN(val)) return "$0";
-    return `$${Number(val).toLocaleString()}`;
-  };
-
   const handleCreateCompany = (newCompany) => {
     setShowCreate(false);
     fetchCompanies(1, limit, search);
@@ -254,19 +249,6 @@ function Companies() {
 
         <div className="company-kpi-card">
           <div className="company-kpi-info">
-            <span className="company-kpi-label">Total Pipeline Value</span>
-            <span className="company-kpi-val">{formatCurrency(metrics.totalPipelineValue)}</span>
-          </div>
-          <div className="company-kpi-icon icon-green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="company-kpi-card">
-          <div className="company-kpi-info">
             <span className="company-kpi-label">Associated Deals</span>
             <span className="company-kpi-val">{metrics.totalDeals}</span>
           </div>
@@ -279,8 +261,21 @@ function Companies() {
 
         <div className="company-kpi-card">
           <div className="company-kpi-info">
-            <span className="company-kpi-label">Closed Won Revenue</span>
-            <span className="company-kpi-val">{formatCurrency(metrics.wonValue)}</span>
+            <span className="company-kpi-label">Open Deals</span>
+            <span className="company-kpi-val">{metrics.openDeals || 0}</span>
+          </div>
+          <div className="company-kpi-icon icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="company-kpi-card">
+          <div className="company-kpi-info">
+            <span className="company-kpi-label">Closed Won Deals</span>
+            <span className="company-kpi-val">{metrics.wonDeals || 0}</span>
           </div>
           <div className="company-kpi-icon icon-amber">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
