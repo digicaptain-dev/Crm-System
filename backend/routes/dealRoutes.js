@@ -5,6 +5,7 @@ const uuid = require("uuid");
 
 const authenticateToken = require("../middleware/authMiddleware");
 const authorizeRole = require("../middleware/authorizeRole");
+const { notifyUser } = require("../utils/notificationService");
 
 /**
  * @swagger
@@ -302,10 +303,25 @@ router.post("/deal", authenticateToken, async (req, res) => {
             [newDeal.deal_id]
         );
 
+        const createdDeal = rows[0] || newDeal;
+
+        // Trigger notification if assigned
+        if (newDeal.assign_to) {
+            notifyUser({
+                userId: newDeal.assign_to,
+                title: "New Lead Assigned",
+                message: `You have been assigned to lead "${newDeal.deal_organization || newDeal.deal_name || 'New Lead'}".`,
+                type: "deal_assigned",
+                entityType: "deal",
+                entityId: newDeal.deal_id,
+                io: req.app.get("io")
+            }).catch(e => console.warn("Notify error:", e.message));
+        }
+
         return res.status(201).json({
             success: true,
             message: "Deal created successfully",
-            deal: rows[0]
+            deal: createdDeal
         });
 
     } catch (error) {
@@ -414,7 +430,8 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             "contact_person",
             "time_zone",
             "customer_number",
-            "customer_address"
+            "customer_address",
+            "website"
         ];
 
         /*
@@ -473,10 +490,42 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             [id]
         );
 
+        const updatedRecord = rows[0];
+        const oldAssignee = dealResults[0]?.assign_to;
+        const newAssignee = updatedDeal.assign_to;
+        const dealTitle = updatedRecord?.deal_organization || updatedRecord?.deal_name || "Lead";
+
+        // Check if assignment changed
+        if (newAssignee !== undefined && String(newAssignee || "") !== String(oldAssignee || "")) {
+            if (newAssignee) {
+                notifyUser({
+                    userId: newAssignee,
+                    title: "Lead Assigned",
+                    message: `Lead "${dealTitle}" has been assigned to you.`,
+                    type: "deal_assigned",
+                    entityType: "deal",
+                    entityId: id,
+                    io: req.app.get("io")
+                }).catch(e => console.warn("Notify error:", e.message));
+            }
+
+            if (oldAssignee) {
+                notifyUser({
+                    userId: oldAssignee,
+                    title: "Lead Unassigned",
+                    message: `Lead "${dealTitle}" was unassigned from you.`,
+                    type: "deal_unassigned",
+                    entityType: "deal",
+                    entityId: id,
+                    io: req.app.get("io")
+                }).catch(e => console.warn("Notify error:", e.message));
+            }
+        }
+
         return res.status(200).json({
             success: true,
             message: "Deal updated successfully",
-            deal: rows[0]
+            deal: updatedRecord
         });
 
     } catch (error) {
@@ -918,6 +967,17 @@ router.put(
                     affectedRows: result.affectedRows
                 }
             );
+
+            // Notify assigned user
+            notifyUser({
+                userId: user_id,
+                title: "New Leads Assigned",
+                message: `${deal_ids.length} new lead(s) have been assigned to you by Admin.`,
+                type: "deal_assigned",
+                entityType: "deal",
+                entityId: deal_ids[0] || null,
+                io: req.app.get("io")
+            }).catch(e => console.warn("Notify error:", e.message));
 
             return res.status(200).json({
                 success: true,

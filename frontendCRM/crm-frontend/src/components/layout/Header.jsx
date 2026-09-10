@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ProfileSettingsModal from "./ProfileSettingsModal";
+import NotificationDropdown from "./NotificationDropdown";
 import "../../styles/layout/header.css";
 
 function Header() {
@@ -71,13 +72,7 @@ function Header() {
       {/* RIGHT */}
       <div className="header-right">
         {/* Notifications */}
-        <button
-          className="header-icon-button"
-          type="button"
-          title="Notifications"
-        >
-          🔔
-        </button>
+        <NotificationDropdown />
 
         {/* Profile */}
         <div className="header-profile">

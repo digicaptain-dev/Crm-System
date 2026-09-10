@@ -3,6 +3,7 @@ const router = express.Router();
 
 const db = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
+const { notifyUser, notifyAdmins } = require("../utils/notificationService");
 
 /*
 |--------------------------------------------------------------------------
@@ -349,10 +350,27 @@ router.post("/", authMiddleware, async (req, res) => {
             [result.insertId]
         );
 
+        const scheduleData = createdRows[0];
+        const dealName = scheduleData?.deal_name || "Lead";
+        const typeLabel = activity_type === "meeting" ? "Meeting" : activity_type === "call" ? "Call" : "Task";
+
+        // Notify deal assignee or admins
+        if (dealRows[0]?.assign_to && String(dealRows[0]?.assign_to) !== String(userId)) {
+            notifyUser({
+                userId: dealRows[0].assign_to,
+                title: `New ${typeLabel} Scheduled`,
+                message: `"${title || typeLabel}" scheduled for "${dealName}".`,
+                type: "meeting",
+                entityType: "schedule",
+                entityId: deal_id,
+                io: req.app.get("io")
+            }).catch(e => console.warn("Schedule notif error:", e.message));
+        }
+
         return res.status(201).json({
             success: true,
             message: "Activity scheduled successfully",
-            schedule: createdRows[0]
+            schedule: scheduleData
         });
 
     } catch (error) {

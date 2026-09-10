@@ -35,6 +35,29 @@ const db = mysql.createPool(poolConfig);
             // Column may already exist, ignore error ER_DUP_FIELDNAME (1060)
         }
 
+        // Ensure notifications table exists
+        try {
+            await connection.query(`
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    notification_id VARCHAR(64) UNIQUE,
+                    user_id VARCHAR(64) NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    type VARCHAR(50) DEFAULT 'general',
+                    entity_type VARCHAR(50) NULL,
+                    entity_id VARCHAR(64) NULL,
+                    is_read TINYINT(1) DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user_read (user_id, is_read),
+                    INDEX idx_user_created (user_id, created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            `);
+            console.log('[DB SCHEMA] Verified/created notifications table');
+        } catch (notifErr) {
+            console.error('[DB SCHEMA ERROR] Failed creating notifications table:', notifErr.message);
+        }
+
         connection.release();
     } catch (err) {
         console.error('[DB FATAL ERROR] Unable to establish MySQL connection:', err.message);
