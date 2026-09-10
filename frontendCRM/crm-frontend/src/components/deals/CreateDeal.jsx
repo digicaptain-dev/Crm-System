@@ -227,11 +227,11 @@ function CreateDeal({
             Email Address <span className="required-star">*</span>
           </label>
           <input
-            type="email"
+            type="text"
             name="customer_email"
             value={form.customer_email}
             onChange={handleChange}
-            placeholder="e.g. contact@example.com"
+            placeholder="e.g. contact@example.com or Contact via website"
             required
           />
         </div>

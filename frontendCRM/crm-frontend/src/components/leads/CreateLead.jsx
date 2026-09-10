@@ -115,11 +115,11 @@ function CreateLead({ onClose, onCreate }) {
       <div className="form-group">
         <label>Email Address <span className="required-star">*</span></label>
         <input
-          type="email"
+          type="text"
           name="email"
           value={form.email}
           onChange={handleChange}
-          placeholder="e.g. contact@example.com"
+          placeholder="e.g. contact@example.com or Contact via website"
           required
         />
       </div>

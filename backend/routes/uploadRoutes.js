@@ -344,14 +344,6 @@ const validateDeal = async (deal) => {
     errors.push(
       "Email Address is required."
     );
-  } else if (
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-      deal.customer_email
-    )
-  ) {
-    errors.push(
-      "Email Address is invalid."
-    );
   }
 
   if (!deal.customer_address) {
