@@ -10,6 +10,15 @@ const authenticateToken = require("../middleware/authMiddleware");
 
 router.get("/activities", authenticateToken, async (req, res) => {
     try {
+        const { user_id, role } = req.user;
+
+        let whereSql = "";
+        let params = [];
+
+        if (role !== "admin" && role !== "coworker") {
+            whereSql = `WHERE (d.assign_to = ? OR a.user_id = ?) AND (d.deal_stage IS NULL OR d.deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))`;
+            params = [user_id, user_id];
+        }
 
         const [results] = await db.query(`
             SELECT 
@@ -26,9 +35,10 @@ router.get("/activities", authenticateToken, async (req, res) => {
                 ON a.user_id = u.user_id
             LEFT JOIN deals d 
                 ON a.deal_id = d.deal_id
+            ${whereSql}
             ORDER BY a.created_at DESC
             LIMIT 200
-        `);
+        `, params);
 
         return res.status(200).json({
             success: true,

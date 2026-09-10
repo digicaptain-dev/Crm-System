@@ -14,8 +14,16 @@ router.get("/companies", authenticateToken, async (req, res) => {
         const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 15));
         const offset = (pageNum - 1) * limitNum;
 
+        const { user_id, role } = req.user;
+
         let whereClauses = ["d.deal_organization IS NOT NULL", "TRIM(d.deal_organization) != ''"];
         let params = [];
+
+        if (role !== "admin" && role !== "coworker") {
+            whereClauses.push("d.assign_to = ?");
+            params.push(user_id);
+            whereClauses.push("(d.deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))");
+        }
 
         if (search.trim()) {
             whereClauses.push(`(
@@ -40,7 +48,14 @@ router.get("/companies", authenticateToken, async (req, res) => {
         const total = countResult[0]?.total || 0;
         const totalPages = Math.ceil(total / limitNum) || 1;
 
-        // 2. Global KPIs
+        // 2. KPIs
+        let metricsWhere = "WHERE deal_organization IS NOT NULL AND TRIM(deal_organization) != ''";
+        let metricsParams = [];
+        if (role !== "admin" && role !== "coworker") {
+            metricsWhere += ` AND assign_to = ? AND (deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))`;
+            metricsParams.push(user_id);
+        }
+
         const [metricsResult] = await db.query(`
             SELECT 
                 COUNT(DISTINCT NULLIF(TRIM(deal_organization), '')) AS totalCompanies,
@@ -48,8 +63,8 @@ router.get("/companies", authenticateToken, async (req, res) => {
                 COUNT(*) AS totalDeals,
                 SUM(CASE WHEN LOWER(deal_status) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonDeals
             FROM deals
-            WHERE deal_organization IS NOT NULL AND TRIM(deal_organization) != ''
-        `);
+            ${metricsWhere}
+        `, metricsParams);
 
         const globalMetrics = {
             totalCompanies: Number(metricsResult[0]?.totalCompanies || 0),

@@ -83,7 +83,17 @@ router.get("/deals", authenticateToken, async (req, res) => {
         const totalDeals = countResult[0]?.total || 0;
         const totalPages = Math.ceil(totalDeals / limit) || 1;
 
-        // 2. Global KPIs summary
+        // 2. User-specific KPIs summary
+        let metricsWhere = "";
+        let metricsParams = [];
+        if (role !== "admin" && role !== "coworker") {
+            metricsWhere = `WHERE deals.assign_to = ? AND (deals.deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))`;
+            metricsParams = [user_id];
+        } else if (assign_to && assign_to !== "all") {
+            metricsWhere = `WHERE deals.assign_to = ?`;
+            metricsParams = [assign_to];
+        }
+
         const [metricsResult] = await db.query(`
             SELECT 
                 COUNT(*) AS totalAll,
@@ -91,7 +101,8 @@ router.get("/deals", authenticateToken, async (req, res) => {
                 SUM(CASE WHEN LOWER(deal_status) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonDeals,
                 SUM(CASE WHEN LOWER(deal_status) IN ('closed lost', 'lost') THEN 1 ELSE 0 END) AS lostDeals
             FROM deals
-        `);
+            ${metricsWhere}
+        `, metricsParams);
 
         const globalMetrics = {
             totalDeals: Number(metricsResult[0]?.totalAll || 0),
