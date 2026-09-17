@@ -312,6 +312,7 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
   // 4. Resolve Assigned User (if provided in CSV or Deal Owner matches employee)
   let resolvedAssignTo = null;
   let resolvedAssignedUserName = null;
+  let autoMatched = false;
 
   if (deal.assigned_user) {
     try {
@@ -335,11 +336,57 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
     }
   }
 
+  // 5. Smart Duplicate Client Match: If not explicitly assigned, check if Phone, Email, or Website matches an existing assigned deal
+  if (!resolvedAssignTo) {
+    try {
+      const matchPhone = deal.customer_number ? deal.customer_number.trim() : null;
+      const matchEmail = deal.customer_email ? deal.customer_email.trim().toLowerCase() : null;
+      const matchWebsite = deal.website ? deal.website.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
+
+      const whereOrs = [];
+      const matchParams = [];
+
+      if (matchPhone && matchPhone.length >= 6) {
+        whereOrs.push("d.customer_number = ?");
+        matchParams.push(matchPhone);
+      }
+      if (matchEmail && matchEmail.includes("@")) {
+        whereOrs.push("LOWER(d.customer_email) = ?");
+        matchParams.push(matchEmail);
+      }
+      if (matchWebsite && matchWebsite.length >= 4) {
+        whereOrs.push("LOWER(d.website) LIKE ?");
+        matchParams.push(`%${matchWebsite}%`);
+      }
+
+      if (whereOrs.length > 0) {
+        const [existingDeal] = await db.query(
+          `SELECT d.assign_to, u.name as assigned_user_name 
+           FROM deals d
+           JOIN users u ON d.assign_to = u.user_id
+           WHERE d.assign_to IS NOT NULL AND (${whereOrs.join(" OR ")})
+           ORDER BY d.creation_date DESC
+           LIMIT 1`,
+          matchParams
+        );
+
+        if (existingDeal.length > 0) {
+          resolvedAssignTo = existingDeal[0].assign_to;
+          resolvedAssignedUserName = existingDeal[0].assigned_user_name;
+          autoMatched = true;
+        }
+      }
+    } catch (matchErr) {
+      console.warn("Smart client match lookup err:", matchErr.message);
+    }
+  }
+
   return {
     ...deal,
     pipeline: resolvedPipelineName,
     stage: resolvedStageName,
     assigned_user_name: resolvedAssignedUserName,
+    auto_matched: autoMatched,
     valid: errors.length === 0,
     errors,
     resolved: {
@@ -347,6 +394,7 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
       stage_id: resolvedStageId,
       assign_to: resolvedAssignTo,
       assigned_user_name: resolvedAssignedUserName,
+      auto_matched: autoMatched,
     },
   };
 };

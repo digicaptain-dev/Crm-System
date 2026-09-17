@@ -149,8 +149,28 @@ function DealImportPreview({
                   {hasAssigned && (
                     <td>
                       {row.assigned_user_name || row.resolved?.assigned_user_name ? (
-                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: "4px" }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: row.auto_matched || row.resolved?.auto_matched ? "#1d4ed8" : "#166534",
+                            background: row.auto_matched || row.resolved?.auto_matched ? "#dbeafe" : "#dcfce7",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                          title={
+                            row.auto_matched || row.resolved?.auto_matched
+                              ? "Auto-matched to employee based on existing Phone/Email/Website"
+                              : "Assigned employee"
+                          }
+                        >
                           👤 {row.assigned_user_name || row.resolved?.assigned_user_name}
+                          {(row.auto_matched || row.resolved?.auto_matched) && (
+                            <span style={{ fontSize: "10px", opacity: 0.85 }}>🔗 (Matched)</span>
+                          )}
                         </span>
                       ) : row.assigned_user ? (
                         <span style={{ fontSize: "12px", color: "#b45309", background: "#fef3c7", padding: "2px 6px", borderRadius: "4px" }} title="User not found in CRM">
