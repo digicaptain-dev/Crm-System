@@ -247,6 +247,48 @@ const convertExcelRow = (row, excelRowNumber) => {
     ) || "Medium",
     deal_status: cleanStatus,
     deal_notes: combinedNotes,
+    created_time: normalize(
+      getCell(row, [
+        "Created_Time",
+        "Created Time",
+        "Created Date",
+        "Created Date Time",
+        "CreatedTime",
+        "Creation Date",
+        "CreatedAt",
+        "Created At",
+      ])
+    ) || null,
+    created_by: normalize(
+      getCell(row, [
+        "Created_By",
+        "Created By",
+        "CreatedBy",
+        "Creator",
+      ])
+    ) || null,
+    last_activity_time: normalize(
+      getCell(row, [
+        "Last_Activity_Time",
+        "Last Activity Time",
+        "Last Activity",
+        "LastActivityTime",
+        "Activity Time",
+        "Modified_Time",
+        "Modified Time",
+        "ModifiedTime",
+        "Last Modified Time",
+        "UpdatedAt",
+      ])
+    ) || null,
+    modified_by: normalize(
+      getCell(row, [
+        "Modified_By",
+        "Modified By",
+        "ModifiedBy",
+        "Last Modified By",
+      ])
+    ) || null,
     assigned_user: normalize(
       getCell(row, [
         "Assigned User",
@@ -487,6 +529,14 @@ async function processUploadedFile(filePath) {
 // HELPER: EXECUTE DEALS INSERTION
 // ======================================================
 
+function formatMysqlDatetime(dateInput) {
+  if (!dateInput) return null;
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 async function executeImportDeals(rows) {
   let fallbackPipelineId = null;
   let fallbackStageId = null;
@@ -534,6 +584,11 @@ async function executeImportDeals(rows) {
       }
       const tags = normalize(row.tags) || null;
 
+      const parsedCreatedDate = formatMysqlDatetime(row.created_time) || formatMysqlDatetime(new Date());
+      const parsedLastActivityDate = formatMysqlDatetime(row.last_activity_time || row.modified_time) || parsedCreatedDate;
+      const creatorName = normalize(row.created_by) || normalize(row.deal_owner) || "System";
+      const modifierName = normalize(row.modified_by) || creatorName;
+
       const sql = `
         INSERT INTO deals (
           deal_id,
@@ -554,9 +609,11 @@ async function executeImportDeals(rows) {
           deal_status,
           deal_notes,
           deal_source,
-          assign_to
+          assign_to,
+          creation_date,
+          last_updated
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -579,9 +636,35 @@ async function executeImportDeals(rows) {
         notes || null,
         normalize(row.website) || null,
         assignTo,
+        parsedCreatedDate,
+        parsedLastActivityDate,
       ];
 
       await connection.query(sql, values);
+
+      // Log Lead Created activity in activity feed
+      try {
+        await connection.query(
+          `INSERT INTO activities (deal_id, user_id, activity_type, details, created_at)
+           VALUES (?, 'import', 'comment', ?, ?)`,
+          [dealId, `Lead created by ${creatorName}`, parsedCreatedDate]
+        );
+      } catch (actErr) {
+        console.warn("[ACTIVITY LOG CREATION ERR]", actErr.message);
+      }
+
+      // Log Last Activity / Modified By if provided in CSV
+      if (row.last_activity_time || row.modified_by) {
+        try {
+          await connection.query(
+            `INSERT INTO activities (deal_id, user_id, activity_type, details, created_at)
+             VALUES (?, 'import', 'comment', ?, ?)`,
+            [dealId, `Last activity / Modified by ${modifierName}`, parsedLastActivityDate]
+          );
+        } catch (actErr2) {
+          console.warn("[ACTIVITY LOG MODIFICATION ERR]", actErr2.message);
+        }
+      }
 
       // If comments/notes exist in CSV, auto-insert into comments table
       if (notes) {
@@ -589,14 +672,8 @@ async function executeImportDeals(rows) {
           const commentId = uuidv4();
           await connection.query(
             `INSERT INTO comments (comment_id, deal_id, comment, user_id, user_name, user_role, created_at)
-             VALUES (?, ?, ?, 'import', 'Import System', 'system', NOW())`,
-            [commentId, dealId, notes]
-          );
-
-          await connection.query(
-            `INSERT INTO activities (deal_id, user_id, activity_type, details)
-             VALUES (?, 'import', 'comment', ?)`,
-            [dealId, `Imported comment: "${notes.substring(0, 80)}"`]
+             VALUES (?, ?, ?, 'import', 'Import System', 'system', ?)`,
+            [commentId, dealId, notes, parsedCreatedDate]
           );
         } catch (commErr) {
           console.warn("[IMPORT COMMENT ERROR]", commErr.message);

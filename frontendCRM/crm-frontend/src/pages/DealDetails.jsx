@@ -880,6 +880,36 @@ function DealDetails() {
                   <span className="detail-val-text">{deal.deal_source}</span>
                 </div>
               )}
+
+              {deal.creation_date && (
+                <div className="detail-row">
+                  <span className="detail-key">Created Date</span>
+                  <span className="detail-val-text">
+                    {new Date(deal.creation_date).toLocaleString([], {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {deal.last_updated && (
+                <div className="detail-row">
+                  <span className="detail-key">Last Activity</span>
+                  <span className="detail-val-text">
+                    {new Date(deal.last_updated).toLocaleString([], {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
