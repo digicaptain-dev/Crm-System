@@ -309,7 +309,7 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
     }
   }
 
-  // 4. Resolve Assigned User (if provided in CSV)
+  // 4. Resolve Assigned User (if provided in CSV or Deal Owner matches employee)
   let resolvedAssignTo = null;
   let resolvedAssignedUserName = null;
 
@@ -317,8 +317,14 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
     try {
       const qUser = deal.assigned_user.trim().toLowerCase();
       const [userRows] = await db.query(
-        `SELECT user_id, name, email FROM users WHERE LOWER(TRIM(name)) = ? OR LOWER(TRIM(email)) = ? LIMIT 1`,
-        [qUser, qUser]
+        `SELECT user_id, name, email FROM users 
+         WHERE LOWER(TRIM(name)) = ? OR LOWER(TRIM(email)) = ? OR LOWER(name) LIKE ? OR LOWER(email) LIKE ?
+         ORDER BY CASE 
+           WHEN LOWER(TRIM(name)) = ? THEN 1 
+           WHEN LOWER(TRIM(email)) = ? THEN 2 
+           ELSE 3 
+         END LIMIT 1`,
+        [qUser, qUser, `${qUser}%`, `${qUser}%`, qUser, qUser]
       );
       if (userRows.length > 0) {
         resolvedAssignTo = userRows[0].user_id;
