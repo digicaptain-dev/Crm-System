@@ -57,10 +57,10 @@ const getCell = (row, possibleNames) => {
 };
 
 // ======================================================
+// ======================================================
 // CONVERT EXCEL / CSV ROW
 // ======================================================
 
-const convertExcelRow = (row, excelRowNumber) => {
 const convertExcelRow = (row, excelRowNumber) => {
   const companyName = normalize(
     getCell(row, [
@@ -70,8 +70,31 @@ const convertExcelRow = (row, excelRowNumber) => {
       "Organization",
       "Deal Organization",
       "Business Name",
+      "Account Name",
+      "Account_Name",
+      "AccountName",
+      "Account",
+      "Client Name",
     ])
   );
+
+  const firstName = normalize(getCell(row, ["First Name", "First_Name", "FirstName"]));
+  const lastName = normalize(getCell(row, ["Last Name", "Last_Name", "LastName"]));
+  const combinedFullName = [firstName, lastName].filter(Boolean).join(" ");
+
+  const contactName = normalize(
+    getCell(row, [
+      "Full Name",
+      "Full_Name",
+      "FullName",
+      "Contact Name",
+      "Contact Person",
+      "ContactName",
+      "Contact",
+      "Lead Name",
+      "Client",
+    ])
+  ) || combinedFullName || normalize(getCell(row, ["Deal Owner", "Owner", "Created_By", "Modified_By"]));
 
   const dealName = normalize(
     getCell(row, [
@@ -80,25 +103,13 @@ const convertExcelRow = (row, excelRowNumber) => {
       "Name",
       "Business Name",
       "Company Name",
+      "Account Name",
+      "Account_Name",
     ])
-  ) || companyName || "Untitled Deal";
-
-  const contactName = normalize(
-    getCell(row, [
-      "Contact Name",
-      "Contact Person",
-      "ContactName",
-      "Contact",
-      "Deal Owner",
-      "DealOwner",
-      "Owner Name",
-      "OwnerName",
-      "Owner",
-    ])
-  );
+  ) || companyName || contactName || "Untitled Deal";
 
   const rawStatus = normalize(
-    getCell(row, ["Status", "Deal Status", "Lead Status"])
+    getCell(row, ["Status", "Deal Status", "Lead Status", "Stage Status"])
   );
 
   let cleanStatus = "Open";
@@ -137,8 +148,28 @@ const convertExcelRow = (row, excelRowNumber) => {
     ])
   );
 
+  // Parse address fields
+  const directAddress = normalize(
+    getCell(row, [
+      "Address / Location",
+      "Address/Location",
+      "Address",
+      "Location",
+      "Customer Address",
+      "Company Address",
+    ])
+  );
+  const mailingStreet = normalize(getCell(row, ["Mailing_Street", "Mailing Street", "Street"]));
+  const mailingCity = normalize(getCell(row, ["Mailing_City", "Mailing City", "City"]));
+  const mailingState = normalize(getCell(row, ["Mailing_State", "Mailing State", "State"]));
+  const mailingZip = normalize(getCell(row, ["Mailing_Zip", "Mailing Zip", "Zip", "Postal Code", "Zipcode"]));
+  const mailingCountry = normalize(getCell(row, ["Mailing_Country", "Mailing Country", "Country"]));
+  const compositeAddress = [mailingStreet, mailingCity, mailingState, mailingZip, mailingCountry].filter(Boolean).join(", ");
+  const finalAddress = directAddress || compositeAddress || "";
+
   // Parse combined notes/description
   const description = normalize(getCell(row, ["Description", "Deal Description"]));
+  const title = normalize(getCell(row, ["Title", "Job Title"]));
   const notes = normalize(
     getCell(row, [
       "Notes",
@@ -152,12 +183,16 @@ const convertExcelRow = (row, excelRowNumber) => {
       "Feedback",
     ])
   );
-  const combinedNotes = [notes, description].filter(Boolean).join("\n\n") || null;
+  const noteParts = [];
+  if (title) noteParts.push(`Title: ${title}`);
+  if (description) noteParts.push(`Description: ${description}`);
+  if (notes) noteParts.push(`Notes: ${notes}`);
+  const combinedNotes = noteParts.join("\n\n") || null;
 
   const deal = {
     excel_row: excelRowNumber,
     deal_name: dealName,
-    deal_organization: companyName || dealName,
+    deal_organization: companyName || dealName || contactName || "General",
     contact_person: contactName || "Unknown",
     deal_owner: contactName || "Unknown",
     deal_value: dealValue,
@@ -185,6 +220,7 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Number",
         "Mobile",
         "Contact Number",
+        "Cell Phone",
       ])
     ),
     customer_email: normalize(
@@ -199,18 +235,7 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Mail",
       ])
     ),
-    customer_address: normalize(
-      getCell(row, [
-        "Address / Location",
-        "Address/Location",
-        "Address",
-        "Location",
-        "Customer Address",
-        "Company Address",
-        "City",
-        "State",
-      ])
-    ),
+    customer_address: finalAddress,
     pipeline: normalize(
       getCell(row, ["Pipeline", "Pipeline Name"])
     ),
@@ -232,8 +257,17 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Assigned Employee",
         "Assignee",
         "Representative",
+        "Deal Owner",
+        "DealOwner",
+        "Owner Name",
+        "OwnerName",
+        "Owner",
+        "Created By",
+        "Created_By",
+        "Modified By",
+        "Modified_By",
       ])
-    ) || normalize(getCell(row, ["Deal Owner", "Owner"])),
+    ),
   };
 
   return deal;
@@ -246,29 +280,17 @@ const convertExcelRow = (row, excelRowNumber) => {
 const validateDeal = async (deal, defaultPipeline, defaultStage) => {
   const errors = [];
 
-  // 1. Mandatory Fields
-  if (!deal.deal_organization && !deal.deal_name) {
-    errors.push("Business Name is required.");
-  }
+  // Mandatory Check: At least one identifying information must be present
+  const hasIdentifier = Boolean(
+    deal.deal_organization ||
+    deal.deal_name ||
+    (deal.contact_person && deal.contact_person !== "Unknown") ||
+    deal.customer_number ||
+    deal.customer_email
+  );
 
-  if (!deal.deal_owner) {
-    errors.push("Owner Name is required.");
-  }
-
-  if (!deal.website) {
-    errors.push("Website is required.");
-  }
-
-  if (!deal.customer_number) {
-    errors.push("Phone Number is required.");
-  }
-
-  if (!deal.customer_email) {
-    errors.push("Email Address is required.");
-  }
-
-  if (!deal.customer_address) {
-    errors.push("Address / Location is required.");
+  if (!hasIdentifier) {
+    errors.push("Row has no Name, Company, Phone or Email.");
   }
 
   // 2. Resolve Pipeline

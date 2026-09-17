@@ -208,7 +208,8 @@ function Deals() {
       }
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to upload deals file.");
+      const msg = err.response?.data?.message || err.message || "Failed to upload deals file.";
+      alert(`Import error: ${msg}`);
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
