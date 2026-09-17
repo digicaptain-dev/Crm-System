@@ -61,17 +61,39 @@ const getCell = (row, possibleNames) => {
 // ======================================================
 
 const convertExcelRow = (row, excelRowNumber) => {
-  const businessName = normalize(
+const convertExcelRow = (row, excelRowNumber) => {
+  const companyName = normalize(
     getCell(row, [
-      "Business Name",
-      "BusinessName",
+      "Company Name",
+      "CompanyName",
+      "Company",
       "Organization",
       "Deal Organization",
-      "Company",
-      "Company Name",
+      "Business Name",
+    ])
+  );
+
+  const dealName = normalize(
+    getCell(row, [
       "Deal Name",
       "DealName",
       "Name",
+      "Business Name",
+      "Company Name",
+    ])
+  ) || companyName || "Untitled Deal";
+
+  const contactName = normalize(
+    getCell(row, [
+      "Contact Name",
+      "Contact Person",
+      "ContactName",
+      "Contact",
+      "Deal Owner",
+      "DealOwner",
+      "Owner Name",
+      "OwnerName",
+      "Owner",
     ])
   );
 
@@ -89,23 +111,63 @@ const convertExcelRow = (row, excelRowNumber) => {
     cleanStatus = "Open";
   }
 
+  // Parse amount/value
+  const rawAmount = normalize(
+    getCell(row, [
+      "Amount",
+      "Deal Value",
+      "Deal Amount",
+      "Value",
+      "Revenue",
+    ])
+  );
+  let dealValue = null;
+  if (rawAmount) {
+    const num = parseFloat(rawAmount.replace(/[^0-9.-]+/g, ""));
+    if (!Number.isNaN(num)) dealValue = num;
+  }
+
+  // Parse closing date
+  const rawCloseDate = normalize(
+    getCell(row, [
+      "Closing Date",
+      "Close Date",
+      "Expected Close Date",
+      "CloseDate",
+    ])
+  );
+
+  // Parse combined notes/description
+  const description = normalize(getCell(row, ["Description", "Deal Description"]));
+  const notes = normalize(
+    getCell(row, [
+      "Notes",
+      "Note",
+      "Comments",
+      "Comment",
+      "Deal Notes",
+      "Lead Notes",
+      "Remarks",
+      "Remark",
+      "Feedback",
+    ])
+  );
+  const combinedNotes = [notes, description].filter(Boolean).join("\n\n") || null;
+
   const deal = {
     excel_row: excelRowNumber,
-    deal_name: businessName,
-    deal_organization: businessName,
-    deal_owner: normalize(
-      getCell(row, [
-        "Owner Name",
-        "OwnerName",
-        "Deal Owner",
-        "DealOwner",
-        "Owner",
-        "Contact Person",
-      ])
-    ),
+    deal_name: dealName,
+    deal_organization: companyName || dealName,
+    contact_person: contactName || "Unknown",
+    deal_owner: contactName || "Unknown",
+    deal_value: dealValue,
+    close_date: rawCloseDate || null,
+    tags: normalize(getCell(row, ["Tag", "Tags", "Label", "Category"])) || null,
     website: normalize(
       getCell(row, [
         "Website",
+        "Company Website",
+        "Contact Website",
         "Site",
         "Web",
         "URL",
@@ -115,6 +177,8 @@ const convertExcelRow = (row, excelRowNumber) => {
     customer_number: normalize(
       getCell(row, [
         "Phone Number",
+        "Contact Phone",
+        "Company Phone",
         "PhoneNumber",
         "Phone",
         "Customer Number",
@@ -126,6 +190,8 @@ const convertExcelRow = (row, excelRowNumber) => {
     customer_email: normalize(
       getCell(row, [
         "Email Address",
+        "Contact Email",
+        "Company Email",
         "EmailAddress",
         "Customer Email",
         "Email",
@@ -140,6 +206,7 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Address",
         "Location",
         "Customer Address",
+        "Company Address",
         "City",
         "State",
       ])
@@ -148,26 +215,13 @@ const convertExcelRow = (row, excelRowNumber) => {
       getCell(row, ["Pipeline", "Pipeline Name"])
     ),
     stage: normalize(
-      getCell(row, ["Stage", "Stage Name"])
+      getCell(row, ["Stage", "Stage Name", "Deal Stage"])
     ),
     deal_priority: normalize(
       getCell(row, ["Priority", "Deal Priority"])
     ) || "Medium",
     deal_status: cleanStatus,
-    deal_notes: normalize(
-      getCell(row, [
-        "Comments",
-        "Comment",
-        "Notes",
-        "Deal Notes",
-        "Lead Notes",
-        "Note",
-        "Remarks",
-        "Remark",
-        "Description",
-        "Feedback",
-      ])
-    ),
+    deal_notes: combinedNotes,
     assigned_user: normalize(
       getCell(row, [
         "Assigned User",
@@ -179,7 +233,7 @@ const convertExcelRow = (row, excelRowNumber) => {
         "Assignee",
         "Representative",
       ])
-    ),
+    ) || normalize(getCell(row, ["Deal Owner", "Owner"])),
   };
 
   return deal;
@@ -392,12 +446,28 @@ async function executeImportDeals(rows) {
       const assignTo = row.resolved?.assign_to || row.assign_to || null;
       const notes = normalize(row.deal_notes);
 
+      const dealName = normalize(row.deal_name) || businessName;
+      const contactPerson = normalize(row.contact_person || row.deal_owner) || "Unknown";
+      const dealValue = row.deal_value || null;
+      let validCloseDate = null;
+      if (row.close_date) {
+        const d = new Date(row.close_date);
+        if (!isNaN(d.getTime())) {
+          validCloseDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+      }
+      const tags = normalize(row.tags) || null;
+
       const sql = `
         INSERT INTO deals (
           deal_id,
           deal_name,
           deal_organization,
+          contact_person,
           deal_owner,
+          deal_value,
+          close_date,
+          tags,
           website,
           customer_number,
           customer_email,
@@ -410,14 +480,18 @@ async function executeImportDeals(rows) {
           deal_source,
           assign_to
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
         dealId,
+        dealName,
         businessName,
-        businessName,
-        normalize(row.deal_owner) || "Unknown",
+        contactPerson,
+        contactPerson,
+        dealValue,
+        validCloseDate,
+        tags,
         normalize(row.website) || null,
         normalize(row.customer_number) || null,
         normalize(row.customer_email) || null,
