@@ -812,6 +812,12 @@ router.put(
             );
             const moverName = userRows[0]?.name || req.user.name || "User";
 
+            const [oldStageRows] = currentDeal.deal_stage ? await db.query(
+                `SELECT stage_name FROM stages WHERE stage_id = ? OR stage_name = ? LIMIT 1`,
+                [currentDeal.deal_stage, currentDeal.deal_stage]
+            ) : [[]];
+            const oldStageName = oldStageRows[0]?.stage_name || currentDeal.deal_stage || "Initial Stage";
+
             if (isPoolDrive) {
                 // Moving to Pool Drive: unassign deal, record moved_by
                 await db.query(
@@ -849,7 +855,7 @@ router.put(
                         dealId,
                         user_id,
                         "stage change",
-                        `User ${moverName} moved this deal to Pool Drive`
+                        `${moverName} moved this deal from "${oldStageName}" to Pool Drive`
                     ]
                 );
 
@@ -905,7 +911,7 @@ router.put(
                         dealId,
                         user_id,
                         "stage change",
-                        `Deal stage changed from "${currentDeal.deal_stage}" to "${targetStageName}"`
+                        `${moverName} moved stage from "${oldStageName}" to "${targetStageName}"`
                     ]
                 );
             }

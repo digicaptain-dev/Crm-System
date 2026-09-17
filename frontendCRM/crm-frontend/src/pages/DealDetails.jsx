@@ -409,12 +409,7 @@ function DealDetails() {
         deal_stage: targetStageId,
       });
 
-      await logActivity(
-        "stage change",
-        isPool
-          ? `User ${currentUser?.name || "User"} moved this deal to Pool Drive.`
-          : `Deal stage advanced to "${targetStageName}".`
-      );
+      fetchActivities();
 
       if (isPool && currentUser?.role === "user") {
         setPoolLeavingCountdown(5);
@@ -453,10 +448,7 @@ function DealDetails() {
         deal_status: newStatus,
       }));
 
-      await logActivity(
-        "stage change",
-        `Deal status changed to ${newStatus}`
-      );
+      fetchActivities();
     } catch (err) {
       console.error("Failed to update status:", err);
       setStatus(previousStatus);
