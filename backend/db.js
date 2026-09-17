@@ -58,6 +58,15 @@ const db = mysql.createPool(poolConfig);
             console.error('[DB SCHEMA ERROR] Failed creating notifications table:', notifErr.message);
         }
 
+        // Ensure activities and comments tables are utf8mb4 for unicode/emoji support
+        try {
+            await connection.query(`ALTER TABLE activities CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+            await connection.query(`ALTER TABLE comments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+            await connection.query(`ALTER TABLE users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+        } catch (charsetErr) {
+            // ignore if already done
+        }
+
         connection.release();
     } catch (err) {
         console.error('[DB FATAL ERROR] Unable to establish MySQL connection:', err.message);

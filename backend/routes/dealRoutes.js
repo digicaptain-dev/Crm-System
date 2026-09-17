@@ -538,7 +538,69 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
         const newAssignee = updatedDeal.assign_to;
         const dealTitle = updatedRecord?.deal_organization || updatedRecord?.deal_name || "Lead";
 
-        // Check if assignment changed
+        // Auto-generate activity timeline entry for changes
+        try {
+            const oldRec = dealResults[0] || {};
+            const changes = [];
+
+            if (updatedDeal.deal_stage && String(updatedDeal.deal_stage) !== String(oldRec.deal_stage)) {
+                const [stg] = await db.query("SELECT stage_name FROM stages WHERE stage_id = ? LIMIT 1", [updatedDeal.deal_stage]);
+                changes.push(`stage moved to "${stg[0]?.stage_name || updatedDeal.deal_stage}"`);
+            }
+            if (updatedDeal.deal_status && updatedDeal.deal_status !== oldRec.deal_status) {
+                changes.push(`status marked as "${updatedDeal.deal_status}"`);
+            }
+            if (updatedDeal.deal_priority && updatedDeal.deal_priority !== oldRec.deal_priority) {
+                changes.push(`priority set to ${updatedDeal.deal_priority}`);
+            }
+            if (updatedDeal.deal_value !== undefined && String(updatedDeal.deal_value || "") !== String(oldRec.deal_value || "")) {
+                changes.push(`deal value set to ${updatedDeal.deal_value ? '$' + updatedDeal.deal_value : '$0'}`);
+            }
+            if (updatedDeal.customer_number && updatedDeal.customer_number !== oldRec.customer_number) {
+                changes.push(`phone updated to ${updatedDeal.customer_number}`);
+            }
+            if (updatedDeal.customer_email && updatedDeal.customer_email !== oldRec.customer_email) {
+                changes.push(`email updated to ${updatedDeal.customer_email}`);
+            }
+            if (updatedDeal.contact_person && updatedDeal.contact_person !== oldRec.contact_person) {
+                changes.push(`contact person updated to "${updatedDeal.contact_person}"`);
+            }
+            if (updatedDeal.customer_address && updatedDeal.customer_address !== oldRec.customer_address) {
+                changes.push(`address updated`);
+            }
+            if (updatedDeal.website && updatedDeal.website !== oldRec.website) {
+                changes.push(`website updated to ${updatedDeal.website}`);
+            }
+            if (newAssignee !== undefined && String(newAssignee || "") !== String(oldAssignee || "")) {
+                if (newAssignee) {
+                    const [asgn] = await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [newAssignee]);
+                    changes.push(`reassigned to ${asgn[0]?.name || 'new employee'}`);
+                } else {
+                    changes.push(`unassigned`);
+                }
+            }
+            if (updatedDeal.associated_contacts && updatedDeal.associated_contacts !== oldRec.associated_contacts) {
+                changes.push(`additional contact info updated`);
+            }
+            if (updatedDeal.deal_notes && updatedDeal.deal_notes !== oldRec.deal_notes) {
+                changes.push(`notes updated`);
+            }
+
+            if (changes.length > 0) {
+                const [uRows] = await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [user_id]);
+                const actorName = uRows[0]?.name || req.user.name || "User";
+                const activityText = `${actorName} updated: ${changes.join(", ")}`;
+
+                await db.query(
+                    `INSERT INTO activities (deal_id, user_id, activity_type, details) VALUES (?, ?, 'comment', ?)`,
+                    [id, user_id, activityText]
+                );
+            }
+        } catch (actLogErr) {
+            console.warn("Auto timeline log error:", actLogErr.message);
+        }
+
+        // Check if assignment changed for notifications
         if (newAssignee !== undefined && String(newAssignee || "") !== String(oldAssignee || "")) {
             if (newAssignee) {
                 notifyUser({
