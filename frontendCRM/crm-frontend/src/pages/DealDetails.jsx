@@ -116,6 +116,7 @@ function DealDetails() {
       setShowAddInfoForm(false);
       setAddInfoValue("");
       setAddInfoLabel("");
+      fetchActivities();
     } catch (err) {
       console.error("Failed to add additional info:", err);
       alert(err.response?.data?.message || "Failed to save additional info.");
@@ -139,6 +140,7 @@ function DealDetails() {
         ...prev,
         associated_contacts: updatedList,
       }));
+      fetchActivities();
     } catch (err) {
       console.error("Failed to delete contact info:", err);
       alert("Failed to remove contact info.");

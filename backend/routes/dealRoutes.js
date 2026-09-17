@@ -544,52 +544,110 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             const changes = [];
 
             if (updatedDeal.deal_stage && String(updatedDeal.deal_stage) !== String(oldRec.deal_stage)) {
-                const [stg] = await db.query("SELECT stage_name FROM stages WHERE stage_id = ? LIMIT 1", [updatedDeal.deal_stage]);
-                changes.push(`stage moved to "${stg[0]?.stage_name || updatedDeal.deal_stage}"`);
+                const [oldStg] = oldRec.deal_stage ? await db.query("SELECT stage_name FROM stages WHERE stage_id = ? LIMIT 1", [oldRec.deal_stage]) : [[]];
+                const [newStg] = await db.query("SELECT stage_name FROM stages WHERE stage_id = ? LIMIT 1", [updatedDeal.deal_stage]);
+                const oldName = oldStg[0]?.stage_name || oldRec.deal_stage;
+                const newName = newStg[0]?.stage_name || updatedDeal.deal_stage;
+                changes.push(`moved stage from "${oldName}" to "${newName}"`);
             }
             if (updatedDeal.deal_status && updatedDeal.deal_status !== oldRec.deal_status) {
-                changes.push(`status marked as "${updatedDeal.deal_status}"`);
+                changes.push(`changed status from "${oldRec.deal_status || 'Open'}" to "${updatedDeal.deal_status}"`);
             }
             if (updatedDeal.deal_priority && updatedDeal.deal_priority !== oldRec.deal_priority) {
-                changes.push(`priority set to ${updatedDeal.deal_priority}`);
+                changes.push(`changed priority from "${oldRec.deal_priority || 'Medium'}" to "${updatedDeal.deal_priority}"`);
             }
             if (updatedDeal.deal_value !== undefined && String(updatedDeal.deal_value || "") !== String(oldRec.deal_value || "")) {
-                changes.push(`deal value set to ${updatedDeal.deal_value ? '$' + updatedDeal.deal_value : '$0'}`);
+                const oldVal = oldRec.deal_value ? `$${oldRec.deal_value}` : "$0";
+                const newVal = updatedDeal.deal_value ? `$${updatedDeal.deal_value}` : "$0";
+                changes.push(`updated deal value from ${oldVal} to ${newVal}`);
             }
-            if (updatedDeal.customer_number && updatedDeal.customer_number !== oldRec.customer_number) {
-                changes.push(`phone updated to ${updatedDeal.customer_number}`);
+            if (updatedDeal.customer_number !== undefined && updatedDeal.customer_number !== oldRec.customer_number) {
+                if (oldRec.customer_number && updatedDeal.customer_number) {
+                    changes.push(`updated phone from "${oldRec.customer_number}" to "${updatedDeal.customer_number}"`);
+                } else if (updatedDeal.customer_number) {
+                    changes.push(`added phone: "${updatedDeal.customer_number}"`);
+                } else {
+                    changes.push(`removed phone number`);
+                }
             }
-            if (updatedDeal.customer_email && updatedDeal.customer_email !== oldRec.customer_email) {
-                changes.push(`email updated to ${updatedDeal.customer_email}`);
+            if (updatedDeal.customer_email !== undefined && updatedDeal.customer_email !== oldRec.customer_email) {
+                if (oldRec.customer_email && updatedDeal.customer_email) {
+                    changes.push(`updated email from "${oldRec.customer_email}" to "${updatedDeal.customer_email}"`);
+                } else if (updatedDeal.customer_email) {
+                    changes.push(`added email: "${updatedDeal.customer_email}"`);
+                } else {
+                    changes.push(`removed email`);
+                }
             }
-            if (updatedDeal.contact_person && updatedDeal.contact_person !== oldRec.contact_person) {
-                changes.push(`contact person updated to "${updatedDeal.contact_person}"`);
+            if (updatedDeal.contact_person !== undefined && updatedDeal.contact_person !== oldRec.contact_person) {
+                if (oldRec.contact_person && updatedDeal.contact_person) {
+                    changes.push(`updated contact person from "${oldRec.contact_person}" to "${updatedDeal.contact_person}"`);
+                } else if (updatedDeal.contact_person) {
+                    changes.push(`set contact person to "${updatedDeal.contact_person}"`);
+                }
             }
-            if (updatedDeal.customer_address && updatedDeal.customer_address !== oldRec.customer_address) {
-                changes.push(`address updated`);
+            if (updatedDeal.customer_address !== undefined && updatedDeal.customer_address !== oldRec.customer_address) {
+                if (updatedDeal.customer_address) {
+                    changes.push(`updated address to "${updatedDeal.customer_address}"`);
+                } else {
+                    changes.push(`removed address`);
+                }
             }
-            if (updatedDeal.website && updatedDeal.website !== oldRec.website) {
-                changes.push(`website updated to ${updatedDeal.website}`);
+            if (updatedDeal.website !== undefined && updatedDeal.website !== oldRec.website) {
+                if (updatedDeal.website) {
+                    changes.push(`updated website to "${updatedDeal.website}"`);
+                } else {
+                    changes.push(`removed website`);
+                }
             }
             if (newAssignee !== undefined && String(newAssignee || "") !== String(oldAssignee || "")) {
                 if (newAssignee) {
-                    const [asgn] = await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [newAssignee]);
-                    changes.push(`reassigned to ${asgn[0]?.name || 'new employee'}`);
+                    const [oldAsgn] = oldAssignee ? await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [oldAssignee]) : [[]];
+                    const [newAsgn] = await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [newAssignee]);
+                    const oldName = oldAsgn[0]?.name || "Unassigned";
+                    const newName = newAsgn[0]?.name || "new employee";
+                    changes.push(`reassigned lead from "${oldName}" to "${newName}"`);
                 } else {
-                    changes.push(`unassigned`);
+                    const [oldAsgn] = oldAssignee ? await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [oldAssignee]) : [[]];
+                    changes.push(`unassigned lead (previously "${oldAsgn[0]?.name || 'assigned'}")`);
                 }
             }
-            if (updatedDeal.associated_contacts && updatedDeal.associated_contacts !== oldRec.associated_contacts) {
-                changes.push(`additional contact info updated`);
+            if (updatedDeal.associated_contacts !== undefined && updatedDeal.associated_contacts !== oldRec.associated_contacts) {
+                let oldList = [];
+                let newList = [];
+                try { oldList = JSON.parse(oldRec.associated_contacts || "[]"); } catch {}
+                try { newList = JSON.parse(updatedDeal.associated_contacts || "[]"); } catch {}
+                if (!Array.isArray(oldList)) oldList = [];
+                if (!Array.isArray(newList)) newList = [];
+
+                const added = newList.filter(n => !oldList.some(o => o.id === n.id || (o.value === n.value && o.type === n.type)));
+                const removed = oldList.filter(o => !newList.some(n => n.id === o.id || (n.value === o.value && n.type === o.type)));
+
+                if (added.length > 0) {
+                    for (const item of added) {
+                        changes.push(`added ${item.label || item.type || 'contact'}: "${item.value}"`);
+                    }
+                } else if (removed.length > 0) {
+                    for (const item of removed) {
+                        changes.push(`removed ${item.label || item.type || 'contact'}: "${item.value}"`);
+                    }
+                } else {
+                    changes.push(`updated additional contact info`);
+                }
             }
-            if (updatedDeal.deal_notes && updatedDeal.deal_notes !== oldRec.deal_notes) {
-                changes.push(`notes updated`);
+            if (updatedDeal.deal_notes !== undefined && updatedDeal.deal_notes !== oldRec.deal_notes) {
+                if (updatedDeal.deal_notes) {
+                    const snippet = updatedDeal.deal_notes.length > 60 ? updatedDeal.deal_notes.substring(0, 60) + '...' : updatedDeal.deal_notes;
+                    changes.push(`updated notes: "${snippet}"`);
+                } else {
+                    changes.push(`cleared notes`);
+                }
             }
 
             if (changes.length > 0) {
                 const [uRows] = await db.query("SELECT name FROM users WHERE user_id = ? LIMIT 1", [user_id]);
                 const actorName = uRows[0]?.name || req.user.name || "User";
-                const activityText = `${actorName} updated: ${changes.join(", ")}`;
+                const activityText = `${actorName} ${changes.join(", ")}`;
 
                 await db.query(
                     `INSERT INTO activities (deal_id, user_id, activity_type, details) VALUES (?, ?, 'comment', ?)`,
