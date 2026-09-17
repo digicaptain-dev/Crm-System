@@ -550,6 +550,213 @@
   border-color: var(--primary, #2563eb);
 }
 
+/* ADDITIONAL CONTACT INFO & QUICK ADD */
+.additional-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.delete-item-mini-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary, #94a3b8);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.delete-item-mini-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.delete-item-mini-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.add-info-section-wrapper {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border, #e2e8f0);
+}
+
+.add-info-chips-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.add-info-lead-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary, #94a3b8);
+  margin-right: 2px;
+}
+
+.add-info-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-info-pill-btn svg {
+  width: 11px;
+  height: 11px;
+}
+
+.add-info-pill-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.add-info-inline-box {
+  background: var(--surface-hover, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-info-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.add-info-type-selector {
+  display: flex;
+  gap: 4px;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.type-tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.type-tab-btn.active {
+  background: #ffffff;
+  color: var(--primary, #2563eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.add-info-close-x {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.add-info-close-x:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.add-info-box-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-info-input {
+  width: 100%;
+  padding: 6px 9px;
+  font-size: 12px;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text-primary, #0f172a);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.add-info-input:focus {
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.add-info-input.label-field {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  background: #f8fafc;
+}
+
+.add-info-box-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.add-info-btn-cancel {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 5px;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.add-info-btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.add-info-btn-save {
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--primary, #2563eb);
+  border: 1px solid var(--primary, #2563eb);
+  border-radius: 5px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.add-info-btn-save:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.add-info-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* DEAL DETAIL ROWS */
 .deal-detail-field-list {
   display: flex;

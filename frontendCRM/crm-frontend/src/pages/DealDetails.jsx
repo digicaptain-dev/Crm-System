@@ -58,6 +58,93 @@ function DealDetails() {
 
   const [poolLeavingCountdown, setPoolLeavingCountdown] = useState(null);
 
+  // Additional Contact Info State
+  const [showAddInfoForm, setShowAddInfoForm] = useState(false);
+  const [addInfoType, setAddInfoType] = useState("phone"); // "phone" | "email" | "other"
+  const [addInfoLabel, setAddInfoLabel] = useState("");
+  const [addInfoValue, setAddInfoValue] = useState("");
+  const [savingAddInfo, setSavingAddInfo] = useState(false);
+
+  // Helper to parse associated contacts safely
+  const getAssociatedContactsList = () => {
+    if (!deal?.associated_contacts) return [];
+    if (Array.isArray(deal.associated_contacts)) return deal.associated_contacts;
+    try {
+      const parsed = JSON.parse(deal.associated_contacts);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      if (typeof deal.associated_contacts === "string" && deal.associated_contacts.trim()) {
+        return [{ id: "legacy-1", type: "other", label: "Other Info", value: deal.associated_contacts }];
+      }
+      return [];
+    }
+  };
+
+  const handleOpenAddInfo = (type = "phone") => {
+    setAddInfoType(type);
+    if (type === "phone") setAddInfoLabel("Alternate Phone");
+    else if (type === "email") setAddInfoLabel("Secondary Email");
+    else setAddInfoLabel("Other Info");
+    setAddInfoValue("");
+    setShowAddInfoForm(true);
+  };
+
+  const handleSaveAddInfo = async (e) => {
+    e?.preventDefault();
+    if (!addInfoValue.trim()) return;
+
+    try {
+      setSavingAddInfo(true);
+      const currentList = getAssociatedContactsList();
+      const newItem = {
+        id: Date.now().toString(),
+        type: addInfoType,
+        label: addInfoLabel.trim() || (addInfoType === "phone" ? "Alternate Phone" : addInfoType === "email" ? "Secondary Email" : "Other Info"),
+        value: addInfoValue.trim(),
+      };
+      const updatedList = [...currentList, newItem];
+
+      await api.put(`/deal/${id}`, {
+        associated_contacts: JSON.stringify(updatedList),
+      });
+
+      setDeal((prev) => ({
+        ...prev,
+        associated_contacts: updatedList,
+      }));
+
+      setShowAddInfoForm(false);
+      setAddInfoValue("");
+      setAddInfoLabel("");
+    } catch (err) {
+      console.error("Failed to add additional info:", err);
+      alert(err.response?.data?.message || "Failed to save additional info.");
+    } finally {
+      setSavingAddInfo(false);
+    }
+  };
+
+  const handleDeleteAddInfo = async (itemId) => {
+    if (!window.confirm("Are you sure you want to remove this additional contact detail?")) return;
+
+    try {
+      const currentList = getAssociatedContactsList();
+      const updatedList = currentList.filter((item) => item.id !== itemId);
+
+      await api.put(`/deal/${id}`, {
+        associated_contacts: JSON.stringify(updatedList),
+      });
+
+      setDeal((prev) => ({
+        ...prev,
+        associated_contacts: updatedList,
+      }));
+    } catch (err) {
+      console.error("Failed to delete contact info:", err);
+      alert("Failed to remove contact info.");
+    }
+  };
+
   // =====================================================
   // FETCH DEAL
   // =====================================================
@@ -803,6 +890,61 @@ function DealDetails() {
                 </div>
               )}
 
+              {/* Dynamic Additional Contact Info List */}
+              {getAssociatedContactsList().map((item) => (
+                <div key={item.id} className="contact-field-group additional-contact-group">
+                  <div className="additional-field-header">
+                    <span className="contact-field-label">{item.label || "Additional Info"}</span>
+                    <button
+                      type="button"
+                      className="delete-item-mini-btn"
+                      onClick={() => handleDeleteAddInfo(item.id)}
+                      title="Delete this field"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="contact-action-row">
+                    {item.type === "phone" ? (
+                      <a href={`tel:${item.value}`} className="contact-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <span>{item.value}</span>
+                      </a>
+                    ) : item.type === "email" ? (
+                      <a href={`mailto:${item.value}`} className="contact-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <span>{item.value}</span>
+                      </a>
+                    ) : (
+                      <div className="contact-simple-text">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="16" x2="12" y2="12" />
+                          <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        <span>{item.value}</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      onClick={() => handleCopy(item.value, item.id)}
+                      title="Copy"
+                    >
+                      {copiedField === item.id ? "✓" : "⎘"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+
               {deal.customer_address && (
                 <div className="contact-field-group">
                   <span className="contact-field-label">Address</span>
@@ -828,6 +970,126 @@ function DealDetails() {
                   </div>
                 </div>
               )}
+
+              {/* Interactive Quick Add Additional Info Section */}
+              <div className="add-info-section-wrapper">
+                {!showAddInfoForm ? (
+                  <div className="add-info-chips-bar">
+                    <span className="add-info-lead-text">+ Add detail:</span>
+                    <button
+                      type="button"
+                      className="add-info-pill-btn"
+                      onClick={() => handleOpenAddInfo("phone")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                      Phone Number
+                    </button>
+                    <button
+                      type="button"
+                      className="add-info-pill-btn"
+                      onClick={() => handleOpenAddInfo("email")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                      </svg>
+                      Email Address
+                    </button>
+                    <button
+                      type="button"
+                      className="add-info-pill-btn"
+                      onClick={() => handleOpenAddInfo("other")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      Other info
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSaveAddInfo} className="add-info-inline-box">
+                    <div className="add-info-box-header">
+                      <div className="add-info-type-selector">
+                        <button
+                          type="button"
+                          className={`type-tab-btn ${addInfoType === "phone" ? "active" : ""}`}
+                          onClick={() => handleOpenAddInfo("phone")}
+                        >
+                          Phone
+                        </button>
+                        <button
+                          type="button"
+                          className={`type-tab-btn ${addInfoType === "email" ? "active" : ""}`}
+                          onClick={() => handleOpenAddInfo("email")}
+                        >
+                          Email
+                        </button>
+                        <button
+                          type="button"
+                          className={`type-tab-btn ${addInfoType === "other" ? "active" : ""}`}
+                          onClick={() => handleOpenAddInfo("other")}
+                        >
+                          Other
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="add-info-close-x"
+                        onClick={() => setShowAddInfoForm(false)}
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="add-info-box-inputs">
+                      <input
+                        type="text"
+                        className="add-info-input label-field"
+                        placeholder="Label (e.g. Alternate Phone, WhatsApp, Work Email)"
+                        value={addInfoLabel}
+                        onChange={(e) => setAddInfoLabel(e.target.value)}
+                      />
+                      <input
+                        type={addInfoType === "email" ? "email" : addInfoType === "phone" ? "tel" : "text"}
+                        className="add-info-input value-field"
+                        placeholder={
+                          addInfoType === "phone"
+                            ? "Enter alternate phone number..."
+                            : addInfoType === "email"
+                            ? "Enter alternate email address..."
+                            : "Enter detail/value..."
+                        }
+                        value={addInfoValue}
+                        onChange={(e) => setAddInfoValue(e.target.value)}
+                        autoFocus
+                        required
+                      />
+                    </div>
+
+                    <div className="add-info-box-actions">
+                      <button
+                        type="button"
+                        className="add-info-btn-cancel"
+                        onClick={() => setShowAddInfoForm(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="add-info-btn-save"
+                        disabled={savingAddInfo || !addInfoValue.trim()}
+                      >
+                        {savingAddInfo ? "Saving..." : "Add"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
 
