@@ -53,7 +53,8 @@ function DealImportPreview({
       }
     } catch (err) {
       console.error("Import error:", err);
-      alert(err.response?.data?.message || err.message || "Failed to commit imported leads.");
+      const detail = err.response?.data?.error ? `\nDetails: ${err.response.data.error}` : "";
+      alert((err.response?.data?.message || err.message || "Failed to commit imported leads.") + detail);
     } finally {
       setLoading(false);
       setImportProgress("");

@@ -531,10 +531,29 @@ async function processUploadedFile(filePath) {
 
 function formatMysqlDatetime(dateInput) {
   if (!dateInput) return null;
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return null;
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  try {
+    if (
+      typeof dateInput === "number" ||
+      (!isNaN(dateInput) &&
+        !String(dateInput).includes("-") &&
+        !String(dateInput).includes(":") &&
+        !String(dateInput).includes("/"))
+    ) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const d = new Date(excelEpoch.getTime() + Number(dateInput) * 86400000);
+      if (!isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+    }
+
+    const d = new Date(dateInput);
+    if (!isNaN(d.getTime())) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+  } catch (e) {}
+  return null;
 }
 
 async function executeImportDeals(rows) {
@@ -542,14 +561,25 @@ async function executeImportDeals(rows) {
   let fallbackStageId = null;
 
   try {
-    const [pRows] = await db.query(`SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`);
+    const [pRows] = await db.query(
+      `SELECT pipeline_id FROM pipelines ORDER BY pipeline_id ASC LIMIT 1`
+    );
     if (pRows.length > 0) {
       fallbackPipelineId = pRows[0].pipeline_id;
       const [sRows] = await db.query(
         `SELECT stage_id FROM stages WHERE pipeline_id = ? ORDER BY stage_order ASC, stage_id ASC LIMIT 1`,
         [fallbackPipelineId]
       );
-      if (sRows.length > 0) fallbackStageId = sRows[0].stage_id;
+      if (sRows.length > 0) {
+        fallbackStageId = sRows[0].stage_id;
+      }
+    }
+
+    if (!fallbackStageId) {
+      const [anyStage] = await db.query(`SELECT stage_id FROM stages LIMIT 1`);
+      if (anyStage.length > 0) {
+        fallbackStageId = anyStage[0].stage_id;
+      }
     }
   } catch (err) {
     console.warn("Fallback lookup err:", err.message);
@@ -570,18 +600,24 @@ async function executeImportDeals(rows) {
       const commentValuesBatch = [];
 
       for (const row of batchRows) {
-        const businessName = normalize(row.deal_organization || row.deal_name);
+        const businessName = normalize(row.deal_organization || row.deal_name).substring(0, 255);
         if (!businessName) continue;
 
         const dealId = uuidv4();
-        const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
-        const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
+        const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId || null;
+        const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId || null;
         const assignTo = row.resolved?.assign_to || row.assign_to || null;
         const notes = normalize(row.deal_notes);
 
-        const dealName = normalize(row.deal_name) || businessName;
-        const contactPerson = normalize(row.contact_person || row.deal_owner) || "Unknown";
-        const dealValue = row.deal_value || null;
+        const dealName = normalize(row.deal_name).substring(0, 255) || businessName;
+        const contactPerson = normalize(row.contact_person || row.deal_owner).substring(0, 255) || "Unknown";
+        
+        let dealValue = null;
+        if (row.deal_value !== undefined && row.deal_value !== null && row.deal_value !== "") {
+          const num = parseFloat(String(row.deal_value).replace(/[^0-9.-]+/g, ""));
+          if (!isNaN(num)) dealValue = num;
+        }
+
         let validCloseDate = null;
         if (row.close_date) {
           const d = new Date(row.close_date);
@@ -589,9 +625,16 @@ async function executeImportDeals(rows) {
             validCloseDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           }
         }
-        const tags = normalize(row.tags) || null;
+        const tags = normalize(row.tags).substring(0, 255) || null;
+        const website = normalize(row.website).substring(0, 255) || null;
+        const customerNumber = normalize(row.customer_number).substring(0, 100) || null;
+        const customerEmail = normalize(row.customer_email).substring(0, 255) || null;
+        const customerAddress = normalize(row.customer_address) || null;
+        const priority = normalize(row.deal_priority).substring(0, 50) || "Medium";
+        const status = normalize(row.deal_status).substring(0, 50) || "Open";
 
-        const parsedCreatedDate = formatMysqlDatetime(row.created_time) || formatMysqlDatetime(new Date());
+        const nowIso = formatMysqlDatetime(new Date());
+        const parsedCreatedDate = formatMysqlDatetime(row.created_time) || nowIso;
         const parsedLastActivityDate = formatMysqlDatetime(row.last_activity_time || row.modified_time) || parsedCreatedDate;
         const creatorName = normalize(row.created_by) || normalize(row.deal_owner) || "System";
         const modifierName = normalize(row.modified_by) || creatorName;
@@ -605,16 +648,16 @@ async function executeImportDeals(rows) {
           dealValue,
           validCloseDate,
           tags,
-          normalize(row.website) || null,
-          normalize(row.customer_number) || null,
-          normalize(row.customer_email) || null,
-          normalize(row.customer_address) || null,
+          website,
+          customerNumber,
+          customerEmail,
+          customerAddress,
           pipelineId,
           stageId,
-          normalize(row.deal_priority) || "Medium",
-          normalize(row.deal_status) || "Open",
+          priority,
+          status,
           notes || null,
-          normalize(row.website) || null,
+          website,
           assignTo,
           parsedCreatedDate,
           parsedLastActivityDate,
@@ -622,19 +665,19 @@ async function executeImportDeals(rows) {
 
         activityValuesBatch.push([
           dealId,
-          'import',
-          'comment',
+          assignTo || null,
+          "comment",
           `Lead created by ${creatorName}`,
-          parsedCreatedDate
+          parsedCreatedDate,
         ]);
 
         if (row.last_activity_time || row.modified_by) {
           activityValuesBatch.push([
             dealId,
-            'import',
-            'comment',
+            assignTo || null,
+            "comment",
             `Last activity / Modified by ${modifierName}`,
-            parsedLastActivityDate
+            parsedLastActivityDate,
           ]);
         }
 
@@ -644,10 +687,10 @@ async function executeImportDeals(rows) {
             commentId,
             dealId,
             notes,
-            'import',
-            'Import System',
-            'system',
-            parsedCreatedDate
+            assignTo || null,
+            "Import System",
+            "system",
+            parsedCreatedDate,
           ]);
         }
 
