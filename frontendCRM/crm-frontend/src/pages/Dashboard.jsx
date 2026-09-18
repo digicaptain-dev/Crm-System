@@ -38,6 +38,7 @@ function Dashboard() {
 
   const [pipelines, setPipelines] = useState([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState("all");
+  const [dashboardStats, setDashboardStats] = useState(null);
   const [deals, setDeals] = useState([]);
   const [users, setUsers] = useState([]);
 
@@ -65,9 +66,25 @@ function Dashboard() {
     }
   }, []);
 
-  const fetchDeals = useCallback(async () => {
+  const fetchDashboardStats = useCallback(async (pipelineId = "all") => {
     try {
-      const response = await api.get("/deals?limit=1000&page=1");
+      const response = await api.get(`/deals/dashboard-stats?pipeline_id=${pipelineId}`);
+      if (response.data?.success) {
+        setDashboardStats(response.data);
+        if (response.data.recentDeals) {
+          setDeals(response.data.recentDeals);
+        }
+        return response.data;
+      }
+    } catch (err) {
+      console.error("Fetch dashboard stats error:", err);
+    }
+    return null;
+  }, []);
+
+  const fetchDealsFallback = useCallback(async () => {
+    try {
+      const response = await api.get("/deals?limit=100&page=1");
       const data = Array.isArray(response.data)
         ? response.data
         : response.data?.deals || [];
@@ -98,7 +115,12 @@ function Dashboard() {
       try {
         setLoading(true);
         setError("");
-        await Promise.all([fetchPipelines(), fetchDeals(), fetchUsers()]);
+        await Promise.all([
+          fetchPipelines(),
+          fetchDashboardStats(selectedPipelineId),
+          fetchDealsFallback(),
+          fetchUsers(),
+        ]);
       } catch (err) {
         setError("Failed to load analytics dashboard.");
       } finally {
@@ -106,14 +128,18 @@ function Dashboard() {
       }
     };
     loadDashboard();
-  }, [fetchPipelines, fetchDeals, fetchUsers]);
+  }, [fetchPipelines, fetchDashboardStats, fetchDealsFallback, fetchUsers, selectedPipelineId]);
 
   // Refresh
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
       setError("");
-      await Promise.all([fetchPipelines(), fetchDeals(), fetchUsers()]);
+      await Promise.all([
+        fetchPipelines(),
+        fetchDashboardStats(selectedPipelineId),
+        fetchUsers(),
+      ]);
     } catch (err) {
       setError("Failed to refresh dashboard.");
     } finally {
@@ -122,70 +148,55 @@ function Dashboard() {
   };
 
   // =====================================================
-  // FILTERED DATA BY PIPELINE
-  // =====================================================
-
-  const scopedDeals = useMemo(() => {
-    let list = deals;
-
-    // Filter by pipeline if not "all"
-    if (selectedPipelineId !== "all") {
-      list = list.filter(
-        (d) => String(d.pipeline_id) === String(selectedPipelineId)
-      );
-    }
-
-    return list;
-  }, [deals, selectedPipelineId]);
-
-  // =====================================================
   // KPI CALCULATIONS (ADMIN & USER)
   // =====================================================
 
   const stats = useMemo(() => {
-    const totalDeals = scopedDeals.length;
-    const openDeals = scopedDeals.filter(
-      (d) => !d.deal_status || d.deal_status.toLowerCase() === "open"
-    );
-    const wonDeals = scopedDeals.filter(
-      (d) => d.deal_status && d.deal_status.toLowerCase() === "won"
-    );
-    const lostDeals = scopedDeals.filter(
-      (d) => d.deal_status && d.deal_status.toLowerCase() === "lost"
-    );
+    if (dashboardStats?.summary) {
+      const s = dashboardStats.summary;
+      const totalDeals = Number(s.totalDeals || 0);
+      const openCount = Number(s.openCount || 0);
+      const wonCount = Number(s.wonCount || 0);
+      const lostCount = Number(s.lostCount || 0);
+      const totalPipelineValue = Number(s.totalPipelineValue || 0);
+      const openPipelineValue = Number(s.openPipelineValue || 0);
+      const wonPipelineValue = Number(s.wonPipelineValue || 0);
+      const winRate = totalDeals > 0 ? Math.round((wonCount / totalDeals) * 100) : 0;
+      const avgDealValue = totalDeals > 0 ? Math.round(totalPipelineValue / totalDeals) : 0;
+      const highPriority = Number(s.highPriority || 0);
+      const mediumPriority = Number(s.mediumPriority || 0);
+      const lowPriority = Number(s.lowPriority || 0);
+      const unassignedCount = Number(s.unassignedCount || 0);
+      const assignedCount = Number(s.assignedCount || 0);
 
-    const totalPipelineValue = scopedDeals.reduce(
-      (acc, d) => acc + Number(d.deal_value || 0),
-      0
-    );
+      return {
+        totalDeals,
+        openCount,
+        openPipelineValue,
+        wonCount,
+        wonPipelineValue,
+        lostCount,
+        totalPipelineValue,
+        avgDealValue,
+        winRate,
+        highPriority,
+        mediumPriority,
+        lowPriority,
+        unassignedCount,
+        assignedCount,
+        totalUsers: users.length,
+      };
+    }
 
-    const openPipelineValue = openDeals.reduce(
-      (acc, d) => acc + Number(d.deal_value || 0),
-      0
-    );
-
-    const wonPipelineValue = wonDeals.reduce(
-      (acc, d) => acc + Number(d.deal_value || 0),
-      0
-    );
-
+    const totalDeals = deals.length;
+    const openDeals = deals.filter((d) => !d.deal_status || d.deal_status.toLowerCase() === "open");
+    const wonDeals = deals.filter((d) => d.deal_status && d.deal_status.toLowerCase() === "won");
+    const lostDeals = deals.filter((d) => d.deal_status && d.deal_status.toLowerCase() === "lost");
+    const totalPipelineValue = deals.reduce((acc, d) => acc + Number(d.deal_value || 0), 0);
+    const openPipelineValue = openDeals.reduce((acc, d) => acc + Number(d.deal_value || 0), 0);
+    const wonPipelineValue = wonDeals.reduce((acc, d) => acc + Number(d.deal_value || 0), 0);
     const winRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
     const avgDealValue = totalDeals > 0 ? Math.round(totalPipelineValue / totalDeals) : 0;
-
-    // Priority Counts
-    const highPriority = scopedDeals.filter(
-      (d) => (d.deal_priority || "").toLowerCase() === "high"
-    ).length;
-    const mediumPriority = scopedDeals.filter(
-      (d) => (d.deal_priority || "").toLowerCase() === "medium"
-    ).length;
-    const lowPriority = scopedDeals.filter(
-      (d) => (d.deal_priority || "").toLowerCase() === "low"
-    ).length;
-
-    // Assigned vs Unassigned
-    const unassignedCount = scopedDeals.filter((d) => !d.assign_to).length;
-    const assignedCount = totalDeals - unassignedCount;
 
     return {
       totalDeals,
@@ -197,14 +208,14 @@ function Dashboard() {
       totalPipelineValue,
       avgDealValue,
       winRate,
-      highPriority,
-      mediumPriority,
-      lowPriority,
-      unassignedCount,
-      assignedCount,
+      highPriority: deals.filter((d) => (d.deal_priority || "").toLowerCase() === "high").length,
+      mediumPriority: deals.filter((d) => (d.deal_priority || "").toLowerCase() === "medium").length,
+      lowPriority: deals.filter((d) => (d.deal_priority || "").toLowerCase() === "low").length,
+      unassignedCount: deals.filter((d) => !d.assign_to).length,
+      assignedCount: deals.filter((d) => Boolean(d.assign_to)).length,
       totalUsers: users.length,
     };
-  }, [scopedDeals, users]);
+  }, [dashboardStats, deals, users]);
 
   // =====================================================
   // USER ASSIGNMENT BREAKDOWN (ADMIN VIEW)
@@ -213,69 +224,71 @@ function Dashboard() {
   const userAssignments = useMemo(() => {
     if (!isAdmin) return [];
 
-    // Map each user with their deals
+    const userStatsMap = {};
+    (dashboardStats?.userStats || []).forEach((us) => {
+      const uidKey = us.user_id ? String(us.user_id) : "unassigned";
+      userStatsMap[uidKey] = {
+        dealCount: Number(us.dealCount || 0),
+        openCount: Number(us.openCount || 0),
+        wonCount: Number(us.wonCount || 0),
+        totalValue: Number(us.totalValue || 0),
+      };
+    });
+
+    const totalDeals = stats.totalDeals || 1;
+
     const list = users.map((u) => {
-      const userDeals = deals.filter(
-        (d) => String(d.assign_to) === String(u.user_id)
-      );
-
-      const openDeals = userDeals.filter(
-        (d) => !d.deal_status || d.deal_status.toLowerCase() === "open"
-      );
-      const wonDeals = userDeals.filter(
-        (d) => d.deal_status && d.deal_status.toLowerCase() === "won"
-      );
-
-      const totalValue = userDeals.reduce(
-        (acc, d) => acc + Number(d.deal_value || 0),
-        0
-      );
-
-      const percentage = deals.length > 0 ? Math.round((userDeals.length / deals.length) * 100) : 0;
+      const us = userStatsMap[String(u.user_id)] || {
+        dealCount: 0,
+        openCount: 0,
+        wonCount: 0,
+        totalValue: 0,
+      };
+      const percentage = Math.round((us.dealCount / totalDeals) * 100);
 
       return {
         userId: u.user_id,
         name: u.name || "Unnamed User",
         email: u.email || "-",
         role: u.role || "user",
-        dealCount: userDeals.length,
-        openCount: openDeals.length,
-        wonCount: wonDeals.length,
-        totalValue,
+        dealCount: us.dealCount,
+        openCount: us.openCount,
+        wonCount: us.wonCount,
+        totalValue: us.totalValue,
         percentage,
       };
     });
 
     // Add unassigned bucket if there are unassigned deals
-    const unassignedDeals = deals.filter((d) => !d.assign_to);
-    if (unassignedDeals.length > 0) {
-      const unassignedValue = unassignedDeals.reduce(
-        (acc, d) => acc + Number(d.deal_value || 0),
-        0
-      );
+    const unassignedCount = stats.unassignedCount || userStatsMap["unassigned"]?.dealCount || 0;
+    if (unassignedCount > 0) {
+      const unassignedStat = userStatsMap["unassigned"] || {
+        dealCount: unassignedCount,
+        openCount: unassignedCount,
+        wonCount: 0,
+        totalValue: 0,
+      };
       list.push({
         userId: "unassigned",
         name: "Unassigned Deals",
         email: "Pending Assignment",
         role: "unassigned",
-        dealCount: unassignedDeals.length,
-        openCount: unassignedDeals.filter((d) => !d.deal_status || d.deal_status.toLowerCase() === "open").length,
-        wonCount: unassignedDeals.filter((d) => d.deal_status && d.deal_status.toLowerCase() === "won").length,
-        totalValue: unassignedValue,
-        percentage: deals.length > 0 ? Math.round((unassignedDeals.length / deals.length) * 100) : 0,
+        dealCount: unassignedCount,
+        openCount: unassignedStat.openCount,
+        wonCount: unassignedStat.wonCount,
+        totalValue: unassignedStat.totalValue,
+        percentage: Math.round((unassignedCount / totalDeals) * 100),
       });
     }
 
-    // Sort by total deals descending
     return list.sort((a, b) => b.dealCount - a.dealCount);
-  }, [isAdmin, users, deals]);
+  }, [isAdmin, users, dashboardStats, stats.totalDeals, stats.unassignedCount]);
 
   // =====================================================
   // STAGE BREAKDOWN GRAPH DATA
   // =====================================================
 
   const stageBreakdown = useMemo(() => {
-    // Gather all stages across pipelines or current pipeline
     const stagesList = [];
 
     pipelines.forEach((p) => {
@@ -291,7 +304,6 @@ function Dashboard() {
       });
     });
 
-    // Deduplicate stages
     const uniqueStages = [];
     const seen = new Set();
     stagesList.sort((a, b) => a.stageOrder - b.stageOrder).forEach((st) => {
@@ -301,40 +313,43 @@ function Dashboard() {
       }
     });
 
-    const maxDeals = scopedDeals.length || 1;
+    const stageMap = {};
+    (dashboardStats?.stages || []).forEach((st) => {
+      stageMap[String(st.stage_id)] = {
+        count: Number(st.deal_count || 0),
+        value: Number(st.stage_value || 0),
+      };
+    });
+
+    const maxDeals = stats.totalDeals || 1;
 
     return uniqueStages.map((st, idx) => {
-      const stageDeals = scopedDeals.filter(
-        (d) => String(d.deal_stage) === String(st.stageId)
-      );
-
-      const stageValue = stageDeals.reduce(
-        (sum, d) => sum + Number(d.deal_value || 0),
-        0
-      );
-
-      const pct = Math.round((stageDeals.length / maxDeals) * 100);
+      const stageData = stageMap[String(st.stageId)] || { count: 0, value: 0 };
+      const pct = Math.round((stageData.count / maxDeals) * 100);
       const theme = STAGE_THEMES[idx % STAGE_THEMES.length];
 
       return {
         ...st,
-        count: stageDeals.length,
-        value: stageValue,
+        count: stageData.count,
+        value: stageData.value,
         percentage: pct,
         theme,
       };
     });
-  }, [pipelines, scopedDeals, selectedPipelineId]);
+  }, [pipelines, dashboardStats, selectedPipelineId, stats.totalDeals]);
 
   // =====================================================
   // TOP / RECENT DEALS
   // =====================================================
 
   const recentDeals = useMemo(() => {
-    return [...scopedDeals]
+    if (dashboardStats?.recentDeals && dashboardStats.recentDeals.length > 0) {
+      return dashboardStats.recentDeals.slice(0, 6);
+    }
+    return [...deals]
       .sort((a, b) => Number(b.deal_value || 0) - Number(a.deal_value || 0))
       .slice(0, 6);
-  }, [scopedDeals]);
+  }, [dashboardStats, deals]);
 
   // =====================================================
   // LOADING STATE

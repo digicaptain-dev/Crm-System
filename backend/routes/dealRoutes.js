@@ -151,6 +151,108 @@ router.get("/deals", authenticateToken, async (req, res) => {
 });
 
 /* =====================================================
+   GET DASHBOARD STATS & ANALYTICS (FULL AGGREGATION)
+   ===================================================== */
+
+router.get("/deals/dashboard-stats", authenticateToken, async (req, res) => {
+    try {
+        const { user_id, role } = req.user;
+        const { pipeline_id = "all" } = req.query;
+
+        let whereClauses = [];
+        let params = [];
+
+        if (role !== "admin" && role !== "coworker") {
+            whereClauses.push("deals.assign_to = ?");
+            params.push(user_id);
+            whereClauses.push("(deals.deal_stage NOT IN (SELECT stage_id FROM stages WHERE LOWER(stage_name) LIKE '%pool%'))");
+        }
+
+        if (pipeline_id && pipeline_id !== "all") {
+            whereClauses.push("deals.pipeline_id = ?");
+            params.push(pipeline_id);
+        }
+
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+        // 1. Overall Metrics
+        const [overall] = await db.query(`
+            SELECT 
+                COUNT(*) AS totalDeals,
+                SUM(CASE WHEN LOWER(COALESCE(deal_status, 'open')) = 'open' THEN 1 ELSE 0 END) AS openCount,
+                SUM(CASE WHEN LOWER(COALESCE(deal_status, '')) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonCount,
+                SUM(CASE WHEN LOWER(COALESCE(deal_status, '')) IN ('closed lost', 'lost') THEN 1 ELSE 0 END) AS lostCount,
+                COALESCE(SUM(deal_value), 0) AS totalPipelineValue,
+                COALESCE(SUM(CASE WHEN LOWER(COALESCE(deal_status, 'open')) = 'open' THEN deal_value ELSE 0 END), 0) AS openPipelineValue,
+                COALESCE(SUM(CASE WHEN LOWER(COALESCE(deal_status, '')) IN ('closed won', 'won') THEN deal_value ELSE 0 END), 0) AS wonPipelineValue,
+                SUM(CASE WHEN LOWER(COALESCE(deal_priority, 'medium')) = 'high' THEN 1 ELSE 0 END) AS highPriority,
+                SUM(CASE WHEN LOWER(COALESCE(deal_priority, 'medium')) = 'medium' THEN 1 ELSE 0 END) AS mediumPriority,
+                SUM(CASE WHEN LOWER(COALESCE(deal_priority, 'medium')) = 'low' THEN 1 ELSE 0 END) AS lowPriority,
+                SUM(CASE WHEN assign_to IS NULL OR assign_to = '' THEN 1 ELSE 0 END) AS unassignedCount,
+                SUM(CASE WHEN assign_to IS NOT NULL AND assign_to != '' THEN 1 ELSE 0 END) AS assignedCount
+            FROM deals
+            ${whereSql}
+        `, params);
+
+        // 2. Stage Breakdown
+        const [stageRows] = await db.query(`
+            SELECT 
+                deal_stage AS stage_id,
+                COUNT(*) AS deal_count,
+                COALESCE(SUM(deal_value), 0) AS stage_value
+            FROM deals
+            ${whereSql}
+            GROUP BY deal_stage
+        `, params);
+
+        // 3. User Assignment Breakdown (For Admins)
+        let userStats = [];
+        if (role === "admin" || role === "coworker") {
+            const [uStats] = await db.query(`
+                SELECT 
+                    assign_to AS user_id,
+                    COUNT(*) AS dealCount,
+                    SUM(CASE WHEN LOWER(COALESCE(deal_status, 'open')) = 'open' THEN 1 ELSE 0 END) AS openCount,
+                    SUM(CASE WHEN LOWER(COALESCE(deal_status, '')) IN ('closed won', 'won') THEN 1 ELSE 0 END) AS wonCount,
+                    COALESCE(SUM(deal_value), 0) AS totalValue
+                FROM deals
+                ${whereSql}
+                GROUP BY assign_to
+            `, params);
+            userStats = uStats;
+        }
+
+        // 4. Recent Deals
+        const [recent] = await db.query(`
+            SELECT 
+                deals.*,
+                assigned_user.name AS assigned_user_name
+            FROM deals
+            LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
+            ${whereSql}
+            ORDER BY deals.creation_date DESC
+            LIMIT 10
+        `, params);
+
+        return res.json({
+            success: true,
+            summary: overall[0] || {},
+            stages: stageRows || [],
+            userStats: userStats || [],
+            recentDeals: recent || []
+        });
+
+    } catch (error) {
+        console.error("Dashboard stats error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch dashboard stats",
+            error: error.message
+        });
+    }
+});
+
+/* =====================================================
    GET SINGLE DEAL
    ===================================================== */
 
