@@ -19,6 +19,7 @@ function DealImportPreview({
   const hasAssigned = rows.some((r) => r.assigned_user || r.assigned_user_name);
 
   const [loading, setLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState("");
 
   const handleExecuteImport = async () => {
     if (validRows.length === 0) return;
@@ -29,23 +30,33 @@ function DealImportPreview({
 
     try {
       setLoading(true);
-      const res = await api.post("/deals/upload/commit", { rows: validRows });
+      const CHUNK_SIZE = 1000;
+      let totalImported = 0;
 
-      if (res.data?.success) {
-        alert(res.data.message || `Successfully imported ${validRows.length} leads!`);
-        if (onImportComplete) {
-          onImportComplete();
-        } else if (onClose) {
-          onClose();
+      for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
+        const chunk = validRows.slice(i, i + CHUNK_SIZE);
+        const currentCount = Math.min(i + CHUNK_SIZE, validRows.length);
+        setImportProgress(`Importing (${currentCount} / ${validRows.length})...`);
+
+        const res = await api.post("/deals/upload/commit", { rows: chunk });
+        if (!res.data?.success && res.data?.success !== undefined) {
+          throw new Error(res.data?.message || "Import batch failed.");
         }
-      } else {
-        alert(res.data?.message || "Failed to import leads.");
+        totalImported += res.data?.imported || chunk.length;
+      }
+
+      alert(`Successfully imported all ${totalImported} leads!`);
+      if (onImportComplete) {
+        onImportComplete();
+      } else if (onClose) {
+        onClose();
       }
     } catch (err) {
       console.error("Import error:", err);
-      alert(err.response?.data?.message || "Failed to commit imported leads.");
+      alert(err.response?.data?.message || err.message || "Failed to commit imported leads.");
     } finally {
       setLoading(false);
+      setImportProgress("");
     }
   };
 
@@ -220,7 +231,7 @@ function DealImportPreview({
             disabled={isImporting || validRows.length === 0}
           >
             {isImporting
-              ? "Importing..."
+              ? (importProgress || "Importing...")
               : `Import ${validRows.length} Leads`}
           </button>
         </div>

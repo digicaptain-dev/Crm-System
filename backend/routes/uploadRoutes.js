@@ -561,126 +561,133 @@ async function executeImportDeals(rows) {
     await connection.beginTransaction();
 
     let imported = 0;
+    const BATCH_SIZE = 500;
 
-    for (const row of rows) {
-      const businessName = normalize(row.deal_organization || row.deal_name);
-      if (!businessName) continue;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batchRows = rows.slice(i, i + BATCH_SIZE);
+      const dealValuesBatch = [];
+      const activityValuesBatch = [];
+      const commentValuesBatch = [];
 
-      const dealId = uuidv4();
-      const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
-      const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
-      const assignTo = row.resolved?.assign_to || row.assign_to || null;
-      const notes = normalize(row.deal_notes);
+      for (const row of batchRows) {
+        const businessName = normalize(row.deal_organization || row.deal_name);
+        if (!businessName) continue;
 
-      const dealName = normalize(row.deal_name) || businessName;
-      const contactPerson = normalize(row.contact_person || row.deal_owner) || "Unknown";
-      const dealValue = row.deal_value || null;
-      let validCloseDate = null;
-      if (row.close_date) {
-        const d = new Date(row.close_date);
-        if (!isNaN(d.getTime())) {
-          validCloseDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const dealId = uuidv4();
+        const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId;
+        const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId;
+        const assignTo = row.resolved?.assign_to || row.assign_to || null;
+        const notes = normalize(row.deal_notes);
+
+        const dealName = normalize(row.deal_name) || businessName;
+        const contactPerson = normalize(row.contact_person || row.deal_owner) || "Unknown";
+        const dealValue = row.deal_value || null;
+        let validCloseDate = null;
+        if (row.close_date) {
+          const d = new Date(row.close_date);
+          if (!isNaN(d.getTime())) {
+            validCloseDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          }
         }
-      }
-      const tags = normalize(row.tags) || null;
+        const tags = normalize(row.tags) || null;
 
-      const parsedCreatedDate = formatMysqlDatetime(row.created_time) || formatMysqlDatetime(new Date());
-      const parsedLastActivityDate = formatMysqlDatetime(row.last_activity_time || row.modified_time) || parsedCreatedDate;
-      const creatorName = normalize(row.created_by) || normalize(row.deal_owner) || "System";
-      const modifierName = normalize(row.modified_by) || creatorName;
+        const parsedCreatedDate = formatMysqlDatetime(row.created_time) || formatMysqlDatetime(new Date());
+        const parsedLastActivityDate = formatMysqlDatetime(row.last_activity_time || row.modified_time) || parsedCreatedDate;
+        const creatorName = normalize(row.created_by) || normalize(row.deal_owner) || "System";
+        const modifierName = normalize(row.modified_by) || creatorName;
 
-      const sql = `
-        INSERT INTO deals (
-          deal_id,
-          deal_name,
-          deal_organization,
-          contact_person,
-          deal_owner,
-          deal_value,
-          close_date,
+        dealValuesBatch.push([
+          dealId,
+          dealName,
+          businessName,
+          contactPerson,
+          contactPerson,
+          dealValue,
+          validCloseDate,
           tags,
-          website,
-          customer_number,
-          customer_email,
-          customer_address,
-          pipeline_id,
-          deal_stage,
-          deal_priority,
-          deal_status,
-          deal_notes,
-          deal_source,
-          assign_to,
-          creation_date,
-          last_updated
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+          normalize(row.website) || null,
+          normalize(row.customer_number) || null,
+          normalize(row.customer_email) || null,
+          normalize(row.customer_address) || null,
+          pipelineId,
+          stageId,
+          normalize(row.deal_priority) || "Medium",
+          normalize(row.deal_status) || "Open",
+          notes || null,
+          normalize(row.website) || null,
+          assignTo,
+          parsedCreatedDate,
+          parsedLastActivityDate,
+        ]);
 
-      const values = [
-        dealId,
-        dealName,
-        businessName,
-        contactPerson,
-        contactPerson,
-        dealValue,
-        validCloseDate,
-        tags,
-        normalize(row.website) || null,
-        normalize(row.customer_number) || null,
-        normalize(row.customer_email) || null,
-        normalize(row.customer_address) || null,
-        pipelineId,
-        stageId,
-        normalize(row.deal_priority) || "Medium",
-        normalize(row.deal_status) || "Open",
-        notes || null,
-        normalize(row.website) || null,
-        assignTo,
-        parsedCreatedDate,
-        parsedLastActivityDate,
-      ];
+        activityValuesBatch.push([
+          dealId,
+          'import',
+          'comment',
+          `Lead created by ${creatorName}`,
+          parsedCreatedDate
+        ]);
 
-      await connection.query(sql, values);
+        if (row.last_activity_time || row.modified_by) {
+          activityValuesBatch.push([
+            dealId,
+            'import',
+            'comment',
+            `Last activity / Modified by ${modifierName}`,
+            parsedLastActivityDate
+          ]);
+        }
 
-      // Log Lead Created activity in activity feed
-      try {
-        await connection.query(
-          `INSERT INTO activities (deal_id, user_id, activity_type, details, created_at)
-           VALUES (?, 'import', 'comment', ?, ?)`,
-          [dealId, `Lead created by ${creatorName}`, parsedCreatedDate]
-        );
-      } catch (actErr) {
-        console.warn("[ACTIVITY LOG CREATION ERR]", actErr.message);
+        if (notes) {
+          const commentId = uuidv4();
+          commentValuesBatch.push([
+            commentId,
+            dealId,
+            notes,
+            'import',
+            'Import System',
+            'system',
+            parsedCreatedDate
+          ]);
+        }
+
+        imported++;
       }
 
-      // Log Last Activity / Modified By if provided in CSV
-      if (row.last_activity_time || row.modified_by) {
+      if (dealValuesBatch.length > 0) {
+        await connection.query(
+          `INSERT INTO deals (
+            deal_id, deal_name, deal_organization, contact_person, deal_owner,
+            deal_value, close_date, tags, website, customer_number,
+            customer_email, customer_address, pipeline_id, deal_stage,
+            deal_priority, deal_status, deal_notes, deal_source, assign_to,
+            creation_date, last_updated
+          ) VALUES ?`,
+          [dealValuesBatch]
+        );
+      }
+
+      if (activityValuesBatch.length > 0) {
         try {
           await connection.query(
-            `INSERT INTO activities (deal_id, user_id, activity_type, details, created_at)
-             VALUES (?, 'import', 'comment', ?, ?)`,
-            [dealId, `Last activity / Modified by ${modifierName}`, parsedLastActivityDate]
+            `INSERT INTO activities (deal_id, user_id, activity_type, details, created_at) VALUES ?`,
+            [activityValuesBatch]
           );
-        } catch (actErr2) {
-          console.warn("[ACTIVITY LOG MODIFICATION ERR]", actErr2.message);
+        } catch (actErr) {
+          console.warn("[BATCH ACTIVITY LOG ERR]", actErr.message);
         }
       }
 
-      // If comments/notes exist in CSV, auto-insert into comments table
-      if (notes) {
+      if (commentValuesBatch.length > 0) {
         try {
-          const commentId = uuidv4();
           await connection.query(
-            `INSERT INTO comments (comment_id, deal_id, comment, user_id, user_name, user_role, created_at)
-             VALUES (?, ?, ?, 'import', 'Import System', 'system', ?)`,
-            [commentId, dealId, notes, parsedCreatedDate]
+            `INSERT INTO comments (comment_id, deal_id, comment, user_id, user_name, user_role, created_at) VALUES ?`,
+            [commentValuesBatch]
           );
         } catch (commErr) {
-          console.warn("[IMPORT COMMENT ERROR]", commErr.message);
+          console.warn("[BATCH COMMENT LOG ERR]", commErr.message);
         }
       }
-
-      imported++;
     }
 
     await connection.commit();
