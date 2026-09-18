@@ -27,13 +27,13 @@ const db = mysql.createPool(poolConfig);
         const connection = await db.getConnection();
         console.log(`[DB SUCCESS] Connected to MySQL Database: ${process.env.DB_NAME} (${process.env.DB_HOST})`);
 
-        // Ensure website column exists on deals table
+        // Ensure website and deal_source columns on deals table
         try {
             await connection.query(`ALTER TABLE deals ADD COLUMN website VARCHAR(255) NULL`);
-            console.log('[DB SCHEMA] Added website column to deals table');
-        } catch (alterErr) {
-            // Column may already exist, ignore error ER_DUP_FIELDNAME (1060)
-        }
+        } catch (alterErr) {}
+        try {
+            await connection.query(`ALTER TABLE deals MODIFY COLUMN deal_source VARCHAR(255) NULL`);
+        } catch (alterErr2) {}
 
         // Ensure notifications table exists
         try {

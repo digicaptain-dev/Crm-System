@@ -632,6 +632,7 @@ async function executeImportDeals(rows) {
         const customerAddress = normalize(row.customer_address) || null;
         const priority = normalize(row.deal_priority).substring(0, 50) || "Medium";
         const status = normalize(row.deal_status).substring(0, 50) || "Open";
+        const dealSource = normalize(row.deal_source || row.source).substring(0, 50) || "Import";
 
         const nowIso = formatMysqlDatetime(new Date());
         const parsedCreatedDate = formatMysqlDatetime(row.created_time) || nowIso;
@@ -657,7 +658,7 @@ async function executeImportDeals(rows) {
           priority,
           status,
           notes || null,
-          website,
+          dealSource,
           assignTo,
           parsedCreatedDate,
           parsedLastActivityDate,
