@@ -92,7 +92,9 @@ router.get('/pipelines', async (req, res) => {
 
         ORDER BY
             p.created_at DESC,
-            s.stage_order ASC
+            s.stage_order ASC,
+            d.creation_date DESC,
+            d.last_updated DESC
     `;
 
     try {
