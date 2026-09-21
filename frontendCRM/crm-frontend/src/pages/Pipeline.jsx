@@ -92,14 +92,35 @@ function Pipeline() {
     fetchPipelines();
   }, [fetchPipelines]);
 
+  const isEmployee = currentUser && currentUser.role !== "admin" && currentUser.role !== "coworker";
+  const currentUserId = currentUser?.user_id || currentUser?.id;
+
   /* =====================================================
      SELECTED PIPELINE
   ===================================================== */
   const selectedPipeline = useMemo(() => {
-    return pipelines.find(
+    const rawPipeline = pipelines.find(
       (pipeline) => String(pipeline.pipeline_id) === String(selectedPipelineId)
     ) || pipelines[0] || null;
-  }, [pipelines, selectedPipelineId]);
+
+    if (!rawPipeline) return null;
+
+    if (isEmployee && currentUserId) {
+      return {
+        ...rawPipeline,
+        stages: (rawPipeline.stages || [])
+          .filter((st) => !st.stage_name || !st.stage_name.toLowerCase().includes("pool"))
+          .map((st) => ({
+            ...st,
+            deals: (st.deals || []).filter(
+              (deal) => deal?.assign_to && String(deal.assign_to) === String(currentUserId)
+            ),
+          })),
+      };
+    }
+
+    return rawPipeline;
+  }, [pipelines, selectedPipelineId, isEmployee, currentUserId]);
 
   /* =====================================================
      PIPELINE DEALS & OWNERS

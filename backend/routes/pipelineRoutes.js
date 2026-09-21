@@ -148,14 +148,14 @@ router.get('/pipelines', async (req, res) => {
 
             if (stage && row.deal_id) {
                 const isPool = stage.stage_name && stage.stage_name.toLowerCase().includes('pool');
-                const isEmployee = requesterUser && requesterUser.role === 'user';
+                const isEmployee = requesterUser && requesterUser.role !== 'admin' && requesterUser.role !== 'coworker';
 
-                // If user is employee, Pool Drive deals are hidden and non-pool only show assigned
+                // If user is employee / non-admin, hide pool stage deals and ONLY show deals assigned to them
                 if (isEmployee) {
                     if (isPool) {
                         return;
                     }
-                    if (row.assign_to && String(row.assign_to) !== String(requesterUser.user_id)) {
+                    if (!row.assign_to || String(row.assign_to) !== String(requesterUser.user_id)) {
                         return;
                     }
                 }
