@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getCountryBadge } from "../../utils/countryHelper";
 import "../../styles/pipeline/pipeline-deal-card.css";
 
 function PipelineDealCard({
@@ -91,7 +92,9 @@ function PipelineDealCard({
       })
     : null;
 
-  const ownerName = deal?.deal_owner || deal?.assigned_user_name || "";
+  const country = getCountryBadge(deal);
+  const companyName = deal?.deal_organization || deal?.deal_name || "Untitled Company";
+  const contactName = deal?.contact_person || deal?.deal_owner || "";
 
   return (
     <div
@@ -104,6 +107,12 @@ function PipelineDealCard({
       {/* Top Badges & Quick Move Button */}
       <div className="deal-card-badges">
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+          {/* Country Badge */}
+          <span className="deal-country-badge" title={`Country: ${country.label}`}>
+            <span>{country.flag}</span>
+            <span>{country.label}</span>
+          </span>
+
           <span className={`deal-priority-pill priority-${priorityClass}`}>
             {priority}
           </span>
@@ -180,19 +189,19 @@ function PipelineDealCard({
         )}
       </div>
 
-      {/* Title */}
-      <h4 className="deal-card-title" title={deal?.deal_name || "Untitled Deal"}>
-        {deal?.deal_name || "Untitled Deal"}
+      {/* Company Title (Bold) */}
+      <h4 className="deal-card-title" title={companyName}>
+        {companyName}
       </h4>
 
-      {/* Owner / Contact */}
-      {ownerName && (
-        <div className="deal-card-org">
+      {/* Contact Person */}
+      {contactName && (
+        <div className="deal-card-org" title={`Contact: ${contactName}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span>{ownerName}</span>
+          <span>{contactName}</span>
         </div>
       )}
 

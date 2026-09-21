@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getCountryBadge } from "../../utils/countryHelper";
 import "../../styles/deals/deal-card.css";
 
 function DealCard({ deal, onClick }) {
@@ -20,14 +21,10 @@ function DealCard({ deal, onClick }) {
   const status = deal?.deal_status || "Open";
   const statusClass = status.toLowerCase().replace(/\s+/g, "-");
 
-  const title = deal?.deal_name || deal?.deal_organization || "Untitled Deal";
-  const organization =
-    deal?.deal_organization && deal?.deal_organization !== deal?.deal_name
-      ? deal.deal_organization
-      : null;
-
+  const country = getCountryBadge(deal);
+  const companyTitle = deal?.deal_organization || deal?.deal_name || "Untitled Company";
   const contactPerson = deal?.contact_person || deal?.deal_owner || null;
-  const initial = (title || "D").charAt(0).toUpperCase();
+  const initial = (companyTitle || "C").charAt(0).toUpperCase();
 
   const formattedCloseDate = deal?.close_date
     ? new Date(deal.close_date).toLocaleDateString("en-US", {
@@ -57,18 +54,22 @@ function DealCard({ deal, onClick }) {
         <div className="deal-grid-profile">
           <div className="deal-grid-avatar">{initial}</div>
           <div className="deal-grid-headings">
-            <h3 className="deal-grid-title" title={title}>
-              {title}
+            <h3 className="deal-grid-title" title={companyTitle}>
+              {companyTitle}
             </h3>
-            {organization && (
-              <span className="deal-grid-suborg" title={organization}>
-                {organization}
+            {contactPerson && (
+              <span className="deal-grid-suborg" title={`Contact: ${contactPerson}`}>
+                👤 {contactPerson}
               </span>
             )}
           </div>
         </div>
 
         <div className="deal-grid-badges">
+          <span className="deal-country-badge" title={`Country: ${country.label}`}>
+            <span>{country.flag}</span>
+            <span>{country.label}</span>
+          </span>
           <span className={`deal-priority-tag priority-${priorityClass}`}>
             {priority}
           </span>
