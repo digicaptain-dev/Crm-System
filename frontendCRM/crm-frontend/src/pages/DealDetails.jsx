@@ -724,55 +724,6 @@ function DealDetails() {
             </div>
           </div>
         )}
-
-        {/* =================================================
-            INTERACTIVE STAGE PROGRESSION STEPPER
-        ================================================= */}
-        {stages.length > 0 && (
-          <div className="deal-stage-stepper-wrapper">
-            <div className="stepper-track">
-              {stages.map((st, idx) => {
-                const isPassed = idx < currentStageIndex;
-                const isCurrent = idx === currentStageIndex;
-                const theme = STAGE_THEMES[idx % STAGE_THEMES.length];
-
-                return (
-                  <div
-                    key={st.stage_id}
-                    className={`stepper-step ${isPassed ? "step-passed" : ""} ${isCurrent ? "step-current" : ""}`}
-                    onClick={() => promptStageChange(st.stage_id)}
-                    title={`Click to set stage to: ${st.stage_name}`}
-                  >
-                    <div
-                      className="step-indicator"
-                      style={
-                        isCurrent
-                          ? { backgroundColor: theme.accent, borderColor: theme.accent }
-                          : isPassed
-                          ? { backgroundColor: "#10b981", borderColor: "#10b981" }
-                          : {}
-                      }
-                    >
-                      {isPassed ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <span>{idx + 1}</span>
-                      )}
-                    </div>
-                    <span
-                      className="step-label"
-                      style={isCurrent ? { color: theme.accent, fontWeight: 700 } : {}}
-                    >
-                      {st.stage_name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* =================================================
@@ -1116,18 +1067,9 @@ function DealDetails() {
 
               <div className="detail-row">
                 <span className="detail-key">Current Stage</span>
-                <select
-                  className="inline-stage-select"
-                  value={deal.deal_stage || ""}
-                  onChange={(e) => promptStageChange(e.target.value)}
-                  disabled={activitySubmitting}
-                >
-                  {stages.map((st) => (
-                    <option key={st.stage_id} value={st.stage_id}>
-                      {st.stage_name}
-                    </option>
-                  ))}
-                </select>
+                <span className="detail-val-pill" style={{ fontWeight: 600, color: "#1d4ed8", background: "#eff6ff" }}>
+                  {stages.find((s) => String(s.stage_id) === String(deal.deal_stage))?.stage_name || deal.stage_name || "New Lead"}
+                </span>
               </div>
 
               {deal.deal_source && (
