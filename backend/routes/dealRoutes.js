@@ -253,6 +253,44 @@ router.get("/deals/dashboard-stats", authenticateToken, async (req, res) => {
 });
 
 /* =====================================================
+   AUTO FORMAT UNSPACED COMPANY NAMES (ADMIN ROUTE)
+   ===================================================== */
+
+router.post("/deals/format-company-names", authenticateToken, async (req, res) => {
+    try {
+        const { formatCompanyName } = require("../utils/companyNameFormatter");
+        const [rowsToFormat] = await db.query(
+            `SELECT deal_id, deal_organization, contact_person FROM deals 
+             WHERE deal_organization IS NOT NULL 
+               AND TRIM(deal_organization) != '' 
+               AND deal_organization NOT LIKE '% %'`
+        );
+
+        let updatedCount = 0;
+        for (const r of rowsToFormat) {
+            const formatted = formatCompanyName(r.deal_organization, r.contact_person);
+            if (formatted && formatted !== r.deal_organization) {
+                await db.query(
+                    `UPDATE deals SET deal_organization = ? WHERE deal_id = ?`,
+                    [formatted, r.deal_id]
+                );
+                updatedCount++;
+            }
+        }
+
+        return res.json({
+            success: true,
+            message: `Successfully formatted ${updatedCount} company names.`,
+            updated: updatedCount,
+            totalChecked: rowsToFormat.length
+        });
+    } catch (err) {
+        console.error("Clean company names error:", err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/* =====================================================
    GET SINGLE DEAL
    ===================================================== */
 

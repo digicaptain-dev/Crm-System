@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const db = require("../db");
 const fs = require("fs");
 const path = require("path");
+const { formatCompanyName } = require("../utils/companyNameFormatter");
 
 // ======================================================
 // MULTER SETUP
@@ -189,10 +190,13 @@ const convertExcelRow = (row, excelRowNumber) => {
   if (notes) noteParts.push(`Notes: ${notes}`);
   const combinedNotes = noteParts.join("\n\n") || null;
 
+  const rawCompany = companyName || dealName || contactName || "General";
+  const formattedCompany = formatCompanyName(rawCompany, contactName);
+
   const deal = {
     excel_row: excelRowNumber,
     deal_name: dealName,
-    deal_organization: companyName || dealName || contactName || "General",
+    deal_organization: formattedCompany,
     contact_person: contactName || "Unknown",
     deal_owner: contactName || "Unknown",
     deal_value: dealValue,
@@ -600,8 +604,10 @@ async function executeImportDeals(rows) {
       const commentValuesBatch = [];
 
       for (const row of batchRows) {
-        const businessName = normalize(row.deal_organization || row.deal_name).substring(0, 255);
-        if (!businessName) continue;
+        const contactPerson = normalize(row.contact_person || row.deal_owner).substring(0, 255) || "Unknown";
+        const rawBusiness = normalize(row.deal_organization || row.deal_name).substring(0, 255);
+        if (!rawBusiness) continue;
+        const businessName = formatCompanyName(rawBusiness, contactPerson);
 
         const dealId = uuidv4();
         const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId || null;
@@ -610,7 +616,6 @@ async function executeImportDeals(rows) {
         const notes = normalize(row.deal_notes);
 
         const dealName = normalize(row.deal_name).substring(0, 255) || businessName;
-        const contactPerson = normalize(row.contact_person || row.deal_owner).substring(0, 255) || "Unknown";
         
         let dealValue = null;
         if (row.deal_value !== undefined && row.deal_value !== null && row.deal_value !== "") {

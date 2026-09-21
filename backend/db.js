@@ -67,6 +67,33 @@ const db = mysql.createPool(poolConfig);
             // ignore if already done
         }
 
+        // Auto-clean unspaced company names for existing deals
+        try {
+            const { formatCompanyName } = require('./utils/companyNameFormatter');
+            const [rowsToFormat] = await connection.query(
+                `SELECT deal_id, deal_organization, contact_person FROM deals 
+                 WHERE deal_organization IS NOT NULL 
+                   AND TRIM(deal_organization) != '' 
+                   AND deal_organization NOT LIKE '% %'`
+            );
+
+            if (rowsToFormat.length > 0) {
+                console.log(`[DB MIGRATION] Formatting ${rowsToFormat.length} unspaced company names...`);
+                for (const r of rowsToFormat) {
+                    const formatted = formatCompanyName(r.deal_organization, r.contact_person);
+                    if (formatted && formatted !== r.deal_organization) {
+                        await connection.query(
+                            `UPDATE deals SET deal_organization = ? WHERE deal_id = ?`,
+                            [formatted, r.deal_id]
+                        );
+                    }
+                }
+                console.log(`[DB MIGRATION] Finished formatting company names.`);
+            }
+        } catch (formatErr) {
+            console.warn('[DB MIGRATION WARN] Company name format error:', formatErr.message);
+        }
+
         connection.release();
     } catch (err) {
         console.error('[DB FATAL ERROR] Unable to establish MySQL connection:', err.message);
