@@ -510,21 +510,98 @@ async function processUploadedFile(filePath) {
     console.warn("Default pipeline lookup err:", dbErr.message);
   }
 
+  // Pre-fetch existing deals for instant O(1) duplicate & new lead detection
+  const existingPhones = new Set();
+  const existingEmails = new Set();
+  const existingWebsites = new Set();
+  const existingCompanies = new Set();
+
+  try {
+    const [existingDeals] = await db.query(
+      `SELECT customer_number, customer_email, website, deal_organization, deal_name FROM deals`
+    );
+    for (const d of existingDeals) {
+      if (d.customer_number) {
+        const cleanP = String(d.customer_number).replace(/[^0-9]/g, "");
+        if (cleanP.length >= 7) existingPhones.add(cleanP);
+      }
+      if (d.customer_email && d.customer_email.includes("@")) {
+        existingEmails.add(d.customer_email.trim().toLowerCase());
+      }
+      if (d.website) {
+        const cleanW = d.website.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+        if (cleanW.length >= 4) existingWebsites.add(cleanW);
+      }
+      const comp = (d.deal_organization || d.deal_name || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (comp.length >= 4) existingCompanies.add(comp);
+    }
+  } catch (existErr) {
+    console.warn("Existing deals lookup error for preview:", existErr.message);
+  }
+
+  const seenPhonesInFile = new Set();
+  const seenEmailsInFile = new Set();
+  const seenWebsitesInFile = new Set();
+
   const validatedRows = [];
 
   for (let index = 0; index < rawRows.length; index++) {
     const deal = convertExcelRow(rawRows[index], index + 2);
     const validated = await validateDeal(deal, defaultPipeline, defaultStage);
+
+    let isExisting = false;
+    let existingReason = "";
+
+    const rawP = String(validated.customer_number || "").replace(/[^0-9]/g, "");
+    const rawE = String(validated.customer_email || "").trim().toLowerCase();
+    const rawW = String(validated.website || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+    const rawC = String(validated.deal_organization || validated.deal_name || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    if (rawP.length >= 7 && existingPhones.has(rawP)) {
+      isExisting = true;
+      existingReason = `Phone number matches lead already in CRM (${validated.customer_number})`;
+    } else if (rawE && rawE.includes("@") && existingEmails.has(rawE)) {
+      isExisting = true;
+      existingReason = `Email matches lead already in CRM (${validated.customer_email})`;
+    } else if (rawW.length >= 4 && existingWebsites.has(rawW)) {
+      isExisting = true;
+      existingReason = `Website matches lead already in CRM (${rawW})`;
+    } else if (rawC.length >= 4 && existingCompanies.has(rawC)) {
+      isExisting = true;
+      existingReason = `Company name matches lead already in CRM (${validated.deal_organization || validated.deal_name})`;
+    } else if (rawP.length >= 7 && seenPhonesInFile.has(rawP)) {
+      isExisting = true;
+      existingReason = `Duplicate phone number inside this file (${validated.customer_number})`;
+    } else if (rawE && rawE.includes("@") && seenEmailsInFile.has(rawE)) {
+      isExisting = true;
+      existingReason = `Duplicate email inside this file (${validated.customer_email})`;
+    } else if (rawW.length >= 4 && seenWebsitesInFile.has(rawW)) {
+      isExisting = true;
+      existingReason = `Duplicate website inside this file (${rawW})`;
+    }
+
+    if (rawP.length >= 7) seenPhonesInFile.add(rawP);
+    if (rawE && rawE.includes("@")) seenEmailsInFile.add(rawE);
+    if (rawW.length >= 4) seenWebsitesInFile.add(rawW);
+
+    validated.is_existing = isExisting;
+    validated.is_new = !isExisting && validated.valid;
+    validated.existing_reason = existingReason;
+
     validatedRows.push(validated);
   }
 
   const validCount = validatedRows.filter((r) => r.valid).length;
   const invalidCount = validatedRows.filter((r) => !r.valid).length;
+  const newCount = validatedRows.filter((r) => r.valid && !r.is_existing).length;
+  const existingCount = validatedRows.filter((r) => r.valid && r.is_existing).length;
 
   return {
     total: validatedRows.length,
     valid: validCount,
     invalid: invalidCount,
+    new_count: newCount,
+    existing_count: existingCount,
     rows: validatedRows,
   };
 }
