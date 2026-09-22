@@ -1,8 +1,14 @@
 import "../../styles/common/modal.css";
 
-function Modal({ title, children, onClose }) {
+function Modal({ title, children, onClose, closeOnBackdrop = false }) {
+  const handleOverlayClick = (e) => {
+    if (closeOnBackdrop && e.target === e.currentTarget) {
+      onClose?.();
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleOverlayClick}>
       <div
         className="modal"
         onClick={(e) => e.stopPropagation()}
@@ -11,6 +17,7 @@ function Modal({ title, children, onClose }) {
           <h2>{title}</h2>
 
           <button
+            type="button"
             className="modal-close"
             onClick={onClose}
           >
