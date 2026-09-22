@@ -1097,7 +1097,14 @@ function DealDetails() {
               <div className="detail-row">
                 <span className="detail-key">Created By</span>
                 <span className="detail-val-text" style={{ fontWeight: 600, color: "#334155" }}>
-                  {deal.created_by || deal.owner_name || deal.deal_owner || "System / Admin"}
+                  {(() => {
+                    const raw = deal.created_by || deal.owner_name || deal.deal_owner || "Admin Account";
+                    if (raw.includes("@")) {
+                      const local = raw.split("@")[0].replace(/[._-]/g, " ");
+                      return local.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+                    }
+                    return raw;
+                  })()}
                 </span>
               </div>
 

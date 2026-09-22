@@ -380,6 +380,28 @@ router.get('/deal/:id', authenticateToken, async (req, res) => {
             }
         }
 
+        // If created_by is an email or user_id, resolve to actual User Name
+        if (dealRecord.created_by) {
+            try {
+                const rawVal = dealRecord.created_by.trim();
+                if (rawVal.includes("@") || rawVal.length >= 20) {
+                    const [uRows] = await db.query(
+                        `SELECT name FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) OR user_id = ? LIMIT 1`,
+                        [rawVal, rawVal]
+                    );
+                    if (uRows.length > 0 && uRows[0].name) {
+                        dealRecord.created_by = uRows[0].name;
+                    } else if (rawVal.includes("@")) {
+                        // Fallback clean display if not in users table
+                        const localPart = rawVal.split("@")[0].replace(/[._-]/g, " ");
+                        dealRecord.created_by = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+                    }
+                }
+            } catch (uErr) {
+                console.warn("User lookup for created_by failed:", uErr.message);
+            }
+        }
+
         return res.status(200).json({
             success: true,
             deal: dealRecord

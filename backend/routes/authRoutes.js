@@ -135,6 +135,7 @@ router.post('/login', [
         const token = jwt.sign(
             {
                 user_id: user.user_id,
+                name: user.name,
                 email: user.email,
                 role: user.role
             },
