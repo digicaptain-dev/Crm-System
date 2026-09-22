@@ -1094,6 +1094,13 @@ function DealDetails() {
                 </div>
               )}
 
+              <div className="detail-row">
+                <span className="detail-key">Created By</span>
+                <span className="detail-val-text" style={{ fontWeight: 600, color: "#334155" }}>
+                  {deal.created_by || deal.owner_name || deal.deal_owner || "System / Admin"}
+                </span>
+              </div>
+
               {deal.last_updated && (
                 <div className="detail-row">
                   <span className="detail-key">Last Activity</span>

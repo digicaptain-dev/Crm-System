@@ -27,13 +27,16 @@ const db = mysql.createPool(poolConfig);
         const connection = await db.getConnection();
         console.log(`[DB SUCCESS] Connected to MySQL Database: ${process.env.DB_NAME} (${process.env.DB_HOST})`);
 
-        // Ensure website and deal_source columns on deals table
+        // Ensure website, deal_source, and created_by columns on deals table
         try {
             await connection.query(`ALTER TABLE deals ADD COLUMN website VARCHAR(255) NULL`);
         } catch (alterErr) {}
         try {
             await connection.query(`ALTER TABLE deals MODIFY COLUMN deal_source VARCHAR(255) NULL`);
         } catch (alterErr2) {}
+        try {
+            await connection.query(`ALTER TABLE deals ADD COLUMN created_by VARCHAR(255) NULL`);
+        } catch (alterErr3) {}
 
         // Ensure notifications table exists
         try {

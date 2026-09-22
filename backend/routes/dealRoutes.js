@@ -361,9 +361,28 @@ router.get('/deal/:id', authenticateToken, async (req, res) => {
             });
         }
 
+        const dealRecord = results[0];
+
+        // Resolve creator name from deal field or activities history
+        if (!dealRecord.created_by) {
+            try {
+                const [actRows] = await db.query(
+                    `SELECT details, user_id FROM activities WHERE deal_id = ? AND details LIKE 'Lead created by%' ORDER BY created_at ASC LIMIT 1`,
+                    [id]
+                );
+                if (actRows.length > 0 && actRows[0].details) {
+                    dealRecord.created_by = actRows[0].details.replace(/^Lead created by\s+/i, "").trim();
+                } else {
+                    dealRecord.created_by = dealRecord.owner_name || dealRecord.deal_owner || "Admin";
+                }
+            } catch (e) {
+                dealRecord.created_by = dealRecord.owner_name || dealRecord.deal_owner || "Admin";
+            }
+        }
+
         return res.status(200).json({
             success: true,
-            deal: results[0]
+            deal: dealRecord
         });
 
     } catch (error) {
@@ -418,6 +437,7 @@ router.post("/deal", authenticateToken, async (req, res) => {
          */
         const newDeal = {
             deal_id: uuid.v4(),
+            created_by: req.user.name || req.user.email || "Admin",
             ...req.body
         };
 
@@ -583,7 +603,8 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             "time_zone",
             "customer_number",
             "customer_address",
-            "website"
+            "website",
+            "created_by"
         ];
 
         /*

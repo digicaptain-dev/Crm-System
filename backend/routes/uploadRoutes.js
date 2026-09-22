@@ -667,6 +667,7 @@ async function executeImportDeals(rows) {
           assignTo,
           parsedCreatedDate,
           parsedLastActivityDate,
+          creatorName,
         ]);
 
         activityValuesBatch.push([
@@ -710,7 +711,7 @@ async function executeImportDeals(rows) {
             deal_value, close_date, tags, website, customer_number,
             customer_email, customer_address, pipeline_id, deal_stage,
             deal_priority, deal_status, deal_notes, deal_source, assign_to,
-            creation_date, last_updated
+            creation_date, last_updated, created_by
           ) VALUES ?`,
           [dealValuesBatch]
         );
