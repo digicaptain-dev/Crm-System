@@ -58,7 +58,14 @@ const getCell = (row, possibleNames) => {
   return "";
 };
 
-// ======================================================
+const splitMultiValues = (rawStr) => {
+  if (!rawStr) return [];
+  return String(rawStr)
+    .split(/[,;\n|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
 // ======================================================
 // CONVERT EXCEL / CSV ROW
 // ======================================================
@@ -195,6 +202,86 @@ const convertExcelRow = (row, excelRowNumber) => {
   const rawCompany = companyName || "";
   const formattedCompany = rawCompany ? formatCompanyName(rawCompany, contactName) : "";
 
+  // 1. Phone parsing & splitting
+  const rawPhoneStr = normalize(
+    getCell(row, [
+      "Phone Number", "Contact Phone", "Company Phone", "PhoneNumber", "Phone",
+      "Customer Number", "Number", "Mobile", "Contact Number", "Cell Phone",
+    ])
+  );
+  const rawPhones = splitMultiValues(rawPhoneStr);
+  const primaryPhone = rawPhones[0] || "";
+  const extraPhones = rawPhones.slice(1);
+
+  const altPhoneCell = getCell(row, ["Alternate Phone", "Alt Phone", "Phone 2", "Mobile 2", "Secondary Phone", "Phone_2"]);
+  if (altPhoneCell) {
+    splitMultiValues(altPhoneCell).forEach((p) => {
+      if (p && !rawPhones.includes(p) && !extraPhones.includes(p)) extraPhones.push(p);
+    });
+  }
+
+  // 2. Email parsing & splitting
+  const rawEmailStr = normalize(
+    getCell(row, [
+      "Email Address", "Contact Email", "Company Email", "EmailAddress",
+      "Customer Email", "Email", "Email ID", "Mail",
+    ])
+  );
+  const rawEmails = splitMultiValues(rawEmailStr);
+  const primaryEmail = rawEmails[0] || "";
+  const extraEmails = rawEmails.slice(1);
+
+  const altEmailCell = getCell(row, ["Secondary Email", "Alternate Email", "Alt Email", "Email 2", "Email_2"]);
+  if (altEmailCell) {
+    splitMultiValues(altEmailCell).forEach((e) => {
+      if (e && !rawEmails.includes(e) && !extraEmails.includes(e)) extraEmails.push(e);
+    });
+  }
+
+  // 3. Website parsing & splitting
+  const rawWebStr = normalize(
+    getCell(row, [
+      "Website", "Company Website", "Contact Website", "Site", "Web", "URL", "Business Website",
+    ])
+  );
+  const rawWebsites = splitMultiValues(rawWebStr);
+  const primaryWebsite = rawWebsites[0] || "";
+  const extraWebsites = rawWebsites.slice(1);
+
+  const altWebCell = getCell(row, ["Secondary Website", "Alternate Website", "Alt Website", "Website 2", "Website_2"]);
+  if (altWebCell) {
+    splitMultiValues(altWebCell).forEach((w) => {
+      if (w && !rawWebsites.includes(w) && !extraWebsites.includes(w)) extraWebsites.push(w);
+    });
+  }
+
+  // 4. Construct associated_contacts array
+  const associatedContacts = [];
+  extraPhones.forEach((p, idx) => {
+    associatedContacts.push({
+      id: `phone-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+      type: "phone",
+      label: extraPhones.length > 1 ? `Alternate Phone ${idx + 1}` : "Alternate Phone",
+      value: p,
+    });
+  });
+  extraEmails.forEach((e, idx) => {
+    associatedContacts.push({
+      id: `email-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+      type: "email",
+      label: extraEmails.length > 1 ? `Secondary Email ${idx + 1}` : "Secondary Email",
+      value: e,
+    });
+  });
+  extraWebsites.forEach((w, idx) => {
+    associatedContacts.push({
+      id: `website-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+      type: "website",
+      label: extraWebsites.length > 1 ? `Alternate Website ${idx + 1}` : "Alternate Website",
+      value: w,
+    });
+  });
+
   const deal = {
     excel_row: excelRowNumber,
     deal_name: dealName,
@@ -204,43 +291,10 @@ const convertExcelRow = (row, excelRowNumber) => {
     deal_value: dealValue,
     close_date: rawCloseDate || null,
     tags: normalize(getCell(row, ["Tag", "Tags", "Label", "Category"])) || null,
-    website: normalize(
-      getCell(row, [
-        "Website",
-        "Company Website",
-        "Contact Website",
-        "Site",
-        "Web",
-        "URL",
-        "Business Website",
-      ])
-    ),
-    customer_number: normalize(
-      getCell(row, [
-        "Phone Number",
-        "Contact Phone",
-        "Company Phone",
-        "PhoneNumber",
-        "Phone",
-        "Customer Number",
-        "Number",
-        "Mobile",
-        "Contact Number",
-        "Cell Phone",
-      ])
-    ),
-    customer_email: normalize(
-      getCell(row, [
-        "Email Address",
-        "Contact Email",
-        "Company Email",
-        "EmailAddress",
-        "Customer Email",
-        "Email",
-        "Email ID",
-        "Mail",
-      ])
-    ),
+    website: primaryWebsite || null,
+    customer_number: primaryPhone || null,
+    customer_email: primaryEmail || null,
+    associated_contacts: associatedContacts.length > 0 ? JSON.stringify(associatedContacts) : null,
     customer_address: finalAddress,
     pipeline: normalize(
       getCell(row, ["Pipeline", "Pipeline Name"])
@@ -710,9 +764,63 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
           }
         }
         const tags = normalize(row.tags).substring(0, 255) || null;
-        const website = normalize(row.website).substring(0, 255) || null;
-        const customerNumber = normalize(row.customer_number).substring(0, 100) || null;
-        const customerEmail = normalize(row.customer_email).substring(0, 255) || null;
+
+        // Parse or build associated_contacts
+        let associatedContactsList = [];
+        if (row.associated_contacts) {
+          try {
+            const parsed = typeof row.associated_contacts === "string" ? JSON.parse(row.associated_contacts) : row.associated_contacts;
+            if (Array.isArray(parsed)) associatedContactsList = parsed;
+          } catch {}
+        }
+
+        let finalCustomerNumber = normalize(row.customer_number);
+        if (finalCustomerNumber && (finalCustomerNumber.includes(",") || finalCustomerNumber.includes(";"))) {
+          const parts = splitMultiValues(finalCustomerNumber);
+          finalCustomerNumber = parts[0] || "";
+          parts.slice(1).forEach((p, idx) => {
+            associatedContactsList.push({
+              id: `phone-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+              type: "phone",
+              label: parts.length > 2 ? `Alternate Phone ${idx + 1}` : "Alternate Phone",
+              value: p,
+            });
+          });
+        }
+        finalCustomerNumber = finalCustomerNumber.substring(0, 100) || null;
+
+        let finalCustomerEmail = normalize(row.customer_email);
+        if (finalCustomerEmail && (finalCustomerEmail.includes(",") || finalCustomerEmail.includes(";"))) {
+          const parts = splitMultiValues(finalCustomerEmail);
+          finalCustomerEmail = parts[0] || "";
+          parts.slice(1).forEach((e, idx) => {
+            associatedContactsList.push({
+              id: `email-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+              type: "email",
+              label: parts.length > 2 ? `Secondary Email ${idx + 1}` : "Secondary Email",
+              value: e,
+            });
+          });
+        }
+        finalCustomerEmail = finalCustomerEmail.substring(0, 255) || null;
+
+        let finalWebsite = normalize(row.website);
+        if (finalWebsite && (finalWebsite.includes(",") || finalWebsite.includes(";"))) {
+          const parts = splitMultiValues(finalWebsite);
+          finalWebsite = parts[0] || "";
+          parts.slice(1).forEach((w, idx) => {
+            associatedContactsList.push({
+              id: `website-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+              type: "website",
+              label: parts.length > 2 ? `Alternate Website ${idx + 1}` : "Alternate Website",
+              value: w,
+            });
+          });
+        }
+        finalWebsite = finalWebsite.substring(0, 255) || null;
+
+        const associatedContactsJson = associatedContactsList.length > 0 ? JSON.stringify(associatedContactsList) : null;
+
         const customerAddress = normalize(row.customer_address) || null;
         const priority = normalize(row.deal_priority).substring(0, 50) || "Medium";
         const status = normalize(row.deal_status).substring(0, 50) || "Open";
@@ -733,9 +841,9 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
           dealValue,
           validCloseDate,
           tags,
-          website,
-          customerNumber,
-          customerEmail,
+          finalWebsite,
+          finalCustomerNumber,
+          finalCustomerEmail,
           customerAddress,
           pipelineId,
           stageId,
@@ -747,6 +855,7 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
           parsedCreatedDate,
           parsedLastActivityDate,
           creatorName,
+          associatedContactsJson,
         ]);
 
         activityValuesBatch.push([
@@ -790,7 +899,7 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
             deal_value, close_date, tags, website, customer_number,
             customer_email, customer_address, pipeline_id, deal_stage,
             deal_priority, deal_status, deal_notes, deal_source, assign_to,
-            creation_date, last_updated, created_by
+            creation_date, last_updated, created_by, associated_contacts
           ) VALUES ?`,
           [dealValuesBatch]
         );

@@ -463,6 +463,57 @@ router.post("/deal", authenticateToken, async (req, res) => {
             ...req.body
         };
 
+        let associatedContactsList = [];
+        if (newDeal.associated_contacts) {
+            try {
+                const parsed = typeof newDeal.associated_contacts === "string" ? JSON.parse(newDeal.associated_contacts) : newDeal.associated_contacts;
+                if (Array.isArray(parsed)) associatedContactsList = parsed;
+            } catch {}
+        }
+
+        if (newDeal.customer_number && typeof newDeal.customer_number === "string" && (newDeal.customer_number.includes(",") || newDeal.customer_number.includes(";"))) {
+            const parts = newDeal.customer_number.split(/[,;\n|]+/).map(s => s.trim()).filter(Boolean);
+            newDeal.customer_number = parts[0] || "";
+            parts.slice(1).forEach((p, idx) => {
+                associatedContactsList.push({
+                    id: `phone-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                    type: "phone",
+                    label: parts.length > 2 ? `Alternate Phone ${idx + 1}` : "Alternate Phone",
+                    value: p
+                });
+            });
+        }
+
+        if (newDeal.customer_email && typeof newDeal.customer_email === "string" && (newDeal.customer_email.includes(",") || newDeal.customer_email.includes(";"))) {
+            const parts = newDeal.customer_email.split(/[,;\n|]+/).map(s => s.trim()).filter(Boolean);
+            newDeal.customer_email = parts[0] || "";
+            parts.slice(1).forEach((e, idx) => {
+                associatedContactsList.push({
+                    id: `email-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                    type: "email",
+                    label: parts.length > 2 ? `Secondary Email ${idx + 1}` : "Secondary Email",
+                    value: e
+                });
+            });
+        }
+
+        if (newDeal.website && typeof newDeal.website === "string" && (newDeal.website.includes(",") || newDeal.website.includes(";"))) {
+            const parts = newDeal.website.split(/[,;\n|]+/).map(s => s.trim()).filter(Boolean);
+            newDeal.website = parts[0] || "";
+            parts.slice(1).forEach((w, idx) => {
+                associatedContactsList.push({
+                    id: `website-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                    type: "website",
+                    label: parts.length > 2 ? `Alternate Website ${idx + 1}` : "Alternate Website",
+                    value: w
+                });
+            });
+        }
+
+        if (associatedContactsList.length > 0) {
+            newDeal.associated_contacts = JSON.stringify(associatedContactsList);
+        }
+
         /*
          * Non-admin users automatically
          * become responsible for their own deal.

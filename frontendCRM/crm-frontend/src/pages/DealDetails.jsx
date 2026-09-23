@@ -117,12 +117,23 @@ function DealDetails() {
     }
   };
 
+  const getCleanContactList = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+    return String(val).split(/[,;\n|]+/).map(s => s.trim()).filter(Boolean);
+  };
+
   const handleOpenAddInfo = (type = "phone") => {
     setAddInfoType(type);
-    if (type === "phone") setAddInfoLabel("Alternate Phone");
-    else if (type === "email") setAddInfoLabel("Secondary Email");
-    else if (type === "website") setAddInfoLabel("Website");
-    else setAddInfoLabel("Other Info");
+    if (type === "phone") {
+      setAddInfoLabel(deal?.customer_number ? "Alternate Phone" : "Phone Number");
+    } else if (type === "email") {
+      setAddInfoLabel(deal?.customer_email ? "Secondary Email" : "Email Address");
+    } else if (type === "website") {
+      setAddInfoLabel((deal?.website || deal?.deal_source) ? "Alternate Website" : "Website");
+    } else {
+      setAddInfoLabel("Other Info");
+    }
     setAddInfoValue("");
     setShowAddInfoForm(true);
   };
@@ -135,7 +146,8 @@ function DealDetails() {
       setSavingAddInfo(true);
       const val = addInfoValue.trim();
 
-      if (addInfoType === "website") {
+      // 1. If adding Website and deal has NO website, save as primary website
+      if (addInfoType === "website" && !deal?.website && !deal?.deal_source) {
         await api.put(`/deal/${id}`, {
           website: val,
         });
@@ -150,11 +162,53 @@ function DealDetails() {
         return;
       }
 
+      // 2. If adding Phone and deal has NO customer_number, save as primary phone
+      if (addInfoType === "phone" && !deal?.customer_number) {
+        await api.put(`/deal/${id}`, {
+          customer_number: val,
+        });
+        setDeal((prev) => ({
+          ...prev,
+          customer_number: val,
+        }));
+        setShowAddInfoForm(false);
+        setAddInfoValue("");
+        setAddInfoLabel("");
+        fetchActivities();
+        return;
+      }
+
+      // 3. If adding Email and deal has NO customer_email, save as primary email
+      if (addInfoType === "email" && !deal?.customer_email) {
+        await api.put(`/deal/${id}`, {
+          customer_email: val,
+        });
+        setDeal((prev) => ({
+          ...prev,
+          customer_email: val,
+        }));
+        setShowAddInfoForm(false);
+        setAddInfoValue("");
+        setAddInfoLabel("");
+        fetchActivities();
+        return;
+      }
+
+      // 4. Otherwise (if primary already exists or type is other/secondary), add to associated_contacts
       const currentList = getAssociatedContactsList();
+      const defaultLabel =
+        addInfoType === "phone"
+          ? "Alternate Phone"
+          : addInfoType === "email"
+          ? "Secondary Email"
+          : addInfoType === "website"
+          ? "Alternate Website"
+          : "Other Info";
+
       const newItem = {
         id: Date.now().toString(),
         type: addInfoType,
-        label: addInfoLabel.trim() || (addInfoType === "phone" ? "Alternate Phone" : addInfoType === "email" ? "Secondary Email" : "Other Info"),
+        label: addInfoLabel.trim() || defaultLabel,
         value: val,
       };
       const updatedList = [...currentList, newItem];
@@ -845,13 +899,13 @@ function DealDetails() {
                 </div>
               </div>
 
-              {/* WEBSITE */}
-              {(deal.website || (deal.deal_source && (deal.deal_source.includes(".") || deal.deal_source.startsWith("http")))) && (
-                <div className="contact-field-group">
-                  <span className="contact-field-label">Website</span>
+              {/* WEBSITES (Primary & Split) */}
+              {getCleanContactList(deal.website || (deal.deal_source && (deal.deal_source.includes(".") || deal.deal_source.startsWith("http")) ? deal.deal_source : "")).map((site, sIdx) => (
+                <div key={`site-primary-${sIdx}`} className="contact-field-group">
+                  <span className="contact-field-label">{sIdx === 0 ? "Website" : `Alternate Website ${sIdx > 1 ? sIdx : ""}`}</span>
                   <div className="contact-action-row">
                     <a
-                      href={(deal.website || deal.deal_source).startsWith("http") ? (deal.website || deal.deal_source) : `https://${deal.website || deal.deal_source}`}
+                      href={site.startsWith("http") ? site : `https://${site}`}
                       target="_blank"
                       rel="noreferrer"
                       className="contact-link website-link"
@@ -861,64 +915,66 @@ function DealDetails() {
                         <line x1="2" y1="12" x2="22" y2="12" />
                         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                       </svg>
-                      <span>{deal.website || deal.deal_source}</span>
+                      <span>{site}</span>
                     </a>
                     <button
                       type="button"
                       className="copy-mini-btn"
-                      onClick={() => handleCopy(deal.website || deal.deal_source, "website")}
+                      onClick={() => handleCopy(site, `website-${sIdx}`)}
                       title="Copy website"
                     >
-                      {copiedField === "website" ? "✓" : "⎘"}
+                      {copiedField === `website-${sIdx}` ? "✓" : "⎘"}
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
 
-              {deal.customer_email && (
-                <div className="contact-field-group">
-                  <span className="contact-field-label">Email Address</span>
+              {/* EMAIL ADDRESSES (Primary & Split) */}
+              {getCleanContactList(deal.customer_email).map((em, eIdx) => (
+                <div key={`email-primary-${eIdx}`} className="contact-field-group">
+                  <span className="contact-field-label">{eIdx === 0 ? "Email Address" : `Secondary Email ${eIdx > 1 ? eIdx : ""}`}</span>
                   <div className="contact-action-row">
-                    <a href={`mailto:${deal.customer_email}`} className="contact-link">
+                    <a href={`mailto:${em}`} className="contact-link">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                         <polyline points="22,6 12,13 2,6" />
                       </svg>
-                      <span>{deal.customer_email}</span>
+                      <span>{em}</span>
                     </a>
                     <button
                       type="button"
                       className="copy-mini-btn"
-                      onClick={() => handleCopy(deal.customer_email, "email")}
+                      onClick={() => handleCopy(em, `email-${eIdx}`)}
                       title="Copy email"
                     >
-                      {copiedField === "email" ? "✓" : "⎘"}
+                      {copiedField === `email-${eIdx}` ? "✓" : "⎘"}
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
 
-              {deal.customer_number && (
-                <div className="contact-field-group">
-                  <span className="contact-field-label">Phone Number</span>
+              {/* PHONE NUMBERS (Primary & Split) */}
+              {getCleanContactList(deal.customer_number).map((ph, pIdx) => (
+                <div key={`phone-primary-${pIdx}`} className="contact-field-group">
+                  <span className="contact-field-label">{pIdx === 0 ? "Phone Number" : `Alternate Phone ${pIdx > 1 ? pIdx : ""}`}</span>
                   <div className="contact-action-row">
-                    <a href={`tel:${deal.customer_number}`} className="contact-link">
+                    <a href={`tel:${ph}`} className="contact-link">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
-                      <span>{deal.customer_number}</span>
+                      <span>{ph}</span>
                     </a>
                     <button
                       type="button"
                       className="copy-mini-btn"
-                      onClick={() => handleCopy(deal.customer_number, "phone")}
+                      onClick={() => handleCopy(ph, `phone-${pIdx}`)}
                       title="Copy phone"
                     >
-                      {copiedField === "phone" ? "✓" : "⎘"}
+                      {copiedField === `phone-${pIdx}` ? "✓" : "⎘"}
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
 
               {/* Dynamic Additional Contact Info List */}
               {getAssociatedContactsList().map((item) => (
@@ -950,6 +1006,20 @@ function DealDetails() {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                           <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <span>{item.value}</span>
+                      </a>
+                    ) : item.type === "website" ? (
+                      <a
+                        href={item.value.startsWith("http") ? item.value : `https://${item.value}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="contact-link website-link"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                         </svg>
                         <span>{item.value}</span>
                       </a>
