@@ -121,6 +121,7 @@ function DealDetails() {
     setAddInfoType(type);
     if (type === "phone") setAddInfoLabel("Alternate Phone");
     else if (type === "email") setAddInfoLabel("Secondary Email");
+    else if (type === "website") setAddInfoLabel("Website");
     else setAddInfoLabel("Other Info");
     setAddInfoValue("");
     setShowAddInfoForm(true);
@@ -132,12 +133,29 @@ function DealDetails() {
 
     try {
       setSavingAddInfo(true);
+      const val = addInfoValue.trim();
+
+      if (addInfoType === "website") {
+        await api.put(`/deal/${id}`, {
+          website: val,
+        });
+        setDeal((prev) => ({
+          ...prev,
+          website: val,
+        }));
+        setShowAddInfoForm(false);
+        setAddInfoValue("");
+        setAddInfoLabel("");
+        fetchActivities();
+        return;
+      }
+
       const currentList = getAssociatedContactsList();
       const newItem = {
         id: Date.now().toString(),
         type: addInfoType,
         label: addInfoLabel.trim() || (addInfoType === "phone" ? "Alternate Phone" : addInfoType === "email" ? "Secondary Email" : "Other Info"),
-        value: addInfoValue.trim(),
+        value: val,
       };
       const updatedList = [...currentList, newItem];
 
@@ -827,6 +845,36 @@ function DealDetails() {
                 </div>
               </div>
 
+              {/* WEBSITE */}
+              {(deal.website || (deal.deal_source && (deal.deal_source.includes(".") || deal.deal_source.startsWith("http")))) && (
+                <div className="contact-field-group">
+                  <span className="contact-field-label">Website</span>
+                  <div className="contact-action-row">
+                    <a
+                      href={(deal.website || deal.deal_source).startsWith("http") ? (deal.website || deal.deal_source) : `https://${deal.website || deal.deal_source}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="contact-link website-link"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      </svg>
+                      <span>{deal.website || deal.deal_source}</span>
+                    </a>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      onClick={() => handleCopy(deal.website || deal.deal_source, "website")}
+                      title="Copy website"
+                    >
+                      {copiedField === "website" ? "✓" : "⎘"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {deal.customer_email && (
                 <div className="contact-field-group">
                   <span className="contact-field-label">Email Address</span>
@@ -982,6 +1030,18 @@ function DealDetails() {
                     <button
                       type="button"
                       className="add-info-pill-btn"
+                      onClick={() => handleOpenAddInfo("website")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      </svg>
+                      Website
+                    </button>
+                    <button
+                      type="button"
+                      className="add-info-pill-btn"
                       onClick={() => handleOpenAddInfo("other")}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1012,6 +1072,13 @@ function DealDetails() {
                         </button>
                         <button
                           type="button"
+                          className={`type-tab-btn ${addInfoType === "website" ? "active" : ""}`}
+                          onClick={() => handleOpenAddInfo("website")}
+                        >
+                          Website
+                        </button>
+                        <button
+                          type="button"
                           className={`type-tab-btn ${addInfoType === "other" ? "active" : ""}`}
                           onClick={() => handleOpenAddInfo("other")}
                         >
@@ -1032,7 +1099,7 @@ function DealDetails() {
                       <input
                         type="text"
                         className="add-info-input label-field"
-                        placeholder="Label (e.g. Alternate Phone, WhatsApp, Work Email)"
+                        placeholder="Label (e.g. Alternate Phone, Website, Work Email)"
                         value={addInfoLabel}
                         onChange={(e) => setAddInfoLabel(e.target.value)}
                       />
@@ -1044,6 +1111,8 @@ function DealDetails() {
                             ? "Enter alternate phone number..."
                             : addInfoType === "email"
                             ? "Enter alternate email address..."
+                            : addInfoType === "website"
+                            ? "Enter website URL (e.g. https://example.com)..."
                             : "Enter detail/value..."
                         }
                         value={addInfoValue}
@@ -1088,10 +1157,30 @@ function DealDetails() {
               <div className="detail-row">
                 <span className="detail-key">Assigned User</span>
                 <div className="owner-badge-pill">
-                  <div className="owner-tiny-avatar">
-                    {(deal.deal_owner || deal.assigned_user_name || "U").charAt(0).toUpperCase()}
-                  </div>
-                  <span>{deal.deal_owner || deal.assigned_user_name || "Unassigned"}</span>
+                  {deal.assign_to || deal.assigned_user_name ? (
+                    <>
+                      <div className="owner-tiny-avatar">
+                        {(deal.assigned_user_name || deal.assigned_user_email || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <span>
+                        {(() => {
+                          const raw = deal.assigned_user_name || deal.assigned_user_email || "Assigned User";
+                          if (raw.includes("@")) {
+                            const local = raw.split("@")[0].replace(/[._-]/g, " ");
+                            return local.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+                          }
+                          return raw;
+                        })()}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="owner-tiny-avatar" style={{ background: "#f1f5f9", color: "#64748b" }}>
+                        -
+                      </div>
+                      <span style={{ color: "#64748b" }}>Not Assigned</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1109,12 +1198,40 @@ function DealDetails() {
                 </span>
               </div>
 
-              {deal.deal_source && (
-                <div className="detail-row">
-                  <span className="detail-key">Lead Source</span>
-                  <span className="detail-val-text">{deal.deal_source}</span>
-                </div>
-              )}
+              {/* Lead Image Quick View */}
+              <div className="detail-row">
+                <span className="detail-key">Lead Image</span>
+                {deal.screenshot_url ? (
+                  <button
+                    type="button"
+                    className="view-image-pill-btn"
+                    onClick={() => setScreenshotLightboxOpen(true)}
+                    title="Click to view full screenshot image"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span>View Image</span>
+                  </button>
+                ) : (
+                  <label className="add-image-pill-btn">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      disabled={uploadingScreenshot}
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleUploadScreenshot(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <span>{uploadingScreenshot ? "Uploading..." : "+ Add Image"}</span>
+                  </label>
+                )}
+              </div>
 
               {deal.creation_date && (
                 <div className="detail-row">
