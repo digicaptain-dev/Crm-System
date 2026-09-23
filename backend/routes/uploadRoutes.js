@@ -7,6 +7,7 @@ const db = require("../db");
 const fs = require("fs");
 const path = require("path");
 const { formatCompanyName } = require("../utils/companyNameFormatter");
+const authenticateToken = require("../middleware/authMiddleware");
 
 // ======================================================
 // MULTER SETUP
@@ -638,7 +639,7 @@ function formatMysqlDatetime(dateInput) {
   return null;
 }
 
-async function executeImportDeals(rows) {
+async function executeImportDeals(rows, currentUserName = "Admin") {
   let fallbackPipelineId = null;
   let fallbackStageId = null;
 
@@ -720,7 +721,7 @@ async function executeImportDeals(rows) {
         const nowIso = formatMysqlDatetime(new Date());
         const parsedCreatedDate = formatMysqlDatetime(row.created_time) || nowIso;
         const parsedLastActivityDate = formatMysqlDatetime(row.last_activity_time || row.modified_time) || parsedCreatedDate;
-        const creatorName = normalize(row.created_by) || normalize(row.deal_owner) || "System";
+        const creatorName = normalize(row.created_by) || currentUserName || "Admin";
         const modifierName = normalize(row.modified_by) || creatorName;
 
         dealValuesBatch.push([
@@ -860,7 +861,7 @@ router.post("/preview", upload.any(), async (req, res) => {
 // COMMIT IMPORT ENDPOINT
 // ======================================================
 
-router.post("/commit", async (req, res) => {
+router.post("/commit", authenticateToken, async (req, res) => {
   try {
     const rows = req.body?.rows;
 
@@ -871,7 +872,8 @@ router.post("/commit", async (req, res) => {
       });
     }
 
-    const result = await executeImportDeals(rows);
+    const currentUserName = req.user?.name || req.user?.email || "Admin Account";
+    const result = await executeImportDeals(rows, currentUserName);
     return res.json(result);
   } catch (error) {
     console.error("Import commit error:", error);
@@ -887,7 +889,7 @@ router.post("/commit", async (req, res) => {
 // ROOT POST ROUTE (Dual handler for Preview and Commit)
 // ======================================================
 
-router.post("/", upload.any(), async (req, res) => {
+router.post("/", upload.any(), authenticateToken, async (req, res) => {
   const file = req.files?.[0] || req.file;
 
   // Case 1: Multipart File -> Return preview
@@ -911,7 +913,8 @@ router.post("/", upload.any(), async (req, res) => {
   // Case 2: JSON payload with { rows } -> Perform commit
   if (req.body?.rows && Array.isArray(req.body.rows)) {
     try {
-      const result = await executeImportDeals(req.body.rows);
+      const currentUserName = req.user?.name || req.user?.email || "Admin Account";
+      const result = await executeImportDeals(req.body.rows, currentUserName);
       return res.json(result);
     } catch (dbError) {
       console.error("Root import commit error:", dbError);
