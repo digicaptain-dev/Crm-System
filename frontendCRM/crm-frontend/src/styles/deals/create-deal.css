@@ -130,3 +130,321 @@
     grid-column: span 1;
   }
 }
+
+/* =========================================================
+   SCREENSHOT DROPZONE & PREVIEW STYLES
+   ========================================================= */
+.screenshot-field-container label .optional-tag {
+  color: #64748b;
+  font-weight: 400;
+  font-size: 11.5px;
+  margin-left: 4px;
+}
+
+.screenshot-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 80px;
+}
+
+.screenshot-dropzone:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.screenshot-dropzone.is-uploading {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+  cursor: wait;
+}
+
+.screenshot-dropzone-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.screenshot-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.screenshot-dropzone:hover .screenshot-icon-circle {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.screenshot-icon-circle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.screenshot-text-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropzone-title {
+  font-size: 13px;
+  color: #334155;
+}
+
+.dropzone-title strong {
+  color: #2563eb;
+}
+
+.dropzone-subtitle {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.screenshot-loading-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.screenshot-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin-screenshot 0.75s linear infinite;
+}
+
+@keyframes spin-screenshot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.screenshot-loading-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2563eb;
+}
+
+.screenshot-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.screenshot-thumb-wrapper {
+  position: relative;
+  width: 68px;
+  height: 48px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #86efac;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: #000;
+}
+
+.screenshot-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.screenshot-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.screenshot-zoom-overlay svg {
+  width: 14px;
+  height: 14px;
+}
+
+.screenshot-thumb-wrapper:hover .screenshot-zoom-overlay {
+  opacity: 1;
+}
+
+.screenshot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.screenshot-success-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #15803d;
+}
+
+.screenshot-success-badge svg {
+  width: 15px;
+  height: 15px;
+}
+
+.screenshot-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.screenshot-view-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.screenshot-remove-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.screenshot-remove-btn:hover {
+  color: #991b1b;
+}
+
+.screenshot-remove-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.screenshot-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.screenshot-error-msg svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Lightbox Modal */
+.screenshot-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInLightbox 0.15s ease-out;
+}
+
+@keyframes fadeInLightbox {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.screenshot-lightbox-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.screenshot-lightbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.screenshot-lightbox-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.screenshot-lightbox-close:hover {
+  color: #0f172a;
+}
+
+.screenshot-lightbox-body {
+  padding: 12px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.screenshot-lightbox-img {
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+

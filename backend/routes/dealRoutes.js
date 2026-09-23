@@ -626,7 +626,8 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             "customer_number",
             "customer_address",
             "website",
-            "created_by"
+            "created_by",
+            "screenshot_url"
         ];
 
         /*

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import api from "../services/api";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload";
 
 import "../styles/deal-details/deal-details.css";
 
@@ -58,12 +59,48 @@ function DealDetails() {
 
   const [poolLeavingCountdown, setPoolLeavingCountdown] = useState(null);
 
+  // Screenshot Lightbox & Upload State
+  const [screenshotLightboxOpen, setScreenshotLightboxOpen] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [screenshotUploadError, setScreenshotUploadError] = useState("");
+
   // Additional Contact Info State
   const [showAddInfoForm, setShowAddInfoForm] = useState(false);
   const [addInfoType, setAddInfoType] = useState("phone"); // "phone" | "email" | "other"
   const [addInfoLabel, setAddInfoLabel] = useState("");
   const [addInfoValue, setAddInfoValue] = useState("");
   const [savingAddInfo, setSavingAddInfo] = useState(false);
+
+  const handleUploadScreenshot = async (file) => {
+    if (!file) return;
+    try {
+      setUploadingScreenshot(true);
+      setScreenshotUploadError("");
+      const url = await uploadToCloudinary(file);
+      await api.put(`/deal/${id}`, { screenshot_url: url });
+      setDeal((prev) => ({ ...prev, screenshot_url: url }));
+    } catch (err) {
+      console.error("Screenshot upload failed:", err);
+      setScreenshotUploadError(err.message || "Failed to upload screenshot.");
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
+
+  const handleRemoveScreenshot = async () => {
+    const confirmed = window.confirm("Are you sure you want to remove this screenshot?");
+    if (!confirmed) return;
+    try {
+      setUploadingScreenshot(true);
+      await api.put(`/deal/${id}`, { screenshot_url: null });
+      setDeal((prev) => ({ ...prev, screenshot_url: null }));
+    } catch (err) {
+      console.error("Remove screenshot failed:", err);
+      alert("Failed to remove screenshot.");
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
 
   // Helper to parse associated contacts safely
   const getAssociatedContactsList = () => {
@@ -1142,6 +1179,108 @@ function DealDetails() {
               </div>
             </div>
           )}
+
+          {/* Card 5: Lead Screenshot & Proof */}
+          <div className="deal-sidebar-card">
+            <div className="sidebar-card-header">
+              <span className="sidebar-card-title">Lead Screenshot & Proof</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="card-header-icon">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+
+            {deal.screenshot_url ? (
+              <div className="details-screenshot-box">
+                <div
+                  className="details-screenshot-preview"
+                  onClick={() => setScreenshotLightboxOpen(true)}
+                  title="Click to zoom screenshot"
+                >
+                  <img src={deal.screenshot_url} alt="Lead Screenshot" />
+                  <div className="details-screenshot-overlay">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      <line x1="11" y1="8" x2="11" y2="14" />
+                      <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
+                    <span>Click to Zoom</span>
+                  </div>
+                </div>
+
+                <div className="details-screenshot-actions">
+                  <button
+                    type="button"
+                    className="details-ss-btn view"
+                    onClick={() => setScreenshotLightboxOpen(true)}
+                  >
+                    View Full Size
+                  </button>
+                  <label className="details-ss-btn replace">
+                    {uploadingScreenshot ? "Uploading..." : "Replace"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      disabled={uploadingScreenshot}
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleUploadScreenshot(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="details-ss-btn remove"
+                    onClick={handleRemoveScreenshot}
+                    disabled={uploadingScreenshot}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="details-screenshot-empty">
+                <label className="details-ss-upload-label">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    disabled={uploadingScreenshot}
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        handleUploadScreenshot(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  {uploadingScreenshot ? (
+                    <div className="details-ss-upload-loading">
+                      <div className="screenshot-spinner" />
+                      <span>Uploading to Cloudinary...</span>
+                    </div>
+                  ) : (
+                    <div className="details-ss-upload-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <span>+ Attach Lead Screenshot</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+            )}
+
+            {screenshotUploadError && (
+              <div className="screenshot-error-msg" style={{ margin: "8px 12px" }}>
+                {screenshotUploadError}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ===============================================
@@ -1489,6 +1628,39 @@ function DealDetails() {
               >
                 {confirmationModal.confirmText}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =================================================
+          SCREENSHOT LIGHTBOX MODAL
+      ================================================= */}
+      {screenshotLightboxOpen && deal?.screenshot_url && (
+        <div
+          className="screenshot-lightbox-backdrop"
+          onClick={() => setScreenshotLightboxOpen(false)}
+        >
+          <div
+            className="screenshot-lightbox-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="screenshot-lightbox-header">
+              <span>Lead Screenshot & Proof ({deal.deal_organization || deal.deal_name})</span>
+              <button
+                type="button"
+                className="screenshot-lightbox-close"
+                onClick={() => setScreenshotLightboxOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="screenshot-lightbox-body">
+              <img
+                src={deal.screenshot_url}
+                alt="Full Lead Screenshot"
+                className="screenshot-lightbox-img"
+              />
             </div>
           </div>
         </div>

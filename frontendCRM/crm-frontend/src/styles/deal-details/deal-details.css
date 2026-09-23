@@ -1612,3 +1612,159 @@
 .pool-exit-icon {
   font-size: 18px;
 }
+
+/* =====================================================
+   LEAD SCREENSHOT STYLES
+===================================================== */
+.details-screenshot-box {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.details-screenshot-preview {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.details-screenshot-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.details-screenshot-preview:hover img {
+  transform: scale(1.03);
+}
+
+.details-screenshot-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.details-screenshot-overlay svg {
+  width: 16px;
+  height: 16px;
+}
+
+.details-screenshot-preview:hover .details-screenshot-overlay {
+  opacity: 1;
+}
+
+.details-screenshot-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.details-ss-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.details-ss-btn.view {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.details-ss-btn.view:hover {
+  background: #dbeafe;
+}
+
+.details-ss-btn.replace {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.details-ss-btn.replace:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.details-ss-btn.remove {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.details-ss-btn.remove:hover {
+  background: #fee2e2;
+}
+
+.details-screenshot-empty {
+  padding: 14px;
+}
+
+.details-ss-upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.details-ss-upload-label:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.details-ss-upload-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.details-ss-upload-placeholder svg {
+  width: 18px;
+  height: 18px;
+  color: #2563eb;
+}
+
+.details-ss-upload-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563eb;
+  font-size: 12.5px;
+  font-weight: 500;
+}
