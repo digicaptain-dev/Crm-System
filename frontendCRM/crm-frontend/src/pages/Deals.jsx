@@ -68,7 +68,7 @@ function Deals() {
     console.error("Failed to read logged-in user:", error);
   }
   const isAdmin = currentUser?.role === "admin";
-  const canAddDeal = currentUser?.role === "admin" || currentUser?.role === "coworker";
+  const canImportDeals = currentUser?.role === "admin" || currentUser?.role === "coworker";
 
   // =====================================================
   // FETCH DEALS
@@ -373,8 +373,8 @@ function Deals() {
               </button>
             )}
 
-            {/* Import CSV */}
-            {canAddDeal && (
+            {/* Import CSV (Admins / Managers only) */}
+            {canImportDeals && (
               <>
                 <input
                   type="file"
@@ -399,20 +399,18 @@ function Deals() {
               </>
             )}
 
-            {/* New Deal */}
-            {canAddDeal && (
-              <button
-                type="button"
-                className="btn-add-deal"
-                onClick={() => setShowCreateDeal(true)}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <span>New Deal</span>
-              </button>
-            )}
+            {/* New Deal (Available for all including employees) */}
+            <button
+              type="button"
+              className="btn-add-deal"
+              onClick={() => setShowCreateDeal(true)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>New Deal</span>
+            </button>
           </div>
         </div>
 
@@ -649,7 +647,7 @@ function Deals() {
       {/* =================================================
           MODALS
       ================================================= */}
-      {canAddDeal && showCreateDeal && (
+      {showCreateDeal && (
         <Modal title="Create New Deal" onClose={() => setShowCreateDeal(false)}>
           <CreateDeal
             onClose={() => setShowCreateDeal(false)}
