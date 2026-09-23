@@ -1198,41 +1198,6 @@ function DealDetails() {
                 </span>
               </div>
 
-              {/* Lead Image Quick View */}
-              <div className="detail-row">
-                <span className="detail-key">Lead Image</span>
-                {deal.screenshot_url ? (
-                  <button
-                    type="button"
-                    className="view-image-pill-btn"
-                    onClick={() => setScreenshotLightboxOpen(true)}
-                    title="Click to view full screenshot image"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <span>View Image</span>
-                  </button>
-                ) : (
-                  <label className="add-image-pill-btn">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      disabled={uploadingScreenshot}
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          handleUploadScreenshot(e.target.files[0]);
-                        }
-                      }}
-                    />
-                    <span>{uploadingScreenshot ? "Uploading..." : "+ Add Image"}</span>
-                  </label>
-                )}
-              </div>
-
               {deal.creation_date && (
                 <div className="detail-row">
                   <span className="detail-key">Created Date</span>
@@ -1335,28 +1300,33 @@ function DealDetails() {
                   >
                     View Full Size
                   </button>
-                  <label className="details-ss-btn replace">
-                    {uploadingScreenshot ? "Uploading..." : "Replace"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      disabled={uploadingScreenshot}
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          handleUploadScreenshot(e.target.files[0]);
-                        }
-                      }}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="details-ss-btn remove"
-                    onClick={handleRemoveScreenshot}
-                    disabled={uploadingScreenshot}
-                  >
-                    Remove
-                  </button>
+
+                  {isAdmin && (
+                    <>
+                      <label className="details-ss-btn replace">
+                        {uploadingScreenshot ? "Uploading..." : "Replace"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          disabled={uploadingScreenshot}
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              handleUploadScreenshot(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="details-ss-btn remove"
+                        onClick={handleRemoveScreenshot}
+                        disabled={uploadingScreenshot}
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
