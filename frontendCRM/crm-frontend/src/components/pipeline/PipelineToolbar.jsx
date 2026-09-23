@@ -6,6 +6,7 @@ function PipelineToolbar({
   filters,
   onFiltersChange,
   owners,
+  countries = [],
   view,
   onViewChange,
   onClearFilters,
@@ -21,7 +22,8 @@ function PipelineToolbar({
     Boolean(searchValue) ||
     Boolean(filters.owner) ||
     Boolean(filters.status) ||
-    Boolean(filters.priority);
+    Boolean(filters.priority) ||
+    Boolean(filters.country);
 
   return (
     <div className="pipeline-toolbar-card">
@@ -70,6 +72,19 @@ function PipelineToolbar({
             {owners.map((owner) => (
               <option key={owner} value={owner}>
                 {owner}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="pipeline-select-filter"
+            value={filters.country || ""}
+            onChange={(event) => handleFilterChange("country", event.target.value)}
+          >
+            <option value="">All Countries</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag ? `${c.flag} ` : ""}{c.label || c.code}
               </option>
             ))}
           </select>

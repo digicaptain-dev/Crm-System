@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import api from "../services/api";
+import { getCountryBadge } from "../utils/countryHelper";
 
 import PipelineHeader from "../components/pipeline/PipelineHeader";
 import PipelineToolbar from "../components/pipeline/PipelineToolbar";
@@ -26,6 +27,7 @@ function Pipeline() {
     owner: "",
     status: "",
     priority: "",
+    country: "",
   });
   const [view, setView] = useState("board");
 
@@ -142,6 +144,19 @@ function Pipeline() {
     return Array.from(ownerSet).sort();
   }, [pipelineDeals]);
 
+  const countries = useMemo(() => {
+    const countryMap = new Map();
+    pipelineDeals.forEach((deal) => {
+      const badge = getCountryBadge(deal);
+      if (badge?.code && !countryMap.has(badge.code)) {
+        countryMap.set(badge.code, badge);
+      }
+    });
+    return Array.from(countryMap.values()).sort((a, b) =>
+      (a.label || a.code).localeCompare(b.label || b.code)
+    );
+  }, [pipelineDeals]);
+
   /* =====================================================
      FILTER PIPELINE DEALS
   ===================================================== */
@@ -178,7 +193,18 @@ function Pipeline() {
           !filters.priority ||
           String(deal?.deal_priority || "").toLowerCase() === filters.priority.toLowerCase();
 
-        return matchesSearch && matchesOwner && matchesStatus && matchesPriority;
+        const dealCountry = getCountryBadge(deal);
+        const matchesCountry =
+          !filters.country ||
+          dealCountry?.code === filters.country;
+
+        return (
+          matchesSearch &&
+          matchesOwner &&
+          matchesStatus &&
+          matchesPriority &&
+          matchesCountry
+        );
       });
 
       return {
@@ -367,6 +393,7 @@ function Pipeline() {
       owner: "",
       status: "",
       priority: "",
+      country: "",
     });
   };
 
@@ -430,6 +457,7 @@ function Pipeline() {
             filters={filters}
             onFiltersChange={setFilters}
             owners={owners}
+            countries={countries}
             view={view}
             onViewChange={setView}
             onClearFilters={handleClearFilters}
