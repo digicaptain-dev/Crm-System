@@ -92,6 +92,7 @@ const convertExcelRow = (row, excelRowNumber) => {
       "Contact Person",
       "ContactName",
       "Contact",
+      "Name",
       "Lead Name",
       "Client",
     ])
@@ -107,7 +108,7 @@ const convertExcelRow = (row, excelRowNumber) => {
       "Account Name",
       "Account_Name",
     ])
-  ) || companyName || contactName || "Untitled Deal";
+  ) || contactName || companyName || "Untitled Deal";
 
   const rawStatus = normalize(
     getCell(row, ["Status", "Deal Status", "Lead Status", "Stage Status"])
@@ -190,13 +191,13 @@ const convertExcelRow = (row, excelRowNumber) => {
   if (notes) noteParts.push(`Notes: ${notes}`);
   const combinedNotes = noteParts.join("\n\n") || null;
 
-  const rawCompany = companyName || dealName || contactName || "General";
-  const formattedCompany = formatCompanyName(rawCompany, contactName);
+  const rawCompany = companyName || "";
+  const formattedCompany = rawCompany ? formatCompanyName(rawCompany, contactName) : "";
 
   const deal = {
     excel_row: excelRowNumber,
     deal_name: dealName,
-    deal_organization: formattedCompany,
+    deal_organization: formattedCompany || null,
     contact_person: contactName || "Unknown",
     deal_owner: contactName || "Unknown",
     deal_value: dealValue,
@@ -682,17 +683,17 @@ async function executeImportDeals(rows) {
 
       for (const row of batchRows) {
         const contactPerson = normalize(row.contact_person || row.deal_owner).substring(0, 255) || "Unknown";
-        const rawBusiness = normalize(row.deal_organization || row.deal_name).substring(0, 255);
-        if (!rawBusiness) continue;
-        const businessName = formatCompanyName(rawBusiness, contactPerson);
+        const rawBusiness = normalize(row.deal_organization).substring(0, 255);
+        const businessName = rawBusiness ? formatCompanyName(rawBusiness, contactPerson) : null;
+
+        const dealName = normalize(row.deal_name).substring(0, 255) || businessName || contactPerson || "Untitled Lead";
+        if (!dealName && !businessName && (!contactPerson || contactPerson === "Unknown")) continue;
 
         const dealId = uuidv4();
         const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId || null;
         const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId || null;
         const assignTo = row.resolved?.assign_to || row.assign_to || null;
         const notes = normalize(row.deal_notes);
-
-        const dealName = normalize(row.deal_name).substring(0, 255) || businessName;
         
         let dealValue = null;
         if (row.deal_value !== undefined && row.deal_value !== null && row.deal_value !== "") {
