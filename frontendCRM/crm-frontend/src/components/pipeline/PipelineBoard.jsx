@@ -86,27 +86,28 @@ function PipelineBoard({
   }, [poolCountdowns, isEmployee]);
 
   /* =====================================================
-     SYNC PIPELINE DATA
+     SYNC PIPELINE DATA (Synchronous Derivation to Prevent Empty Flash)
   ===================================================== */
-  useEffect(() => {
-    if (!pipeline?.stages) {
-      setStages([]);
-      return;
-    }
-
-    const sortedStages = [...pipeline.stages]
+  const sortedPipelineStages = useMemo(() => {
+    if (!pipeline?.stages) return [];
+    return [...pipeline.stages]
       .map((stage) => ({
         ...stage,
         deals: Array.isArray(stage.deals) ? stage.deals : [],
       }))
       .sort((a, b) => Number(a.stage_order || 0) - Number(b.stage_order || 0));
-
-    setStages(sortedStages);
   }, [pipeline]);
 
+  useEffect(() => {
+    setStages(sortedPipelineStages);
+  }, [sortedPipelineStages]);
+
+  // Use current optimistic state or immediate fallback to sortedPipelineStages so there is ZERO delay or flash
+  const displayStages = stages.length > 0 ? stages : sortedPipelineStages;
+
   const totalVisibleDeals = useMemo(() => {
-    return stages.reduce((total, stage) => total + stage.deals.length, 0);
-  }, [stages]);
+    return displayStages.reduce((total, stage) => total + stage.deals.length, 0);
+  }, [displayStages]);
 
   /* =====================================================
      DRAG & DROP: DEALS
@@ -540,7 +541,7 @@ function PipelineBoard({
             ))}
           </div>
         </div>
-      ) : stages.length === 0 ? (
+      ) : displayStages.length === 0 ? (
         <div className="pipeline-empty-card">
           <div className="empty-icon-circle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -560,7 +561,7 @@ function PipelineBoard({
       ) : (
         <div className="pipeline-kanban-board">
           <div className="pipeline-columns-row">
-            {stages.map((stage, index) => {
+            {displayStages.map((stage, index) => {
               const deals = Array.isArray(stage.deals) ? stage.deals : [];
               const theme = STAGE_THEMES[index % STAGE_THEMES.length];
               const isDragOver = String(dragOverStageId) === String(stage.stage_id);
@@ -596,7 +597,7 @@ function PipelineBoard({
                         </div>
                       )}
 
-                      <div className="stage-name-wrap">
+                      <div className="stage-title-wrap">
                         <span className="stage-dot" style={{ backgroundColor: theme.accent }} />
                         <h3 className="stage-name" title={stage.stage_name}>
                           {stage.stage_name || "Unnamed Stage"}
@@ -671,7 +672,7 @@ function PipelineBoard({
                         <PipelineDealCard
                           key={deal.deal_id}
                           deal={deal}
-                          stages={stages}
+                          stages={displayStages}
                           onDragStart={handleDealDragStart}
                           onDragEnd={handleDealDragEnd}
                           onMoveStage={handleMoveDealToStage}
