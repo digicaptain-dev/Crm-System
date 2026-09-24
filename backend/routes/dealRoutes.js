@@ -523,13 +523,9 @@ router.post("/deal", authenticateToken, async (req, res) => {
          */
         if (role !== "admin") {
             newDeal.assign_to = user_id;
+        } else if (!newDeal.assign_to) {
+            newDeal.assign_to = user_id;
         }
-
-        /*
-         * Admin can assign a deal.
-         * If admin doesn't provide assign_to,
-         * it remains NULL.
-         */
 
         const sql = "INSERT INTO deals SET ?";
 

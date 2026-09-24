@@ -505,6 +505,17 @@ const validateDeal = async (deal, defaultPipeline, defaultStage) => {
     }
   }
 
+  // If still unassigned, default to Admin Account
+  if (!resolvedAssignTo) {
+    try {
+      const [adminUser] = await db.query("SELECT user_id, name FROM users WHERE role = 'admin' LIMIT 1");
+      if (adminUser.length > 0) {
+        resolvedAssignTo = adminUser[0].user_id;
+        resolvedAssignedUserName = adminUser[0].name;
+      }
+    } catch {}
+  }
+
   return {
     ...deal,
     pipeline: resolvedPipelineName,
@@ -722,6 +733,14 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
     console.warn("Fallback lookup err:", err.message);
   }
 
+  let defaultAdminUserId = null;
+  try {
+    const [adminUsers] = await db.query(`SELECT user_id FROM users WHERE role = 'admin' ORDER BY user_id ASC LIMIT 1`);
+    if (adminUsers.length > 0) {
+      defaultAdminUserId = adminUsers[0].user_id;
+    }
+  } catch (e) {}
+
   const connection = await db.getConnection();
 
   try {
@@ -747,7 +766,7 @@ async function executeImportDeals(rows, currentUserName = "Admin") {
         const dealId = uuidv4();
         const pipelineId = row.resolved?.pipeline_id || row.pipeline_id || fallbackPipelineId || null;
         const stageId = row.resolved?.stage_id || row.stage_id || fallbackStageId || null;
-        const assignTo = row.resolved?.assign_to || row.assign_to || null;
+        const assignTo = row.resolved?.assign_to || row.assign_to || defaultAdminUserId || null;
         const notes = normalize(row.deal_notes);
         
         let dealValue = null;
