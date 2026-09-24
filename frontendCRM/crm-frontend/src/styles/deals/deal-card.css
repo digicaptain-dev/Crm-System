@@ -71,9 +71,30 @@
   color: #0f172a;
   margin: 0;
   line-height: 1.25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.deal-grid-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-grid-title-email {
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.headline-type-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  stroke: var(--text-tertiary, #94a3b8);
 }
 
 .deal-grid-suborg {

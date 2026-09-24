@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCountryBadge } from "../../utils/countryHelper";
+import { getDealHeadline } from "../../utils/dealHeadlineHelper";
 import "../../styles/pipeline/pipeline-deal-card.css";
 
 function PipelineDealCard({
@@ -93,7 +94,7 @@ function PipelineDealCard({
     : null;
 
   const country = getCountryBadge(deal);
-  const companyName = deal?.deal_organization || deal?.deal_name || "Untitled Company";
+  const headline = getDealHeadline(deal);
   const contactName = deal?.contact_person || deal?.deal_owner || "";
 
   return (
@@ -202,9 +203,18 @@ function PipelineDealCard({
         )}
       </div>
 
-      {/* Company Title (Bold) */}
-      <h4 className="deal-card-title" title={companyName}>
-        {companyName}
+      {/* Headline Title (Bold) - Website name or Email fallback */}
+      <h4
+        className={`deal-card-title ${headline.type === "email" ? "deal-card-title-email" : ""}`}
+        title={headline.raw ? `${headline.title} (${headline.raw})` : headline.title}
+      >
+        {headline.type === "email" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="headline-type-icon">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        )}
+        <span>{headline.title}</span>
       </h4>
 
       {/* Contact Person */}

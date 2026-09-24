@@ -122,10 +122,34 @@
   line-height: 1.35;
   cursor: pointer;
   transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-card-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deal-card-title:hover {
   color: var(--primary, #2563eb);
+}
+
+.deal-card-title-email {
+  color: #1e293b;
+  font-size: 13.5px;
+}
+
+.headline-type-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  stroke: var(--text-tertiary, #94a3b8);
 }
 
 /* ORG */

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { getCountryBadge } from "../../utils/countryHelper";
+import { getDealHeadline } from "../../utils/dealHeadlineHelper";
 import "../../styles/deals/deal-card.css";
 
 function DealCard({ deal, onClick }) {
@@ -22,9 +23,9 @@ function DealCard({ deal, onClick }) {
   const statusClass = status.toLowerCase().replace(/\s+/g, "-");
 
   const country = getCountryBadge(deal);
-  const companyTitle = deal?.deal_organization || deal?.deal_name || "Untitled Company";
+  const headline = getDealHeadline(deal);
   const contactPerson = deal?.contact_person || deal?.deal_owner || null;
-  const initial = (companyTitle || "C").charAt(0).toUpperCase();
+  const initial = (headline.title || "C").charAt(0).toUpperCase();
 
   const formattedCloseDate = deal?.close_date
     ? new Date(deal.close_date).toLocaleDateString("en-US", {
@@ -54,8 +55,17 @@ function DealCard({ deal, onClick }) {
         <div className="deal-grid-profile">
           <div className="deal-grid-avatar">{initial}</div>
           <div className="deal-grid-headings">
-            <h3 className="deal-grid-title" title={companyTitle}>
-              {companyTitle}
+            <h3
+              className={`deal-grid-title ${headline.type === "email" ? "deal-grid-title-email" : ""}`}
+              title={headline.raw ? `${headline.title} (${headline.raw})` : headline.title}
+            >
+              {headline.type === "email" && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="headline-type-icon">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              )}
+              <span>{headline.title}</span>
             </h3>
             {contactPerson && (
               <span className="deal-grid-suborg" title={`Contact: ${contactPerson}`}>
