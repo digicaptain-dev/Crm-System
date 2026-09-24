@@ -25,7 +25,7 @@ function Pipeline() {
   const [searchValue, setSearchValue] = useState("");
   const [filters, setFilters] = useState({
     owner: "",
-    status: "",
+    stage: "",
     priority: "",
     country: "",
   });
@@ -165,53 +165,56 @@ function Pipeline() {
 
     const search = searchValue.trim().toLowerCase();
 
-    const filteredStages = (selectedPipeline.stages || []).map((stage) => {
-      const deals = Array.isArray(stage.deals) ? stage.deals : [];
-
-      const filteredDeals = deals.filter((deal) => {
-        const dealName = String(deal?.deal_name || "").toLowerCase();
-        const email = String(deal?.customer_email || "").toLowerCase();
-        const owner = String(deal?.deal_owner || "").toLowerCase();
-        const org = String(deal?.deal_organization || "").toLowerCase();
-
-        const matchesSearch =
-          !search ||
-          dealName.includes(search) ||
-          email.includes(search) ||
-          owner.includes(search) ||
-          org.includes(search);
-
-        const matchesOwner =
-          !filters.owner ||
-          String(deal?.deal_owner) === String(filters.owner);
-
-        const matchesStatus =
-          !filters.status ||
-          String(deal?.deal_status || "").toLowerCase() === filters.status.toLowerCase();
-
-        const matchesPriority =
-          !filters.priority ||
-          String(deal?.deal_priority || "").toLowerCase() === filters.priority.toLowerCase();
-
-        const dealCountry = getCountryBadge(deal);
-        const matchesCountry =
-          !filters.country ||
-          dealCountry?.code === filters.country;
-
+    const filteredStages = (selectedPipeline.stages || [])
+      .filter((stage) => {
+        if (!filters.stage) return true;
         return (
-          matchesSearch &&
-          matchesOwner &&
-          matchesStatus &&
-          matchesPriority &&
-          matchesCountry
+          String(stage.stage_id) === String(filters.stage) ||
+          String(stage.stage_name).toLowerCase() === String(filters.stage).toLowerCase()
         );
-      });
+      })
+      .map((stage) => {
+        const deals = Array.isArray(stage.deals) ? stage.deals : [];
 
-      return {
-        ...stage,
-        deals: filteredDeals,
-      };
-    });
+        const filteredDeals = deals.filter((deal) => {
+          const dealName = String(deal?.deal_name || "").toLowerCase();
+          const email = String(deal?.customer_email || "").toLowerCase();
+          const owner = String(deal?.deal_owner || "").toLowerCase();
+          const org = String(deal?.deal_organization || "").toLowerCase();
+
+          const matchesSearch =
+            !search ||
+            dealName.includes(search) ||
+            email.includes(search) ||
+            owner.includes(search) ||
+            org.includes(search);
+
+          const matchesOwner =
+            !filters.owner ||
+            String(deal?.deal_owner) === String(filters.owner);
+
+          const matchesPriority =
+            !filters.priority ||
+            String(deal?.deal_priority || "").toLowerCase() === filters.priority.toLowerCase();
+
+          const dealCountry = getCountryBadge(deal);
+          const matchesCountry =
+            !filters.country ||
+            dealCountry?.code === filters.country;
+
+          return (
+            matchesSearch &&
+            matchesOwner &&
+            matchesPriority &&
+            matchesCountry
+          );
+        });
+
+        return {
+          ...stage,
+          deals: filteredDeals,
+        };
+      });
 
     return {
       ...selectedPipeline,
@@ -391,7 +394,7 @@ function Pipeline() {
     setSearchValue("");
     setFilters({
       owner: "",
-      status: "",
+      stage: "",
       priority: "",
       country: "",
     });
@@ -442,6 +445,7 @@ function Pipeline() {
             filters={filters}
             onFiltersChange={setFilters}
             owners={owners}
+            stages={selectedPipeline?.stages || []}
             countries={countries}
             view={view}
             onViewChange={setView}

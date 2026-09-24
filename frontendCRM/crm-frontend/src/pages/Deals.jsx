@@ -41,7 +41,7 @@ function Deals() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [stageFilter, setStageFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState("");
   const [assignedUserFilter, setAssignedUserFilter] = useState("");
@@ -82,7 +82,7 @@ function Deals() {
           page,
           limit: currentLimit,
           search: search.trim() || undefined,
-          status: statusFilter || undefined,
+          stage: stageFilter || undefined,
           priority: priorityFilter || undefined,
           pipeline_id: pipelineFilter || undefined,
           assign_to: isAdmin && assignedUserFilter ? assignedUserFilter : undefined,
@@ -116,7 +116,7 @@ function Deals() {
       currentPage,
       limit,
       search,
-      statusFilter,
+      stageFilter,
       priorityFilter,
       pipelineFilter,
       assignedUserFilter,
@@ -218,12 +218,31 @@ function Deals() {
 
   const handleResetFilters = () => {
     setSearch("");
-    setStatusFilter("");
+    setStageFilter("");
     setPriorityFilter("");
     setPipelineFilter("");
     setAssignedUserFilter("");
     setCurrentPage(1);
   };
+
+  // Derive available stages from pipelines
+  const availableStages = useMemo(() => {
+    if (pipelineFilter) {
+      const selectedP = pipelines.find((p) => String(p.pipeline_id) === String(pipelineFilter));
+      return selectedP?.stages || [];
+    }
+    const allStages = pipelines.flatMap((p) => p.stages || []);
+    const uniqueMap = new Map();
+    allStages.forEach((st) => {
+      const key = st.stage_id || st.stage_name;
+      if (key && !uniqueMap.has(key)) {
+        uniqueMap.set(key, st);
+      }
+    });
+    return Array.from(uniqueMap.values()).sort(
+      (a, b) => Number(a.stage_order || 0) - Number(b.stage_order || 0)
+    );
+  }, [pipelines, pipelineFilter]);
 
   // Pagination Window Generator
   const pageNumbers = useMemo(() => {
@@ -421,11 +440,12 @@ function Deals() {
             setSearch(v);
             setCurrentPage(1);
           }}
-          status={statusFilter}
-          setStatus={(v) => {
-            setStatusFilter(v);
+          stage={stageFilter}
+          setStage={(v) => {
+            setStageFilter(v);
             setCurrentPage(1);
           }}
+          stages={availableStages}
           priority={priorityFilter}
           setPriority={(v) => {
             setPriorityFilter(v);

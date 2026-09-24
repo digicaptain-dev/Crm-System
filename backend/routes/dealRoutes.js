@@ -22,7 +22,7 @@ const { notifyUser } = require("../utils/notificationService");
 router.get("/deals", authenticateToken, async (req, res) => {
     try {
         const { user_id, role } = req.user;
-        const { search = "", status = "", priority = "", pipeline_id = "", assign_to = "" } = req.query;
+        const { search = "", status = "", stage = "", stage_id = "", priority = "", pipeline_id = "", assign_to = "" } = req.query;
 
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 15));
@@ -63,6 +63,12 @@ router.get("/deals", authenticateToken, async (req, res) => {
                 whereClauses.push("deals.deal_status = ?");
                 params.push(status);
             }
+        }
+
+        const selectedStage = stage || stage_id;
+        if (selectedStage && selectedStage !== "all") {
+            whereClauses.push("(deals.deal_stage = ? OR deals.deal_stage IN (SELECT stage_id FROM stages WHERE stage_name = ?))");
+            params.push(selectedStage, selectedStage);
         }
 
         if (priority && priority !== "all") {
@@ -116,10 +122,12 @@ router.get("/deals", authenticateToken, async (req, res) => {
             SELECT 
                 deals.*,
                 assigned_user.name AS assigned_user_name,
-                owner_user.name AS owner_name
+                owner_user.name AS owner_name,
+                stages.stage_name AS stage_name
             FROM deals
             LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
             LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
+            LEFT JOIN stages ON (deals.deal_stage = stages.stage_id)
             ${whereSql}
             ORDER BY deals.creation_date DESC
             LIMIT ? OFFSET ?

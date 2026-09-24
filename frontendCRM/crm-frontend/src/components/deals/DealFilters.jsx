@@ -3,8 +3,9 @@ import "../../styles/deals/deal-filters.css";
 function DealFilters({
   search,
   setSearch,
-  status,
-  setStatus,
+  stage,
+  setStage,
+  stages = [],
   priority,
   setPriority,
   pipeline,
@@ -18,7 +19,7 @@ function DealFilters({
   view = "table",
   setView,
 }) {
-  const hasActiveFilters = Boolean(search || status || priority || pipeline || assignedUser);
+  const hasActiveFilters = Boolean(search || stage || priority || pipeline || assignedUser);
 
   return (
     <div className="deal-filters-toolbar">
@@ -38,16 +39,18 @@ function DealFilters({
           />
         </div>
 
-        {/* Status Dropdown */}
+        {/* Stage Dropdown */}
         <select
           className="deal-select-filter"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          value={stage}
+          onChange={(e) => setStage(e.target.value)}
         >
-          <option value="">All Statuses</option>
-          <option value="Open">● Open</option>
-          <option value="Closed Won">✓ Closed Won</option>
-          <option value="Closed Lost">✕ Closed Lost</option>
+          <option value="">All Stages</option>
+          {stages.map((st) => (
+            <option key={st.stage_id || st.stage_name} value={st.stage_id || st.stage_name}>
+              {st.stage_name}
+            </option>
+          ))}
         </select>
 
         {/* Priority Dropdown */}
