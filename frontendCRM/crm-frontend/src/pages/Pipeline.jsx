@@ -398,21 +398,6 @@ function Pipeline() {
   };
 
   /* =====================================================
-     LOADING STATE
-  ===================================================== */
-  if (loading) {
-    return (
-      <div className="pipeline-page-container">
-        <div className="pipeline-loading-card">
-          <div className="pipeline-spinner" />
-          <h3>Loading Pipeline Board...</h3>
-          <p>Fetching active pipeline stages, deals, and owners.</p>
-        </div>
-      </div>
-    );
-  }
-
-  /* =====================================================
      RENDER
   ===================================================== */
   return (
@@ -445,10 +430,10 @@ function Pipeline() {
       />
 
       {/* MAIN PIPELINE CONTENT */}
-      {selectedPipeline ? (
+      {selectedPipeline || loading ? (
         <div className="pipeline-main-stack">
           {/* STATS SECTION */}
-          <PipelineStats pipeline={selectedPipeline} />
+          {selectedPipeline ? <PipelineStats pipeline={selectedPipeline} /> : null}
 
           {/* TOOLBAR SECTION */}
           <PipelineToolbar
@@ -466,6 +451,7 @@ function Pipeline() {
           {/* BOARD / TABLE SECTION */}
           <PipelineBoard
             pipeline={filteredPipeline}
+            loading={loading || refreshing}
             view={view}
             onAddStage={() => setShowAddStageModal(true)}
             onEditStage={handleOpenEditStage}

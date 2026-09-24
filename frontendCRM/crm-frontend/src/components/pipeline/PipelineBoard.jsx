@@ -28,6 +28,7 @@ function PipelineBoard({
   onReorderStages,
   onAddDeal,
   canManagePipelines = true,
+  loading = false,
 }) {
   const navigate = useNavigate();
 
@@ -510,7 +511,36 @@ function PipelineBoard({
         </div>
       )}
 
-      {stages.length === 0 ? (
+      {loading ? (
+        <div className="pipeline-skeleton-board">
+          <div className="pipeline-columns-row">
+            {[1, 2, 3, 4, 5].map((colIndex) => (
+              <div key={`skeleton-col-${colIndex}`} className="pipeline-stage-column skeleton-stage-column">
+                <div className="stage-column-header skeleton-col-header">
+                  <div className="skeleton-line skeleton-title" />
+                  <div className="skeleton-line skeleton-badge" />
+                </div>
+                <div className="stage-deals-list skeleton-deals-list">
+                  {[1, 2, 3].map((cardIndex) => (
+                    <div key={`skeleton-card-${colIndex}-${cardIndex}`} className="skeleton-deal-card">
+                      <div className="skeleton-card-top">
+                        <div className="skeleton-pill" />
+                        <div className="skeleton-pill sm" />
+                      </div>
+                      <div className="skeleton-line title" />
+                      <div className="skeleton-line subtitle" />
+                      <div className="skeleton-card-bottom">
+                        <div className="skeleton-pill xs" />
+                        <div className="skeleton-pill xs" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : stages.length === 0 ? (
         <div className="pipeline-empty-card">
           <div className="empty-icon-circle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
