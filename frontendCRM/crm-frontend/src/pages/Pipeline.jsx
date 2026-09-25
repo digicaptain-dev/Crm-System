@@ -168,8 +168,11 @@ function Pipeline() {
     if (!selectedPipeline) return null;
 
     const search = searchValue.trim().toLowerCase();
+    const sourceStages = (filters.stage && selectedPipeline.allStages)
+      ? selectedPipeline.allStages
+      : (selectedPipeline.stages || []);
 
-    const filteredStages = (selectedPipeline.stages || [])
+    const filteredStages = sourceStages
       .filter((stage) => {
         if (!filters.stage) return true;
         return (
@@ -450,7 +453,7 @@ function Pipeline() {
             filters={filters}
             onFiltersChange={setFilters}
             owners={owners}
-            stages={selectedPipeline?.stages || []}
+            stages={selectedPipeline?.allStages || selectedPipeline?.stages || []}
             countries={countries}
             view={view}
             onViewChange={setView}
