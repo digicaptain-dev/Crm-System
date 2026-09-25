@@ -35,7 +35,8 @@
   flex-direction: column;
   gap: 18px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 10;
 }
 
 .deal-header-card::before {
@@ -46,6 +47,8 @@
   right: 0;
   height: 3.5px;
   background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+  border-top-left-radius: var(--radius-lg, 14px);
+  border-top-right-radius: var(--radius-lg, 14px);
 }
 
 .deal-header-top-row {
@@ -54,6 +57,8 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 30;
 }
 
 .deal-breadcrumb-nav {
@@ -163,6 +168,7 @@
 .deal-change-stage-dropdown-container {
   position: relative;
   display: inline-block;
+  z-index: 50;
 }
 
 .btn-change-stage {
@@ -188,10 +194,10 @@
   right: 0;
   width: 240px;
   background: #ffffff;
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--border, #cbd5e1);
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
-  z-index: 100;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
   overflow: hidden;
   animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
