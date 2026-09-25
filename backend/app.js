@@ -123,13 +123,15 @@ app.use('/api', activityRoutes, contactRoutes, companyRoutes, notificationRoutes
 server.listen(PORT, async () => {
     console.log(`[SERVER ACTIVE] Running in ${process.env.NODE_ENV || 'development'} mode on Port ${PORT}`);
 
-    // Self-healing: Repair any assigned deals stuck in Pool Drive
+    // Self-healing: Repair any assigned deals stuck in Pool Drive (only for regular users, not Admin Account)
     try {
         const [stuckDeals] = await db.query(`
             SELECT d.deal_id, d.pipeline_id, s.stage_name
             FROM deals d
             JOIN stages s ON d.deal_stage = s.stage_id
-            WHERE d.assign_to IS NOT NULL AND LOWER(s.stage_name) LIKE '%pool%'
+            WHERE d.assign_to IS NOT NULL 
+            AND d.assign_to NOT IN (SELECT user_id FROM users WHERE role = 'admin')
+            AND LOWER(s.stage_name) LIKE '%pool%'
         `);
         for (const deal of stuckDeals) {
             const [firstStage] = await db.query(`

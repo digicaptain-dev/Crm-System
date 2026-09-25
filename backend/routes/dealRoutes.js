@@ -1058,13 +1058,16 @@ router.put(
             const oldStageName = oldStageRows[0]?.stage_name || currentDeal.deal_stage || "Initial Stage";
 
             if (isPoolDrive) {
-                // Moving to Pool Drive: unassign deal, record moved_by
+                // Moving to Pool Drive: assign to Admin Account, record moved_by
+                const [adminUser] = await db.query(`SELECT user_id FROM users WHERE role = 'admin' ORDER BY user_id ASC LIMIT 1`);
+                const adminId = adminUser[0]?.user_id || null;
+
                 await db.query(
                     `
                     UPDATE deals
                     SET
                         deal_stage = ?,
-                        assign_to = NULL,
+                        assign_to = ?,
                         moved_by_name = ?,
                         moved_by_user_id = ?,
                         moved_at = CURRENT_TIMESTAMP,
@@ -1073,6 +1076,7 @@ router.put(
                     `,
                     [
                         targetStageId,
+                        adminId,
                         moverName,
                         user_id,
                         dealId
@@ -1433,38 +1437,41 @@ router.put(
                 params
             );
 
-            // If any assigned deals are currently in Pool Drive, automatically move them to the first active stage
+            // If any assigned deals are currently in Pool Drive, automatically move them to the first active stage if assigned to non-admin
             try {
-                const [poolDeals] = await db.query(
-                    `SELECT d.deal_id, d.pipeline_id 
-                     FROM deals d
-                     JOIN stages s ON d.deal_stage = s.stage_id
-                     WHERE d.deal_id IN (${placeholders}) AND LOWER(s.stage_name) LIKE '%pool%'`,
-                    deal_ids
-                );
-
-                for (const pd of poolDeals) {
-                    const [firstStages] = await db.query(
-                        `SELECT stage_id FROM stages 
-                         WHERE (pipeline_id = ? OR pipeline_id IS NULL) 
-                         AND LOWER(stage_name) NOT LIKE '%pool%' 
-                         ORDER BY stage_order ASC LIMIT 1`,
-                        [pd.pipeline_id]
+                const [targetUser] = await db.query(`SELECT role FROM users WHERE user_id = ?`, [user_id]);
+                if (targetUser[0]?.role !== 'admin') {
+                    const [poolDeals] = await db.query(
+                        `SELECT d.deal_id, d.pipeline_id 
+                         FROM deals d
+                         JOIN stages s ON d.deal_stage = s.stage_id
+                         WHERE d.deal_id IN (${placeholders}) AND LOWER(s.stage_name) LIKE '%pool%'`,
+                        deal_ids
                     );
-                    if (firstStages.length > 0) {
-                        await db.query(
-                            `UPDATE deals 
-                             SET deal_stage = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
-                             WHERE deal_id = ?`,
-                            [firstStages[0].stage_id, pd.deal_id]
+
+                    for (const pd of poolDeals) {
+                        const [firstStages] = await db.query(
+                            `SELECT stage_id FROM stages 
+                             WHERE (pipeline_id = ? OR pipeline_id IS NULL) 
+                             AND LOWER(stage_name) NOT LIKE '%pool%' 
+                             ORDER BY stage_order ASC LIMIT 1`,
+                            [pd.pipeline_id]
                         );
-                    } else {
-                        await db.query(
-                            `UPDATE deals 
-                             SET moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
-                             WHERE deal_id = ?`,
-                            [pd.deal_id]
-                        );
+                        if (firstStages.length > 0) {
+                            await db.query(
+                                `UPDATE deals 
+                                 SET deal_stage = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
+                                 WHERE deal_id = ?`,
+                                [firstStages[0].stage_id, pd.deal_id]
+                            );
+                        } else {
+                            await db.query(
+                                `UPDATE deals 
+                                 SET moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP 
+                                 WHERE deal_id = ?`,
+                                [pd.deal_id]
+                            );
+                        }
                     }
                 }
             } catch (poolSyncErr) {
