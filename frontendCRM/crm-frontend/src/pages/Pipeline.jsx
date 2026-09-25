@@ -111,14 +111,16 @@ function Pipeline() {
       return {
         ...rawPipeline,
         allStages: rawPipeline.stages || [],
-        stages: (rawPipeline.stages || [])
-          .filter((st) => !st.stage_name || !st.stage_name.toLowerCase().includes("pool"))
-          .map((st) => ({
+        stages: (rawPipeline.stages || []).map((st) => {
+          const isPool = st.stage_name && st.stage_name.toLowerCase().includes("pool");
+          return {
             ...st,
-            deals: (st.deals || []).filter(
-              (deal) => deal?.assign_to && String(deal.assign_to) === String(currentUserId)
-            ),
-          })),
+            deals: (st.deals || []).filter((deal) => {
+              if (isPool) return true;
+              return deal?.assign_to && String(deal.assign_to) === String(currentUserId);
+            }),
+          };
+        }),
       };
     }
 
