@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload";
@@ -28,6 +28,22 @@ function DealDetails() {
 
   const [stages, setStages] = useState([]);
   const [status, setStatus] = useState("Open");
+
+  // Change Stage Menu State
+  const [showChangeStageMenu, setShowChangeStageMenu] = useState(false);
+  const changeStageRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (changeStageRef.current && !changeStageRef.current.contains(e.target)) {
+        setShowChangeStageMenu(false);
+      }
+    };
+    if (showChangeStageMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showChangeStageMenu]);
 
   // Activities & Timeline
   const [activities, setActivities] = useState([]);
@@ -698,27 +714,87 @@ function DealDetails() {
           </div>
 
           <div className="deal-quick-status-actions">
-            {!isCurrentlyInPool && (
+            <div className="deal-change-stage-dropdown-container" ref={changeStageRef}>
               <button
                 type="button"
-                className="deal-action-btn btn-move-pool"
-                onClick={() => {
-                  if (poolStage) {
-                    promptStageChange(poolStage.stage_id);
-                  } else {
-                    alert("Pool Drive stage not found.");
-                  }
-                }}
+                className="deal-action-btn btn-change-stage"
+                onClick={() => setShowChangeStageMenu((prev) => !prev)}
                 disabled={activitySubmitting}
-                title="Move lead to Pool Drive"
+                title="Change stage for this deal"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                   <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                Move to Pool Drive
+                <span>Change Stage</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    marginLeft: 2,
+                    transform: showChangeStageMenu ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
-            )}
+
+              {showChangeStageMenu && (
+                <div className="deal-change-stage-popover" onClick={(e) => e.stopPropagation()}>
+                  <div className="stage-popover-header">
+                    <span>Select Stage</span>
+                    <button
+                      type="button"
+                      className="stage-popover-close"
+                      onClick={() => setShowChangeStageMenu(false)}
+                      title="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="stage-popover-list">
+                    {stages.map((stageItem) => {
+                      const isCurrentStage = String(deal?.deal_stage) === String(stageItem.stage_id);
+                      const isPool = stageItem.stage_name && stageItem.stage_name.toLowerCase().includes("pool");
+
+                      return (
+                        <button
+                          key={stageItem.stage_id}
+                          type="button"
+                          className={`stage-popover-item ${isCurrentStage ? "current" : ""} ${isPool ? "is-pool-item" : ""}`}
+                          onClick={() => {
+                            setShowChangeStageMenu(false);
+                            promptStageChange(stageItem.stage_id);
+                          }}
+                          disabled={isCurrentStage}
+                        >
+                          <span
+                            className="stage-item-indicator"
+                            style={{
+                              backgroundColor: isCurrentStage
+                                ? "#10b981"
+                                : isPool
+                                ? "#ec4899"
+                                : "#3b82f6",
+                            }}
+                          />
+                          <span className="stage-item-name">{stageItem.stage_name}</span>
+                          {isCurrentStage && (
+                            <span className="stage-item-current-tag">Current</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               type="button"
