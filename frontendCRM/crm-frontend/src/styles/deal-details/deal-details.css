@@ -160,6 +160,25 @@
   color: #ffffff;
 }
 
+.btn-move-pool {
+  background: #fdf2f8;
+  border: 1px solid #fbcfe8;
+  color: #be185d;
+  font-weight: 600;
+}
+
+.btn-move-pool:hover:not(:disabled) {
+  background: #ec4899;
+  border-color: #ec4899;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.btn-move-pool:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-view-pipeline {
   background: #ffffff;
   border: 1px solid var(--border, #e2e8f0);

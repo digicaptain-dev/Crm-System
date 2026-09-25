@@ -616,6 +616,12 @@ function DealDetails() {
     return idx !== -1 ? idx : 0;
   }, [stages, deal?.deal_stage]);
 
+  // Pool stage lookup
+  const poolStage = useMemo(() => {
+    return stages.find((s) => s.stage_name && s.stage_name.toLowerCase().includes("pool"));
+  }, [stages]);
+  const isCurrentlyInPool = poolStage && String(deal?.deal_stage) === String(poolStage.stage_id);
+
   // =====================================================
   // LOADING / ERROR STATES
   // =====================================================
@@ -692,49 +698,25 @@ function DealDetails() {
           </div>
 
           <div className="deal-quick-status-actions">
-            {status !== "Won" && (
+            {!isCurrentlyInPool && (
               <button
                 type="button"
-                className="deal-action-btn btn-mark-won"
-                onClick={() => promptStatusChange("Won")}
+                className="deal-action-btn btn-move-pool"
+                onClick={() => {
+                  if (poolStage) {
+                    promptStageChange(poolStage.stage_id);
+                  } else {
+                    alert("Pool Drive stage not found.");
+                  }
+                }}
                 disabled={activitySubmitting}
-                title="Mark deal as Won"
+                title="Move lead to Pool Drive"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
+                  <path d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                Won
-              </button>
-            )}
-
-            {status !== "Lost" && (
-              <button
-                type="button"
-                className="deal-action-btn btn-mark-lost"
-                onClick={() => promptStatusChange("Lost")}
-                disabled={activitySubmitting}
-                title="Mark deal as Lost"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                Lost
-              </button>
-            )}
-
-            {status !== "Open" && (
-              <button
-                type="button"
-                className="deal-action-btn btn-reopen"
-                onClick={() => promptStatusChange("Open")}
-                disabled={activitySubmitting}
-                title="Reopen deal"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                </svg>
-                Reopen Deal
+                Move to Pool Drive
               </button>
             )}
 
