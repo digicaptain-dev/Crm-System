@@ -110,6 +110,7 @@ function Pipeline() {
     if (isEmployee && currentUserId) {
       return {
         ...rawPipeline,
+        allStages: rawPipeline.stages || [],
         stages: (rawPipeline.stages || [])
           .filter((st) => !st.stage_name || !st.stage_name.toLowerCase().includes("pool"))
           .map((st) => ({
@@ -121,7 +122,10 @@ function Pipeline() {
       };
     }
 
-    return rawPipeline;
+    return {
+      ...rawPipeline,
+      allStages: rawPipeline.stages || [],
+    };
   }, [pipelines, selectedPipelineId, isEmployee, currentUserId]);
 
   /* =====================================================
@@ -218,6 +222,7 @@ function Pipeline() {
 
     return {
       ...selectedPipeline,
+      allStages: selectedPipeline.allStages || selectedPipeline.stages || [],
       stages: filteredStages,
     };
   }, [selectedPipeline, searchValue, filters]);

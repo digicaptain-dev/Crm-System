@@ -105,6 +105,14 @@ function PipelineBoard({
   // Use current optimistic state or immediate fallback to sortedPipelineStages so there is ZERO delay or flash
   const displayStages = stages.length > 0 ? stages : sortedPipelineStages;
 
+  // Derive all available move stages (including Pool Drive even if hidden as a column for employee)
+  const allMoveStages = useMemo(() => {
+    if (pipeline?.allStages && Array.isArray(pipeline.allStages) && pipeline.allStages.length > 0) {
+      return [...pipeline.allStages].sort((a, b) => Number(a.stage_order || 0) - Number(b.stage_order || 0));
+    }
+    return sortedPipelineStages;
+  }, [pipeline, sortedPipelineStages]);
+
   const totalVisibleDeals = useMemo(() => {
     return displayStages.reduce((total, stage) => total + stage.deals.length, 0);
   }, [displayStages]);
@@ -346,7 +354,7 @@ function PipelineBoard({
     );
     if (!sourceStage || String(sourceStage.stage_id) === String(targetStageId)) return;
 
-    const targetStage = stages.find((s) => String(s.stage_id) === String(targetStageId));
+    const targetStage = allMoveStages.find((s) => String(s.stage_id) === String(targetStageId));
     if (!targetStage) return;
 
     initiateDealMove(deal, targetStage, sourceStage);
@@ -672,7 +680,7 @@ function PipelineBoard({
                         <PipelineDealCard
                           key={deal.deal_id}
                           deal={deal}
-                          stages={displayStages}
+                          stages={allMoveStages}
                           onDragStart={handleDealDragStart}
                           onDragEnd={handleDealDragEnd}
                           onMoveStage={handleMoveDealToStage}
