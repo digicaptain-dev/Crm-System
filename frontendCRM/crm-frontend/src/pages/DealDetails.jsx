@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload";
 
@@ -18,6 +18,44 @@ const STAGE_THEMES = [
 function DealDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Smart return path resolution
+  const returnSource = useMemo(() => {
+    if (location.state?.from) return location.state.from;
+    try {
+      const stored = sessionStorage.getItem("deal_return_source");
+      if (stored) return stored;
+    } catch {}
+    return "/pipelines";
+  }, [location.state]);
+
+  const returnLabel = useMemo(() => {
+    if (returnSource.includes("deal") && !returnSource.includes("pipeline")) {
+      return "Deals";
+    }
+    return "Pipelines";
+  }, [returnSource]);
+
+  // Keep last opened deal ID stored in sessionStorage so return scroll works smoothly
+  useEffect(() => {
+    if (id) {
+      try {
+        sessionStorage.setItem("last_opened_deal_id", String(id));
+      } catch {}
+    }
+  }, [id]);
+
+  const handleGoBack = (e) => {
+    e.preventDefault();
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else if (returnSource) {
+      navigate(returnSource);
+    } else {
+      navigate("/pipelines");
+    }
+  };
 
   // =====================================================
   // STATE
@@ -702,12 +740,17 @@ function DealDetails() {
       <div className="deal-header-card">
         <div className="deal-header-top-row">
           <div className="deal-breadcrumb-nav">
-            <Link to="/deals" className="deal-back-link">
+            <Link
+              to={returnSource}
+              onClick={handleGoBack}
+              className="deal-back-link"
+              title={`Back to ${returnLabel}`}
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="19" y1="12" x2="5" y2="12" />
                 <polyline points="12 19 5 12 12 5" />
               </svg>
-              <span>Deals</span>
+              <span>{returnLabel}</span>
             </Link>
             <span className="breadcrumb-slash">/</span>
             <span className="breadcrumb-current">{deal.deal_name || "Deal Details"}</span>

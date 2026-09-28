@@ -167,6 +167,45 @@ function Deals() {
     return () => clearTimeout(handler);
   }, [fetchDeals, currentPage, limit]);
 
+  /* =====================================================
+     AUTO-SCROLL & HIGHLIGHT LAST OPENED DEAL ON RETURN
+  ===================================================== */
+  useEffect(() => {
+    let lastOpenedDealId = null;
+    try {
+      lastOpenedDealId = sessionStorage.getItem("last_opened_deal_id");
+    } catch {}
+
+    if (!lastOpenedDealId || loading || deals.length === 0) return;
+
+    const scrollTimer = setTimeout(() => {
+      const el =
+        document.getElementById(`deal-table-row-${lastOpenedDealId}`) ||
+        document.getElementById(`deal-grid-card-${lastOpenedDealId}`) ||
+        document.querySelector(`[data-deal-id="${lastOpenedDealId}"]`);
+
+      if (el) {
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        el.classList.add("deal-item-highlighted");
+
+        const clearTimer = setTimeout(() => {
+          el.classList.remove("deal-item-highlighted");
+          try {
+            sessionStorage.removeItem("last_opened_deal_id");
+          } catch {}
+        }, 4500);
+
+        return () => clearTimeout(clearTimer);
+      }
+    }, 280);
+
+    return () => clearTimeout(scrollTimer);
+  }, [deals, loading, view]);
+
   // =====================================================
   // SELECTION
   // =====================================================

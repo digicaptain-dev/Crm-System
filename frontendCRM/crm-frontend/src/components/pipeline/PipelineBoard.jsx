@@ -118,6 +118,50 @@ function PipelineBoard({
   }, [displayStages]);
 
   /* =====================================================
+     AUTO-SCROLL & HIGHLIGHT LAST OPENED DEAL ON RETURN
+  ===================================================== */
+  useEffect(() => {
+    let lastOpenedDealId = null;
+    try {
+      lastOpenedDealId = sessionStorage.getItem("last_opened_deal_id");
+    } catch {}
+
+    if (!lastOpenedDealId || loading) return;
+
+    // Small timeout to allow DOM nodes to fully render
+    const scrollTimer = setTimeout(() => {
+      const cardEl =
+        document.getElementById(`pipeline-deal-card-${lastOpenedDealId}`) ||
+        document.getElementById(`pipeline-deal-row-${lastOpenedDealId}`) ||
+        document.querySelector(`[data-deal-id="${lastOpenedDealId}"]`);
+
+      if (cardEl) {
+        // Scroll card into view smoothly inside column & horizontally across the board
+        cardEl.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "center",
+        });
+
+        // Add highlight class
+        cardEl.classList.add("pipeline-deal-card-highlighted");
+
+        // Remove highlight & clear storage after 4.5s
+        const clearTimer = setTimeout(() => {
+          cardEl.classList.remove("pipeline-deal-card-highlighted");
+          try {
+            sessionStorage.removeItem("last_opened_deal_id");
+          } catch {}
+        }, 4500);
+
+        return () => clearTimeout(clearTimer);
+      }
+    }, 280);
+
+    return () => clearTimeout(scrollTimer);
+  }, [displayStages, loading, view]);
+
+  /* =====================================================
      DRAG & DROP: DEALS
   ===================================================== */
   const handleDealDragStart = (deal) => {
@@ -432,7 +476,18 @@ function PipelineBoard({
                   stage.deals.map((deal) => (
                     <tr
                       key={`${stage.stage_id}-${deal.deal_id}`}
-                      onClick={() => navigate(`/deal/${deal.deal_id}`)}
+                      id={`pipeline-deal-row-${deal.deal_id}`}
+                      data-deal-id={deal.deal_id}
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                          sessionStorage.setItem("deal_return_source", "/pipelines");
+                        } catch {}
+                        navigate(`/deal/${deal.deal_id}`, {
+                          state: { from: "/pipelines", dealId: deal.deal_id },
+                        });
+                      }}
+                      style={{ cursor: "pointer" }}
                     >
                       <td>
                         <div className="table-deal-cell">
@@ -479,7 +534,13 @@ function PipelineBoard({
                           className="table-action-link"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/deal/${deal.deal_id}`);
+                            try {
+                              sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                              sessionStorage.setItem("deal_return_source", "/pipelines");
+                            } catch {}
+                            navigate(`/deal/${deal.deal_id}`, {
+                              state: { from: "/pipelines", dealId: deal.deal_id },
+                            });
                           }}
                         >
                           View →

@@ -797,3 +797,28 @@
   width: 45px;
   height: 16px;
 }
+
+/* =========================================================
+   HIGHLIGHT ROW ON TABLE VIEW IN PIPELINE
+   ========================================================= */
+tr.pipeline-deal-card-highlighted {
+  background-color: #eff6ff !important;
+  outline: 2px solid #3b82f6 !important;
+  box-shadow: inset 0 0 0 1px #2563eb;
+  animation: tableRowPulse 1.8s ease-in-out infinite alternate !important;
+}
+
+@keyframes tableRowPulse {
+  0% {
+    background-color: #eff6ff;
+    outline-color: #93c5fd;
+  }
+  50% {
+    background-color: #dbeafe;
+    outline-color: #2563eb;
+  }
+  100% {
+    background-color: #eff6ff;
+    outline-color: #93c5fd;
+  }
+}

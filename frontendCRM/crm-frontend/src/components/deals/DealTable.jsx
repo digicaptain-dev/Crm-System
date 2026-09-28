@@ -69,11 +69,23 @@ function DealTable({
             const assignedName = deal.assigned_user_name;
             const ownerInitial = assignedName ? assignedName.charAt(0).toUpperCase() : "";
 
+            const handleRowClick = () => {
+              try {
+                sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                sessionStorage.setItem("deal_return_source", "/deals");
+              } catch {}
+              navigate(`/deal/${deal.deal_id}`, {
+                state: { from: "/deals", dealId: deal.deal_id },
+              });
+            };
+
             return (
               <tr
                 key={deal.deal_id}
+                id={`deal-table-row-${deal.deal_id}`}
+                data-deal-id={deal.deal_id}
                 className={isSelected ? "deal-row-selected" : ""}
-                onClick={() => navigate(`/deal/${deal.deal_id}`)}
+                onClick={handleRowClick}
                 style={{ cursor: "pointer" }}
               >
                 {/* Checkbox */}
@@ -97,7 +109,14 @@ function DealTable({
                     <Link
                       to={`/deal/${deal.deal_id}`}
                       className="deal-title-link"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                          sessionStorage.setItem("deal_return_source", "/deals");
+                        } catch {}
+                      }}
+                      state={{ from: "/deals", dealId: deal.deal_id }}
                       title={deal.deal_name || "Untitled Deal"}
                     >
                       {deal.deal_name || "Untitled Deal"}
@@ -155,7 +174,17 @@ function DealTable({
                 {/* Actions */}
                 <td onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Link to={`/deal/${deal.deal_id}`} className="btn-table-view-deal">
+                    <Link
+                      to={`/deal/${deal.deal_id}`}
+                      className="btn-table-view-deal"
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                          sessionStorage.setItem("deal_return_source", "/deals");
+                        } catch {}
+                      }}
+                      state={{ from: "/deals", dealId: deal.deal_id }}
+                    >
                       <span>View Deal</span>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="9 18 15 12 9 6" />

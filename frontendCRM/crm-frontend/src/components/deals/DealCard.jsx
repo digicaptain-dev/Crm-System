@@ -9,11 +9,17 @@ function DealCard({ deal, onClick }) {
   const handleOpenDeal = (e) => {
     e.stopPropagation();
     if (!deal?.deal_id) return;
+    try {
+      sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+      sessionStorage.setItem("deal_return_source", "/deals");
+    } catch {}
     if (onClick) {
       onClick(deal);
       return;
     }
-    navigate(`/deal/${deal.deal_id}`);
+    navigate(`/deal/${deal.deal_id}`, {
+      state: { from: "/deals", dealId: deal.deal_id },
+    });
   };
 
   const priority = deal?.deal_priority || "Medium";
@@ -39,6 +45,8 @@ function DealCard({ deal, onClick }) {
 
   return (
     <div
+      id={`deal-grid-card-${deal?.deal_id}`}
+      data-deal-id={deal?.deal_id}
       className="deal-grid-card"
       onClick={handleOpenDeal}
       role="button"

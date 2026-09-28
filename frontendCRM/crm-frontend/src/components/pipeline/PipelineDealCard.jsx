@@ -42,7 +42,13 @@ function PipelineDealCard({
     event.stopPropagation();
     if (countdown !== null) return;
     if (!deal?.deal_id) return;
-    navigate(`/deal/${deal.deal_id}`);
+    try {
+      sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+      sessionStorage.setItem("deal_return_source", "/pipelines");
+    } catch {}
+    navigate(`/deal/${deal.deal_id}`, {
+      state: { from: "/pipelines", dealId: deal.deal_id },
+    });
   };
 
   /*
@@ -99,6 +105,8 @@ function PipelineDealCard({
 
   return (
     <div
+      id={`pipeline-deal-card-${deal?.deal_id}`}
+      data-deal-id={deal?.deal_id}
       className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""} ${showMoveMenu ? "has-popover-open" : ""}`}
       draggable={!updating && !showMoveMenu && countdown === null}
       onDragStart={handleDragStart}
