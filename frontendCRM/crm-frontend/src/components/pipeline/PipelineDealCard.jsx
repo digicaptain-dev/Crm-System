@@ -38,14 +38,27 @@ function PipelineDealCard({
    * =====================================================
    */
   const handleOpenDeal = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
     if (countdown !== null) return;
     if (!deal?.deal_id) return;
+
+    // Check if Ctrl key (Windows/Linux) or Cmd key (Mac) or middle mouse click
+    const isNewTab = event?.ctrlKey || event?.metaKey || event?.button === 1;
+
     try {
       sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
       sessionStorage.setItem("deal_return_source", "/pipelines");
     } catch {}
+
+    if (isNewTab) {
+      if (event?.preventDefault) event.preventDefault();
+      if (event?.stopPropagation) event.stopPropagation();
+      window.open(`/deal/${deal.deal_id}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (event?.preventDefault) event.preventDefault();
+    if (event?.stopPropagation) event.stopPropagation();
+
     navigate(`/deal/${deal.deal_id}`, {
       state: { from: "/pipelines", dealId: deal.deal_id },
     });
@@ -112,6 +125,7 @@ function PipelineDealCard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleOpenDeal}
+      onAuxClick={handleOpenDeal}
     >
       {/* Top Badges & Quick Move Button */}
       <div className="deal-card-badges">

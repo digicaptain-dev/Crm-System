@@ -473,81 +473,93 @@ function PipelineBoard({
               </thead>
               <tbody>
                 {stages.flatMap((stage) =>
-                  stage.deals.map((deal) => (
-                    <tr
-                      key={`${stage.stage_id}-${deal.deal_id}`}
-                      id={`pipeline-deal-row-${deal.deal_id}`}
-                      data-deal-id={deal.deal_id}
-                      onClick={() => {
-                        try {
-                          sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
-                          sessionStorage.setItem("deal_return_source", "/pipelines");
-                        } catch {}
-                        navigate(`/deal/${deal.deal_id}`, {
-                          state: { from: "/pipelines", dealId: deal.deal_id },
-                        });
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <td>
-                        <div className="table-deal-cell">
-                          <strong>{deal.deal_name || "Untitled Deal"}</strong>
-                          {deal.deal_organization && (
-                            <span className="table-deal-sub">{deal.deal_organization}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="table-stage-chip">{stage.stage_name}</span>
-                      </td>
-                      <td>
-                        <span className="table-owner-text">{deal.deal_owner || "Unassigned"}</span>
-                      </td>
-                      <td>
-                        <span
-                          className={`table-status-pill status-${String(deal.deal_status || "open").toLowerCase()}`}
-                        >
-                          {deal.deal_status || "Open"}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`table-priority-pill priority-${String(deal.deal_priority || "medium").toLowerCase()}`}
-                        >
-                          {deal.deal_priority || "Medium"}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="table-date-text">
-                          {deal.close_date
-                            ? new Date(deal.close_date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })
-                            : "—"}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="table-action-link"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            try {
-                              sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
-                              sessionStorage.setItem("deal_return_source", "/pipelines");
-                            } catch {}
-                            navigate(`/deal/${deal.deal_id}`, {
-                              state: { from: "/pipelines", dealId: deal.deal_id },
-                            });
-                          }}
-                        >
-                          View →
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  stage.deals.map((deal) => {
+                    const handleRowClick = (e) => {
+                      const isNewTab = e?.ctrlKey || e?.metaKey || e?.button === 1;
+                      try {
+                        sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
+                        sessionStorage.setItem("deal_return_source", "/pipelines");
+                      } catch {}
+
+                      if (isNewTab) {
+                        if (e?.preventDefault) e.preventDefault();
+                        if (e?.stopPropagation) e.stopPropagation();
+                        window.open(`/deal/${deal.deal_id}`, "_blank", "noopener,noreferrer");
+                        return;
+                      }
+
+                      navigate(`/deal/${deal.deal_id}`, {
+                        state: { from: "/pipelines", dealId: deal.deal_id },
+                      });
+                    };
+
+                    return (
+                      <tr
+                        key={`${stage.stage_id}-${deal.deal_id}`}
+                        id={`pipeline-deal-row-${deal.deal_id}`}
+                        data-deal-id={deal.deal_id}
+                        onClick={handleRowClick}
+                        onAuxClick={handleRowClick}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <td>
+                          <div className="table-deal-cell">
+                            <strong>{deal.deal_name || "Untitled Deal"}</strong>
+                            {deal.deal_organization && (
+                              <span className="table-deal-sub">{deal.deal_organization}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="table-stage-chip">{stage.stage_name}</span>
+                        </td>
+                        <td>
+                          <span className="table-owner-text">{deal.deal_owner || "Unassigned"}</span>
+                        </td>
+                        <td>
+                          <span
+                            className={`table-status-pill status-${String(deal.deal_status || "open").toLowerCase()}`}
+                          >
+                            {deal.deal_status || "Open"}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`table-priority-pill priority-${String(deal.deal_priority || "medium").toLowerCase()}`}
+                          >
+                            {deal.deal_priority || "Medium"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="table-date-text">
+                            {deal.close_date
+                              ? new Date(deal.close_date).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="table-action-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRowClick(e);
+                            }}
+                            onAuxClick={(e) => {
+                              e.stopPropagation();
+                              handleRowClick(e);
+                            }}
+                          >
+                            View →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

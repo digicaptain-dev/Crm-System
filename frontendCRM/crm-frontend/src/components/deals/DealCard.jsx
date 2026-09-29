@@ -7,12 +7,22 @@ function DealCard({ deal, onClick }) {
   const navigate = useNavigate();
 
   const handleOpenDeal = (e) => {
-    e.stopPropagation();
     if (!deal?.deal_id) return;
+    const isNewTab = e?.ctrlKey || e?.metaKey || e?.button === 1;
+
     try {
       sessionStorage.setItem("last_opened_deal_id", String(deal.deal_id));
       sessionStorage.setItem("deal_return_source", "/deals");
     } catch {}
+
+    if (isNewTab) {
+      if (e?.stopPropagation) e.stopPropagation();
+      if (e?.preventDefault) e.preventDefault();
+      window.open(`/deal/${deal.deal_id}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (e?.stopPropagation) e.stopPropagation();
     if (onClick) {
       onClick(deal);
       return;
@@ -49,6 +59,7 @@ function DealCard({ deal, onClick }) {
       data-deal-id={deal?.deal_id}
       className="deal-grid-card"
       onClick={handleOpenDeal}
+      onAuxClick={handleOpenDeal}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
