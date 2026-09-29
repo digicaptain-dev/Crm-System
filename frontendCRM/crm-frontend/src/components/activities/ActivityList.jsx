@@ -8,8 +8,15 @@ function ActivityList({
   onClearDateFilter,
   onOpenCreate,
   onDeleteActivity,
+  isAdmin: propIsAdmin,
 }) {
   const navigate = useNavigate();
+
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  } catch {}
+  const isAdmin = propIsAdmin !== undefined ? Boolean(propIsAdmin) : currentUser?.role === "admin";
 
   const getActivityDate = (activity) => {
     if (!activity.created_at) return null;
@@ -304,7 +311,7 @@ function ActivityList({
                       </div>
                     </div>
 
-                    {onDeleteActivity && act.id && (
+                    {isAdmin && onDeleteActivity && act.id && (
                       <div className="activity-actions-wrap">
                         <button
                           type="button"

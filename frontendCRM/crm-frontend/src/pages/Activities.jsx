@@ -26,6 +26,15 @@ function Activities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  // User Role Check
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("user") || "null");
+  } catch (error) {
+    console.error("Failed to read logged-in user:", error);
+  }
+  const isAdmin = currentUser?.role === "admin";
+
   // =====================================================
   // FETCH ACTIVITIES & DEALS
   // =====================================================
@@ -357,7 +366,8 @@ function Activities() {
             selectedDate={selectedDate}
             onClearDateFilter={() => setSelectedDate("")}
             onOpenCreate={() => setShowCreate(true)}
-            onDeleteActivity={handleDeleteActivity}
+            onDeleteActivity={isAdmin ? handleDeleteActivity : null}
+            isAdmin={isAdmin}
           />
         </div>
       </div>

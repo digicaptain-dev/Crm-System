@@ -253,6 +253,14 @@ router.post(
 // DELETE ACTIVITY
 // =====================================================
 router.delete("/activities/:id", authenticateToken, async (req, res) => {
+    // Only admin can delete activity records
+    if (req.user?.role !== "admin") {
+        return res.status(403).json({
+            success: false,
+            message: "Access denied. Only administrators can delete activity records."
+        });
+    }
+
     const { id } = req.params;
     try {
         const [result] = await db.query("DELETE FROM activities WHERE id = ?", [id]);
