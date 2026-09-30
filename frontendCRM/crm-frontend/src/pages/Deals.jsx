@@ -167,6 +167,16 @@ function Deals() {
     return () => clearTimeout(handler);
   }, [fetchDeals, currentPage, limit]);
 
+  // Sync current deals list sequence to sessionStorage for Next/Prev navigation
+  useEffect(() => {
+    if (deals && deals.length > 0) {
+      const allDealIds = deals.map((d) => String(d.deal_id));
+      try {
+        sessionStorage.setItem("deal_sequence_ids", JSON.stringify(allDealIds));
+      } catch {}
+    }
+  }, [deals]);
+
   /* =====================================================
      AUTO-SCROLL & HIGHLIGHT LAST OPENED DEAL ON RETURN
   ===================================================== */

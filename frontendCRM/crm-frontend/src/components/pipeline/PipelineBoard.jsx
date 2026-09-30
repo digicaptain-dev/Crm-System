@@ -117,6 +117,20 @@ function PipelineBoard({
     return displayStages.reduce((total, stage) => total + stage.deals.length, 0);
   }, [displayStages]);
 
+  // Sync visible pipeline deals sequence to sessionStorage for Next/Prev navigation
+  useEffect(() => {
+    if (displayStages && displayStages.length > 0) {
+      const allDealIds = displayStages.flatMap((s) =>
+        (s.deals || []).map((d) => String(d.deal_id))
+      );
+      if (allDealIds.length > 0) {
+        try {
+          sessionStorage.setItem("deal_sequence_ids", JSON.stringify(allDealIds));
+        } catch {}
+      }
+    }
+  }, [displayStages]);
+
   /* =====================================================
      AUTO-SCROLL & HIGHLIGHT LAST OPENED DEAL ON RETURN
   ===================================================== */

@@ -46,6 +46,100 @@ function DealDetails() {
     }
   }, [id]);
 
+  // Deal sequence for Prev / Next navigation
+  const [dealSequence, setDealSequence] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("deal_sequence_ids");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Background fallback to populate deal sequence if opened directly
+  useEffect(() => {
+    const fetchDealSequenceFallback = async () => {
+      try {
+        const res = await api.get("/deals", { params: { limit: 250 } });
+        const fetched = res.data?.deals || res.data || [];
+        if (Array.isArray(fetched) && fetched.length > 0) {
+          const ids = fetched.map((d) => String(d.deal_id));
+          setDealSequence(ids);
+          try {
+            sessionStorage.setItem("deal_sequence_ids", JSON.stringify(ids));
+          } catch {}
+        }
+      } catch (err) {
+        console.error("Failed to load deal sequence fallback:", err);
+      }
+    };
+
+    if (dealSequence.length === 0 || !dealSequence.includes(String(id))) {
+      fetchDealSequenceFallback();
+    }
+  }, [id, dealSequence]);
+
+  const currentDealIndex = useMemo(() => {
+    if (!dealSequence.length || !id) return -1;
+    return dealSequence.findIndex((itemId) => String(itemId) === String(id));
+  }, [dealSequence, id]);
+
+  const hasPrevDeal = currentDealIndex > 0;
+  const hasNextDeal = currentDealIndex !== -1 && currentDealIndex < dealSequence.length - 1;
+  const prevDealId = hasPrevDeal ? dealSequence[currentDealIndex - 1] : null;
+  const nextDealId = hasNextDeal ? dealSequence[currentDealIndex + 1] : null;
+  const dealPositionText =
+    currentDealIndex !== -1 && dealSequence.length > 0
+      ? `${currentDealIndex + 1} of ${dealSequence.length}`
+      : null;
+
+  const handlePrevDeal = useCallback(() => {
+    if (!hasPrevDeal || !prevDealId) return;
+    try {
+      sessionStorage.setItem("last_opened_deal_id", String(prevDealId));
+    } catch {}
+    navigate(`/deal/${prevDealId}`, {
+      state: { from: returnSource, dealId: prevDealId },
+    });
+  }, [hasPrevDeal, prevDealId, navigate, returnSource]);
+
+  const handleNextDeal = useCallback(() => {
+    if (!hasNextDeal || !nextDealId) return;
+    try {
+      sessionStorage.setItem("last_opened_deal_id", String(nextDealId));
+    } catch {}
+    navigate(`/deal/${nextDealId}`, {
+      state: { from: returnSource, dealId: nextDealId },
+    });
+  }, [hasNextDeal, nextDealId, navigate, returnSource]);
+
+  // Keyboard shortcut listener: [ / ] or Alt+Left / Alt+Right to navigate deals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tag = e.target?.tagName?.toLowerCase();
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        e.target?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "[" || (e.altKey && e.key === "ArrowLeft")) {
+        e.preventDefault();
+        handlePrevDeal();
+      } else if (e.key === "]" || (e.altKey && e.key === "ArrowRight")) {
+        e.preventDefault();
+        handleNextDeal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePrevDeal, handleNextDeal]);
+
   const handleGoBack = (e) => {
     e.preventDefault();
     if (location.state?.from) {
@@ -757,6 +851,43 @@ function DealDetails() {
           </div>
 
           <div className="deal-quick-status-actions">
+            {/* Prev / Next Deal Navigation Buttons */}
+            <div className="deal-pagination-nav-group">
+              <button
+                type="button"
+                className="deal-action-btn btn-deal-nav btn-deal-prev"
+                onClick={handlePrevDeal}
+                disabled={!hasPrevDeal}
+                title={hasPrevDeal ? "Previous Lead (Shortcut: [ or Alt+←)" : "First lead reached"}
+                aria-label="Previous Lead"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                <span>Prev</span>
+              </button>
+
+              {dealPositionText && (
+                <span className="deal-nav-index-text" title="Position in lead sequence">
+                  {dealPositionText}
+                </span>
+              )}
+
+              <button
+                type="button"
+                className="deal-action-btn btn-deal-nav btn-deal-next"
+                onClick={handleNextDeal}
+                disabled={!hasNextDeal}
+                title={hasNextDeal ? "Next Lead (Shortcut: ] or Alt+→)" : "Last lead reached"}
+                aria-label="Next Lead"
+              >
+                <span>Next</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+
             <div className="deal-change-stage-dropdown-container" ref={changeStageRef}>
               <button
                 type="button"
