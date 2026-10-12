@@ -25,10 +25,12 @@ function Pipeline() {
   const [searchValue, setSearchValue] = useState("");
   const [filters, setFilters] = useState({
     owner: "",
+    assignedUser: "",
     stage: "",
     priority: "",
     country: "",
   });
+  const [users, setUsers] = useState([]);
   const [view, setView] = useState("board");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -93,6 +95,21 @@ function Pipeline() {
   useEffect(() => {
     fetchPipelines();
   }, [fetchPipelines]);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await api.get("/users");
+      const fetchedUsers = response.data?.users || [];
+      setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+    } catch (err) {
+      console.warn("Could not fetch /users, using assignees from deals:", err.message);
+      setUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const isEmployee = currentUser && currentUser.role !== "admin" && currentUser.role !== "coworker";
   const currentUserId = currentUser?.user_id || currentUser?.id;
@@ -163,6 +180,25 @@ function Pipeline() {
     );
   }, [pipelineDeals]);
 
+  const assignees = useMemo(() => {
+    if (users && users.length > 0) return users;
+    const userMap = new Map();
+    pipelineDeals.forEach((deal) => {
+      if (deal?.assign_to && deal?.assigned_user_name) {
+        const id = String(deal.assign_to);
+        if (!userMap.has(id)) {
+          userMap.set(id, {
+            user_id: deal.assign_to,
+            name: deal.assigned_user_name,
+          });
+        }
+      }
+    });
+    return Array.from(userMap.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "")
+    );
+  }, [users, pipelineDeals]);
+
   /* =====================================================
      FILTER PIPELINE DEALS
   ===================================================== */
@@ -196,11 +232,16 @@ function Pipeline() {
             dealName.includes(search) ||
             email.includes(search) ||
             owner.includes(search) ||
-            org.includes(search);
+            org.includes(search) ||
+            String(deal?.assigned_user_name || "").toLowerCase().includes(search);
 
           const matchesOwner =
             !filters.owner ||
             String(deal?.deal_owner) === String(filters.owner);
+
+          const matchesAssignedUser =
+            !filters.assignedUser ||
+            String(deal?.assign_to) === String(filters.assignedUser);
 
           const matchesPriority =
             !filters.priority ||
@@ -214,6 +255,7 @@ function Pipeline() {
           return (
             matchesSearch &&
             matchesOwner &&
+            matchesAssignedUser &&
             matchesPriority &&
             matchesCountry
           );
@@ -404,6 +446,7 @@ function Pipeline() {
     setSearchValue("");
     setFilters({
       owner: "",
+      assignedUser: "",
       stage: "",
       priority: "",
       country: "",
@@ -455,6 +498,7 @@ function Pipeline() {
             filters={filters}
             onFiltersChange={setFilters}
             owners={owners}
+            users={assignees}
             stages={selectedPipeline?.allStages || selectedPipeline?.stages || []}
             countries={countries}
             view={view}

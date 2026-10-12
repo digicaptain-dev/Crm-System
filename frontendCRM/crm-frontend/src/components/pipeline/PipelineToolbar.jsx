@@ -6,6 +6,7 @@ function PipelineToolbar({
   filters,
   onFiltersChange,
   owners,
+  users = [],
   stages = [],
   countries = [],
   view,
@@ -22,6 +23,7 @@ function PipelineToolbar({
   const hasFilters =
     Boolean(searchValue) ||
     Boolean(filters.owner) ||
+    Boolean(filters.assignedUser) ||
     Boolean(filters.stage) ||
     Boolean(filters.priority) ||
     Boolean(filters.country);
@@ -69,13 +71,28 @@ function PipelineToolbar({
             value={filters.owner}
             onChange={(event) => handleFilterChange("owner", event.target.value)}
           >
-            <option value="">All Owners</option>
+            <option value="">All Clients / Companies</option>
             {owners.map((owner) => (
               <option key={owner} value={owner}>
                 {owner}
               </option>
             ))}
           </select>
+
+          {users && users.length > 0 && (
+            <select
+              className="pipeline-select-filter"
+              value={filters.assignedUser || ""}
+              onChange={(event) => handleFilterChange("assignedUser", event.target.value)}
+            >
+              <option value="">All Assignees</option>
+              {users.map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+            </select>
+          )}
 
           <select
             className="pipeline-select-filter"
