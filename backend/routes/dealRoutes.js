@@ -1366,7 +1366,8 @@ router.put(
 
         const {
             deal_ids,
-            user_id
+            user_id,
+            stage_id
         } = req.body;
 
         try {
@@ -1420,6 +1421,60 @@ router.put(
             const placeholders = deal_ids
                 .map(() => "?")
                 .join(",");
+
+            // If a specific stage is chosen, update both assign_to and deal_stage
+            if (stage_id) {
+                const [targetStages] = await db.query(
+                    `SELECT stage_id, pipeline_id, stage_name FROM stages WHERE stage_id = ? LIMIT 1`,
+                    [stage_id]
+                );
+
+                if (targetStages.length === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Selected stage not found"
+                    });
+                }
+
+                const targetStage = targetStages[0];
+                let updateQuery;
+                let updateParams;
+
+                if (targetStage.pipeline_id) {
+                    updateQuery = `
+                        UPDATE deals
+                        SET assign_to = ?, deal_stage = ?, pipeline_id = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP
+                        WHERE deal_id IN (${placeholders})
+                    `;
+                    updateParams = [user_id, targetStage.stage_id, targetStage.pipeline_id, ...deal_ids];
+                } else {
+                    updateQuery = `
+                        UPDATE deals
+                        SET assign_to = ?, deal_stage = ?, moved_by_name = NULL, moved_by_user_id = NULL, moved_at = NULL, last_updated = CURRENT_TIMESTAMP
+                        WHERE deal_id IN (${placeholders})
+                    `;
+                    updateParams = [user_id, targetStage.stage_id, ...deal_ids];
+                }
+
+                const [result] = await db.query(updateQuery, updateParams);
+
+                console.log(
+                    "Deals assigned and stage updated:",
+                    {
+                        admin: req.user.user_id,
+                        assigned_to: user_id,
+                        stage_id: targetStage.stage_id,
+                        deals: deal_ids,
+                        affectedRows: result.affectedRows
+                    }
+                );
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Deals assigned and stage updated successfully",
+                    affectedRows: result.affectedRows
+                });
+            }
 
             const query = `
                 UPDATE deals

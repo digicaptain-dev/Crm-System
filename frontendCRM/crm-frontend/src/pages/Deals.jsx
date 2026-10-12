@@ -746,6 +746,7 @@ function Deals() {
           selectedDealIds={selectedDeals}
           dealIds={selectedDeals}
           users={users}
+          pipelines={pipelines}
           onClose={() => setShowAssignModal(false)}
           onAssigned={() => {
             setShowAssignModal(false);

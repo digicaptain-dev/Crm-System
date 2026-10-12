@@ -35,6 +35,13 @@
   font-weight: 600;
 }
 
+.assign-optional-badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-left: 4px;
+}
+
 .assign-deal-modal .modal-body select {
   width: 100%;
   height: 44px;
