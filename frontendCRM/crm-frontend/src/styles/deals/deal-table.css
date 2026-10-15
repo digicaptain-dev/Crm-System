@@ -245,3 +245,44 @@
   color: #ffffff;
   border-color: var(--primary, #2563eb);
 }
+
+/* =========================================================
+   INACTIVE LEAD ROW HIGHLIGHT
+   ========================================================= */
+.deal-table tr.deal-row-inactive {
+  background: #fffdfa;
+}
+
+.deal-table tr.deal-row-inactive td:first-child {
+  border-left: 3.5px solid #f59e0b;
+}
+
+.deal-table tr.deal-row-inactive.deal-row-inactive-danger {
+  background: #fffafa;
+}
+
+.deal-table tr.deal-row-inactive.deal-row-inactive-danger td:first-child {
+  border-left: 3.5px solid #ef4444;
+}
+
+.table-inactive-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  white-space: nowrap;
+  margin-left: 6px;
+  user-select: none;
+}
+
+.table-inactive-pill.table-inactive-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}

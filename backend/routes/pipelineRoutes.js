@@ -71,6 +71,9 @@ router.get('/pipelines', async (req, res) => {
             d.moved_by_name,
             d.moved_by_user_id,
             d.moved_at,
+            d.creation_date,
+            d.last_updated,
+            (SELECT MAX(a.created_at) FROM activities a WHERE a.deal_id = d.deal_id) AS last_activity_at,
             d.pipeline_id AS deal_pipeline_id,
             assigned_user.name AS assigned_user_name,
             owner_user.name AS owner_name
@@ -182,7 +185,10 @@ router.get('/pipelines', async (req, res) => {
                     owner_name: row.owner_name,
                     moved_by_name: row.moved_by_name,
                     moved_by_user_id: row.moved_by_user_id,
-                    moved_at: row.moved_at
+                    moved_at: row.moved_at,
+                    creation_date: row.creation_date,
+                    last_updated: row.last_updated,
+                    last_activity_at: row.last_activity_at
                 });
             }
         });

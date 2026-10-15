@@ -362,3 +362,59 @@
   border-color: #2563eb;
   transform: translateX(1px);
 }
+
+/* =========================================================
+   INACTIVE LEAD HIGHLIGHT (No action > 4 days)
+   ========================================================= */
+.deal-grid-card.deal-card-inactive {
+  border-left: 3.5px solid #f59e0b;
+}
+
+.deal-grid-card.deal-card-inactive.deal-inactive-danger {
+  border-left: 3.5px solid #ef4444;
+}
+
+.deal-inactive-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  user-select: none;
+}
+
+.deal-inactive-badge.deal-inactive-badge-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.inactive-pulse-dot {
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  background: #f59e0b;
+  display: inline-block;
+  animation: inactiveDotPulse 1.8s infinite ease-in-out;
+}
+
+.deal-inactive-badge-danger .inactive-pulse-dot {
+  background: #ef4444;
+}
+
+@keyframes inactiveDotPulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}

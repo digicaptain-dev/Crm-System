@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload";
+import { getDealInactivity } from "../utils/inactivityHelper";
 
 import "../styles/deal-details/deal-details.css";
 
@@ -165,17 +166,29 @@ function DealDetails() {
   const [showChangeStageMenu, setShowChangeStageMenu] = useState(false);
   const changeStageRef = useRef(null);
 
+  // Change Priority Menu State (Header & Sidebar)
+  const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+  const priorityMenuRef = useRef(null);
+  const [showCardPriorityMenu, setShowCardPriorityMenu] = useState(false);
+  const cardPriorityMenuRef = useRef(null);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (changeStageRef.current && !changeStageRef.current.contains(e.target)) {
         setShowChangeStageMenu(false);
       }
+      if (priorityMenuRef.current && !priorityMenuRef.current.contains(e.target)) {
+        setShowPriorityMenu(false);
+      }
+      if (cardPriorityMenuRef.current && !cardPriorityMenuRef.current.contains(e.target)) {
+        setShowCardPriorityMenu(false);
+      }
     };
-    if (showChangeStageMenu) {
+    if (showChangeStageMenu || showPriorityMenu || showCardPriorityMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showChangeStageMenu]);
+  }, [showChangeStageMenu, showPriorityMenu, showCardPriorityMenu]);
 
   // Activities & Timeline
   const [activities, setActivities] = useState([]);
@@ -715,6 +728,38 @@ function DealDetails() {
     }
   };
 
+  const handlePriorityChange = async (newPriority) => {
+    if (!deal?.deal_id || !newPriority) return;
+    const currentPriority = deal.deal_priority || "Medium";
+    if (newPriority.toLowerCase() === currentPriority.toLowerCase()) return;
+
+    const previousPriority = deal.deal_priority;
+    try {
+      setActivitySubmitting(true);
+      // Optimistic update
+      setDeal((prev) => ({
+        ...prev,
+        deal_priority: newPriority,
+      }));
+
+      await api.put(`/deal/${deal.deal_id}`, {
+        deal_priority: newPriority,
+      });
+
+      // Refetch activities to show new activity entry in the timeline
+      await fetchActivities();
+    } catch (err) {
+      console.error("Failed to update priority:", err);
+      setDeal((prev) => ({
+        ...prev,
+        deal_priority: previousPriority,
+      }));
+      alert(err.response?.data?.message || "Failed to update deal priority.");
+    } finally {
+      setActivitySubmitting(false);
+    }
+  };
+
   // =====================================================
   // COPY TO CLIPBOARD HELPER
   // =====================================================
@@ -822,6 +867,7 @@ function DealDetails() {
   const priority = deal.deal_priority || "Medium";
   const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
   const statusClass = (status || deal.deal_status || "Open").toLowerCase().replace(/\s+/g, "-");
+  const inactivity = getDealInactivity(deal);
 
   // =====================================================
   // RENDER MAIN COMPONENT
@@ -1036,12 +1082,89 @@ function DealDetails() {
                 ● User {deal.moved_by_name} Moved this
               </span>
             )}
-            <span className={`deal-pill-badge priority-${priorityClass}`}>
-              {priority} Priority
-            </span>
+            <div className="deal-priority-dropdown-container" ref={priorityMenuRef}>
+              <button
+                type="button"
+                className={`deal-pill-badge deal-priority-clickable priority-${priorityClass}`}
+                onClick={() => setShowPriorityMenu((prev) => !prev)}
+                disabled={activitySubmitting}
+                title="Click to change lead priority"
+              >
+                <span>{priority} Priority</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="priority-badge-chevron"
+                  style={{
+                    width: 10,
+                    height: 10,
+                    marginLeft: 4,
+                    transform: showPriorityMenu ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {showPriorityMenu && (
+                <div className="deal-priority-popover" onClick={(e) => e.stopPropagation()}>
+                  <div className="priority-popover-header">
+                    <span>Change Priority</span>
+                    <button
+                      type="button"
+                      className="priority-popover-close"
+                      onClick={() => setShowPriorityMenu(false)}
+                      title="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="priority-popover-list">
+                    {[
+                      { level: "High", color: "#ef4444" },
+                      { level: "Medium", color: "#f59e0b" },
+                      { level: "Low", color: "#3b82f6" },
+                    ].map((opt) => {
+                      const isCurrent = priority.toLowerCase() === opt.level.toLowerCase();
+                      const optClass = opt.level.toLowerCase();
+                      return (
+                        <button
+                          key={opt.level}
+                          type="button"
+                          className={`priority-popover-item ${isCurrent ? "current" : ""} priority-item-${optClass}`}
+                          onClick={() => {
+                            setShowPriorityMenu(false);
+                            handlePriorityChange(opt.level);
+                          }}
+                          disabled={isCurrent || activitySubmitting}
+                        >
+                          <span
+                            className="priority-item-indicator"
+                            style={{ backgroundColor: opt.color }}
+                          />
+                          <span className="priority-item-name">{opt.level} Priority</span>
+                          {isCurrent && <span className="priority-item-current-tag">Current</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             <span className={`deal-pill-badge status-${statusClass}`}>
               ● {status}
             </span>
+            {inactivity.isInactive && (
+              <span
+                className={`deal-pill-badge deal-pill-inactive deal-inactive-${inactivity.urgency}`}
+                title={inactivity.tooltipText}
+              >
+                ⚠️ {inactivity.badgeLabel}
+              </span>
+            )}
             <button
               type="button"
               className="deal-id-chip"
@@ -1065,6 +1188,18 @@ function DealDetails() {
             </div>
           </div>
         )}
+
+        {inactivity.isInactive && (
+          <div className={`deal-inactivity-alert-banner urgency-${inactivity.urgency}`}>
+            <div className="inactivity-alert-inner">
+              <span className="inactivity-alert-icon">⚠️</span>
+              <div className="inactivity-alert-body">
+                <strong>Follow-up Required: </strong>
+                <span>No action has been taken on this lead for {inactivity.daysInactive} days. Please follow up, schedule a call, or add a note.</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* =================================================
@@ -1079,9 +1214,77 @@ function DealDetails() {
           <div className="deal-sidebar-card card-highlight">
             <div className="sidebar-card-header">
               <span className="sidebar-card-title">Deal Status</span>
-              <span className={`deal-priority-badge priority-${String(deal.deal_priority || "medium").toLowerCase()}`}>
-                {deal.deal_priority || "Medium"} Priority
-              </span>
+              <div className="deal-priority-dropdown-container" ref={cardPriorityMenuRef}>
+                <button
+                  type="button"
+                  className={`deal-priority-badge deal-priority-clickable priority-${priorityClass}`}
+                  onClick={() => setShowCardPriorityMenu((prev) => !prev)}
+                  disabled={activitySubmitting}
+                  title="Click to change lead priority"
+                >
+                  <span>{priority} Priority</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    style={{
+                      width: 10,
+                      height: 10,
+                      marginLeft: 4,
+                      transform: showCardPriorityMenu ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.15s ease",
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {showCardPriorityMenu && (
+                  <div className="deal-priority-popover card-priority-popover" onClick={(e) => e.stopPropagation()}>
+                    <div className="priority-popover-header">
+                      <span>Change Priority</span>
+                      <button
+                        type="button"
+                        className="priority-popover-close"
+                        onClick={() => setShowCardPriorityMenu(false)}
+                        title="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="priority-popover-list">
+                      {[
+                        { level: "High", color: "#ef4444" },
+                        { level: "Medium", color: "#f59e0b" },
+                        { level: "Low", color: "#3b82f6" },
+                      ].map((opt) => {
+                        const isCurrent = priority.toLowerCase() === opt.level.toLowerCase();
+                        const optClass = opt.level.toLowerCase();
+                        return (
+                          <button
+                            key={opt.level}
+                            type="button"
+                            className={`priority-popover-item ${isCurrent ? "current" : ""} priority-item-${optClass}`}
+                            onClick={() => {
+                              setShowCardPriorityMenu(false);
+                              handlePriorityChange(opt.level);
+                            }}
+                            disabled={isCurrent || activitySubmitting}
+                          >
+                            <span
+                              className="priority-item-indicator"
+                              style={{ backgroundColor: opt.color }}
+                            />
+                            <span className="priority-item-name">{opt.level} Priority</span>
+                            {isCurrent && <span className="priority-item-current-tag">Current</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="deal-big-value" style={{ fontSize: "20px", textTransform: "capitalize" }}>
               {deal.deal_status || "Open"}

@@ -123,7 +123,8 @@ router.get("/deals", authenticateToken, async (req, res) => {
                 deals.*,
                 assigned_user.name AS assigned_user_name,
                 owner_user.name AS owner_name,
-                stages.stage_name AS stage_name
+                stages.stage_name AS stage_name,
+                (SELECT MAX(a.created_at) FROM activities a WHERE a.deal_id = deals.deal_id) AS last_activity_at
             FROM deals
             LEFT JOIN users AS assigned_user ON deals.assign_to = assigned_user.user_id
             LEFT JOIN users AS owner_user ON deals.deal_owner = owner_user.user_id
@@ -327,7 +328,10 @@ router.get('/deal/:id', authenticateToken, async (req, res) => {
                 /* Stage */
                 s.stage_name,
                 s.stage_order,
-                s.description AS stage_description
+                s.description AS stage_description,
+
+                /* Inactivity tracking */
+                (SELECT MAX(a.created_at) FROM activities a WHERE a.deal_id = deals.deal_id) AS last_activity_at
 
             FROM deals
 
@@ -604,37 +608,14 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
 
         /*
          * Check whether deal exists
-         * and whether current user can access it.
          */
-        let checkSql;
-        let checkParams;
-
-        if (role === "admin") {
-
-            checkSql = `
-                SELECT *
-                FROM deals
-                WHERE deal_id = ?
-                LIMIT 1
-            `;
-
-            checkParams = [id];
-
-        } else {
-
-            checkSql = `
-                SELECT *
-                FROM deals
-                WHERE deal_id = ?
-                AND assign_to = ?
-                LIMIT 1
-            `;
-
-            checkParams = [
-                id,
-                user_id
-            ];
-        }
+        const checkSql = `
+            SELECT *
+            FROM deals
+            WHERE deal_id = ?
+            LIMIT 1
+        `;
+        const checkParams = [id];
 
         const [dealResults] = await db.query(
             checkSql,
@@ -792,7 +773,10 @@ router.put("/deal/:id", authenticateToken, async (req, res) => {
             if (updatedDeal.deal_status && updatedDeal.deal_status !== oldRec.deal_status) {
                 changes.push(`changed status from "${oldRec.deal_status || 'Open'}" to "${updatedDeal.deal_status}"`);
             }
-            if (updatedDeal.deal_priority && updatedDeal.deal_priority !== oldRec.deal_priority) {
+            if (
+                updatedDeal.deal_priority &&
+                String(updatedDeal.deal_priority).trim().toLowerCase() !== String(oldRec.deal_priority || "medium").trim().toLowerCase()
+            ) {
                 changes.push(`changed priority from "${oldRec.deal_priority || 'Medium'}" to "${updatedDeal.deal_priority}"`);
             }
             if (updatedDeal.deal_value !== undefined && String(updatedDeal.deal_value || "") !== String(oldRec.deal_value || "")) {

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getDealInactivity } from "../../utils/inactivityHelper";
 import "../../styles/deals/deal-table.css";
 
 function DealTable({
@@ -68,6 +69,7 @@ function DealTable({
             const statusClass = getStatusClass(deal.deal_status);
             const assignedName = deal.assigned_user_name;
             const ownerInitial = assignedName ? assignedName.charAt(0).toUpperCase() : "";
+            const inactivity = getDealInactivity(deal);
 
             const handleRowClick = () => {
               try {
@@ -84,7 +86,7 @@ function DealTable({
                 key={deal.deal_id}
                 id={`deal-table-row-${deal.deal_id}`}
                 data-deal-id={deal.deal_id}
-                className={isSelected ? "deal-row-selected" : ""}
+                className={`${isSelected ? "deal-row-selected" : ""} ${inactivity.isInactive ? `deal-row-inactive deal-row-inactive-${inactivity.urgency}` : ""}`}
                 onClick={handleRowClick}
                 style={{ cursor: "pointer" }}
               >
@@ -121,6 +123,14 @@ function DealTable({
                     >
                       {deal.deal_name || "Untitled Deal"}
                     </Link>
+                    {inactivity.isInactive && (
+                      <span
+                        className={`table-inactive-pill table-inactive-${inactivity.urgency}`}
+                        title={inactivity.tooltipText}
+                      >
+                        ⚠️ {inactivity.badgeLabel}
+                      </span>
+                    )}
                   </div>
                 </td>
 

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { getCountryBadge } from "../../utils/countryHelper";
 import { getDealHeadline } from "../../utils/dealHeadlineHelper";
+import { getDealInactivity } from "../../utils/inactivityHelper";
 import "../../styles/deals/deal-card.css";
 
 function DealCard({ deal, onClick }) {
@@ -52,12 +53,13 @@ function DealCard({ deal, onClick }) {
     : null;
 
   const stageName = deal?.stage_name || deal?.deal_stage_name || null;
+  const inactivity = getDealInactivity(deal);
 
   return (
     <div
       id={`deal-grid-card-${deal?.deal_id}`}
       data-deal-id={deal?.deal_id}
-      className="deal-grid-card"
+      className={`deal-grid-card ${inactivity.isInactive ? `deal-card-inactive deal-inactive-${inactivity.urgency}` : ""}`}
       onClick={handleOpenDeal}
       onAuxClick={handleOpenDeal}
       role="button"
@@ -106,6 +108,15 @@ function DealCard({ deal, onClick }) {
             <span className="status-dot" />
             {status}
           </span>
+          {inactivity.isInactive && (
+            <span
+              className={`deal-inactive-badge deal-inactive-badge-${inactivity.urgency}`}
+              title={inactivity.tooltipText}
+            >
+              <span className="inactive-pulse-dot" />
+              <span>{inactivity.badgeLabel}</span>
+            </span>
+          )}
         </div>
       </div>
 

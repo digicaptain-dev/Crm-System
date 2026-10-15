@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCountryBadge } from "../../utils/countryHelper";
 import { getDealHeadline } from "../../utils/dealHeadlineHelper";
+import { getDealInactivity } from "../../utils/inactivityHelper";
 import "../../styles/pipeline/pipeline-deal-card.css";
 
 function PipelineDealCard({
@@ -115,12 +116,13 @@ function PipelineDealCard({
   const country = getCountryBadge(deal);
   const headline = getDealHeadline(deal);
   const contactName = deal?.contact_person || deal?.deal_owner || "";
+  const inactivity = getDealInactivity(deal);
 
   return (
     <div
       id={`pipeline-deal-card-${deal?.deal_id}`}
       data-deal-id={deal?.deal_id}
-      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""} ${showMoveMenu ? "has-popover-open" : ""}`}
+      className={`pipeline-deal-card ${updating ? "pipeline-deal-card-updating" : ""} ${countdown !== null ? "pipeline-deal-card-counting-down" : ""} ${showMoveMenu ? "has-popover-open" : ""} ${inactivity.isInactive ? `deal-card-inactive deal-inactive-${inactivity.urgency}` : ""}`}
       draggable={!updating && !showMoveMenu && countdown === null}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -142,6 +144,16 @@ function PipelineDealCard({
           <span className={`deal-status-pill status-${statusClass}`}>
             {status}
           </span>
+
+          {inactivity.isInactive && (
+            <span
+              className={`deal-inactive-badge deal-inactive-badge-${inactivity.urgency}`}
+              title={inactivity.tooltipText}
+            >
+              <span className="inactive-pulse-dot" />
+              <span>{inactivity.badgeLabel}</span>
+            </span>
+          )}
 
           {deal?.screenshot_url && (
             <span

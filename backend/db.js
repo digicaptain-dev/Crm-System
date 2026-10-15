@@ -64,6 +64,11 @@ const db = mysql.createPool(poolConfig);
             console.error('[DB SCHEMA ERROR] Failed creating notifications table:', notifErr.message);
         }
 
+        // Ensure activities table has index on deal_id and created_at for fast inactivity check
+        try {
+            await connection.query(`ALTER TABLE activities ADD INDEX idx_deal_created (deal_id, created_at)`);
+        } catch (idxErr) {}
+
         // Ensure activities, comments, and users tables are utf8mb4_general_ci to match deals table
         try {
             await connection.query(`ALTER TABLE activities CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`);

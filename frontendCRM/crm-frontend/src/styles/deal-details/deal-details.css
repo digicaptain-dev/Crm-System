@@ -457,6 +457,177 @@
   text-transform: capitalize;
 }
 
+/* Priority & Status Badges */
+.priority-high {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.priority-medium {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.priority-low {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.deal-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+}
+
+/* Priority Dropdown Popover */
+.deal-priority-dropdown-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.deal-priority-clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.deal-priority-clickable:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.deal-priority-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 190px;
+  background: #ffffff;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16), 0 3px 8px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  overflow: hidden;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.deal-priority-popover.card-priority-popover {
+  right: 0;
+  left: auto;
+}
+
+.priority-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priority-popover-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: all 0.12s ease;
+}
+
+.priority-popover-close:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.priority-popover-list {
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.priority-popover-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.priority-popover-item:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.priority-popover-item.priority-item-high:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.priority-popover-item.priority-item-medium:hover:not(:disabled) {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.priority-popover-item.priority-item-low:hover:not(:disabled) {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.priority-popover-item.current {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: default;
+}
+
+.priority-item-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-item-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.priority-item-current-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
 .deal-id-chip {
   display: inline-flex;
   align-items: center;
@@ -2052,5 +2223,57 @@
 .website-link:hover {
   text-decoration: underline;
   color: #1d4ed8 !important;
+}
+
+/* =========================================================
+   INACTIVE LEAD ALERT BANNER & BADGE
+   ========================================================= */
+.deal-pill-inactive {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+.deal-pill-inactive.deal-inactive-danger {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+.deal-inactivity-alert-banner {
+  margin-top: 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  animation: countdownFadeIn 0.2s ease-out;
+}
+
+.deal-inactivity-alert-banner.urgency-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left-color: #ef4444;
+}
+
+.inactivity-alert-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.deal-inactivity-alert-banner.urgency-danger .inactivity-alert-inner {
+  color: #991b1b;
+}
+
+.inactivity-alert-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.inactivity-alert-body {
+  line-height: 1.4;
 }
 
